@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#1a1410" />
+<title>What Should I Eat?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14100d;
+    --bg-elev: #1f1813;
+    --bg-card: #261d17;
+    --bg-card-hover: #322519;
+    --border: #3a2a1f;
+    --border-strong: #5a4232;
+    --text: #f5e9d8;
+    --text-dim: #b8a48d;
+    --text-muted: #8a7560;
+    --terracotta: #d97757;
+    --terracotta-deep: #b85a3d;
+    --cream: #f5e9d8;
+    --forest: #6b8a4a;
+    --forest-deep: #4a6b3a;
+    --gold: #d4a574;
+    --shadow: 0 12px 40px rgba(0,0,0,0.5);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(217, 119, 87, 0.08), transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(107, 138, 74, 0.07), transparent 45%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, .serif {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  .app {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
+    position: relative;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 0 6px;
+  }
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-mark {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--terracotta), var(--gold));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .brand small { color: var(--text-muted); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; margin-left: 6px;}
+
+  .progress {
+    margin-top: 10px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+  }
+  .progress.hidden { opacity: 0; }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--terracotta), var(--gold));
+    width: 0%;
+    transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 2px;
+  }
+  .progress-label {
+    margin-top: 8px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 32px 0 40px;
+    position: relative;
+    min-height: 0;
+  }
+
+  .screen { animation: screenIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes screenIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeOut { to { opacity: 0; transform: translateY(-12px); } }
+  .screen.leaving { animation: fadeOut 0.25s ease forwards; }
+
+  .welcome { text-align: center; padding: 24px 0; }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    font-weight: 600;
+    margin-bottom: 18px;
+  }
+  .welcome h1 {
+    font-size: clamp(40px, 9vw, 64px);
+    margin-bottom: 18px;
+    color: var(--cream);
+  }
+  .welcome h1 em {
+    font-style: italic;
+    color: var(--terracotta);
+    font-weight: 500;
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--text-dim);
+    max-width: 460px;
+    margin: 0 auto 36px;
+    line-height: 1.55;
+  }
+  .hero-art {
+    width: 220px;
+    height: 220px;
+    margin: 0 auto 8px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 30%, var(--gold), transparent 60%),
+      radial-gradient(circle at 70% 70%, var(--terracotta), transparent 65%),
+      radial-gradient(circle at 50% 50%, var(--forest-deep), var(--bg-elev));
+    box-shadow: 0 20px 60px rgba(217,119,87,0.15), inset 0 0 40px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 92px;
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .q-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .q-title {
+    font-size: clamp(28px, 5.5vw, 40px);
+    margin-bottom: 10px;
+    color: var(--cream);
+  }
+  .q-sub {
+    color: var(--text-dim);
+    font-size: 15px;
+    margin-bottom: 28px;
+    line-height: 1.55;
+  }
+
+  .options { display: grid; gap: 10px; grid-template-columns: 1fr; }
+  .options.cols-2 { grid-template-columns: 1fr 1fr; }
+  .options.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .opt {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.18s ease;
+    width: 100%;
+    animation: optIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .opt:hover { background: var(--bg-card-hover); border-color: var(--border-strong); transform: translateY(-1px); }
+  .opt:active { transform: scale(0.99); }
+  .opt.selected {
+    background: linear-gradient(135deg, rgba(217,119,87,0.12), rgba(212,165,116,0.08));
+    border-color: var(--terracotta);
+    box-shadow: 0 0 0 1px var(--terracotta) inset;
+  }
+  .opt.selected::after { content: '✓'; margin-left: auto; color: var(--terracotta); font-weight: 700; }
+  .opt-emoji { font-size: 22px; flex-shrink: 0; width: 32px; text-align: center; }
+  .opt-content { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .opt-label { font-weight: 500; }
+  .opt-desc { font-size: 13px; color: var(--text-muted); font-weight: 400; }
+
+  .opt.chip { border-radius: 999px; padding: 9px 16px; width: auto; font-size: 14px; gap: 6px; }
+  .opt.chip .opt-emoji { font-size: 16px; width: auto; }
+
+  @keyframes optIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .nav-row {
+    margin-top: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+  }
+  .btn {
+    background: var(--terracotta);
+    color: #1a0e08;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 28px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { background: var(--terracotta-deep); transform: translateY(-1px); color: var(--cream); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-lg { padding: 17px 36px; font-size: 16px; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 12px 22px;
+  }
+  .btn-ghost:hover { background: var(--bg-card); color: var(--cream); border-color: var(--border-strong); }
+
+  .btn-link {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 8px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--border-strong);
+  }
+  .btn-link:hover { color: var(--terracotta); }
+
+  /* ---------- Targets screen ---------- */
+  .targets-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .field {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    transition: border-color 0.15s ease;
+  }
+  .field:focus-within { border-color: var(--terracotta); }
+  .field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .field-row { display: flex; align-items: baseline; gap: 6px; }
+  .field input {
+    background: transparent;
+    border: none;
+    color: var(--cream);
+    font: inherit;
+    font-size: 22px;
+    font-weight: 600;
+    font-family: 'Fraunces', serif;
+    width: 100%;
+    outline: none;
+    padding: 0;
+  }
+  .field-unit { color: var(--text-muted); font-size: 13px; font-weight: 500; }
+  .targets-hint {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--forest);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+  .targets-hint strong { color: var(--cream); }
+
+  .target-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: rgba(107, 138, 74, 0.12);
+    border: 1px solid rgba(107, 138, 74, 0.3);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .target-banner .label { color: var(--forest); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
+  .target-banner .num { color: var(--cream); font-weight: 600; }
+
+  /* ---------- Location screen ---------- */
+  .loc-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .loc-icon {
+    width: 64px; height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--terracotta), var(--gold));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+  }
+  .zip-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .zip-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 12px 18px;
+    font: inherit;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .zip-input:focus { border-color: var(--terracotta); }
+
+  /* Free-text avoid input (on the avoid question) */
+  .custom-avoid {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font: inherit;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s ease;
+    margin-top: 14px;
+  }
+  .custom-avoid:focus { border-color: var(--terracotta); }
+  .custom-avoid::placeholder { color: var(--text-muted); }
+  .custom-avoid-label {
+    margin-top: 18px;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  /* ---------- Loading ---------- */
+  .loading { text-align: center; padding: 40px 0; }
+  .pot {
+    width: 110px;
+    height: 110px;
+    margin: 0 auto 24px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    animation: stir 2.5s ease-in-out infinite;
+  }
+  @keyframes stir { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+  .steam {
+    position: absolute;
+    top: -10px; left: 50%;
+    width: 6px; height: 30px;
+    background: linear-gradient(to top, var(--text-dim), transparent);
+    border-radius: 3px;
+    opacity: 0;
+    transform: translateX(-50%);
+    animation: steam 2.4s ease-in-out infinite;
+  }
+  .steam.s2 { left: 38%; animation-delay: 0.6s; }
+  .steam.s3 { left: 62%; animation-delay: 1.2s; }
+  @keyframes steam {
+    0% { opacity: 0; transform: translate(-50%, 0) scale(0.8); }
+    40% { opacity: 0.6; }
+    100% { opacity: 0; transform: translate(-50%, -30px) scale(1.4); }
+  }
+  .loading h2 { font-size: 26px; margin-bottom: 8px; }
+  .loading-msg {
+    color: var(--text-dim);
+    font-size: 15px;
+    min-height: 22px;
+    transition: opacity 0.4s ease;
+  }
+
+  /* ---------- Results ---------- */
+  .summary-card {
+    background: linear-gradient(135deg, rgba(217,119,87,0.08), rgba(107,138,74,0.05));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+    animation: revealUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes revealUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .summary-card h2 { font-size: 24px; margin-bottom: 8px; color: var(--cream); }
+  .summary-card p { color: var(--text-dim); }
+
+  /* dish list (with macros) */
+  .dish-list { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .dish-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.18);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .dish-row .name { font-family: 'Fraunces', serif; font-weight: 600; color: var(--cream); font-size: 16px; }
+  .dish-row .macros { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dish-row .macros .kcal { color: var(--gold); font-weight: 600; }
+
+  .section-title {
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 28px 0 12px;
+    font-weight: 600;
+  }
+
+  .place-card, .recipe-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    animation: revealUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: all 0.18s ease;
+    text-decoration: none;
+    color: inherit;
+  }
+  .place-card:hover, .recipe-card:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+  }
+  .place-card .pin {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--forest), var(--forest-deep));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .recipe-card .pin {
+    background: linear-gradient(135deg, var(--terracotta), var(--gold));
+  }
+  .place-body { flex: 1; min-width: 0; }
+  .place-name {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    color: var(--cream);
+  }
+  .place-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .place-meta .dot { color: var(--border-strong); }
+  .place-action {
+    color: var(--terracotta);
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .recipe-card { flex-direction: column; }
+  .recipe-card .pin { margin-bottom: 4px; }
+  .recipe-macros {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .recipe-macros .pill {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+  .recipe-macros .pill .v { color: var(--cream); font-weight: 600; }
+  .recipe-macros .pill.kcal .v { color: var(--gold); }
+  .recipe-ing {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-top: 8px;
+    line-height: 1.55;
+  }
+  .recipe-ing strong { color: var(--cream); font-weight: 600; }
+
+  .results-actions {
+    margin-top: 28px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .notice {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--terracotta);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translate(-50%, 20px);
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    color: var(--cream);
+    padding: 12px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 200;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast .check { color: var(--forest); font-weight: 700; }
+
+  footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 16px 0;
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 480px) {
+    .options.cols-2 { grid-template-columns: 1fr; }
+    .welcome h1 { font-size: 44px; }
+    .hero-art { width: 180px; height: 180px; font-size: 72px; }
+    .btn-lg { padding: 16px 28px; }
+    .nav-row { flex-direction: row; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">🍴</span>
+      <span>Hungry<small>find your craving</small></span>
+    </div>
+  </header>
+
+  <div id="progress" class="progress hidden"><div id="progressBar" class="progress-bar"></div></div>
+  <div id="progressLabel" class="progress-label" style="display:none;"><span id="progressStep"></span><span id="progressTotal"></span></div>
+
+  <main id="main"></main>
+
+  <footer>Crafted with ❤ &middot; Macros are rough estimates &middot; Nearby data via OpenStreetMap</footer>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"><span class="check">✓</span><span id="toastMsg">Copied to clipboard</span></div>
+
+<script>
+/* ============================================================
+   Question definitions
+============================================================ */
+const QUESTIONS = [
+  {
+    id: 'mood',
+    eyebrow: 'First things first',
+    title: "What's the mood?",
+    sub: 'Sets the whole tone — pick whatever feels right today.',
+    type: 'single',
+    layout: 'list',
+    options: [
+      { value: 'comfort',    emoji: '🍲', label: 'Comfort food',     desc: 'Warm, familiar, hits the spot' },
+      { value: 'light',      emoji: '🥗', label: 'Something light',  desc: 'Fresh and easy on the stomach' },
+      { value: 'adventurous',emoji: '🌶️', label: 'Adventurous',     desc: 'Surprise me with something new' },
+      { value: 'classic',    emoji: '🍔', label: 'Just a classic',   desc: "Don't overthink it" },
+    ],
+  },
+  {
+    id: 'health',
+    eyebrow: 'How are we feeling',
+    title: 'Healthy or full indulgence?',
+    sub: "No judgment — sometimes you need the cheese.",
+    type: 'single',
+    layout: 'list',
+    options: [
+      { value: 'healthy',   emoji: '🥦', label: 'Healthy',          desc: 'Lean, veggie-forward, balanced macros' },
+      { value: 'balanced',  emoji: '⚖️', label: 'Balanced',         desc: "A little of both — I'm reasonable" },
+      { value: 'indulgent', emoji: '🧀', label: 'Full indulgence',  desc: 'Cheese, butter, fried, yes' },
+    ],
+  },
+  {
+    id: 'cuisine',
+    eyebrow: 'The big question',
+    title: 'Any cuisine in mind?',
+    sub: 'Pick one or let us roll the dice.',
+    type: 'single',
+    layout: 'cols',
+    options: [
+      { value: 'italian',       emoji: '🍝', label: 'Italian' },
+      { value: 'mexican',       emoji: '🌮', label: 'Mexican' },
+      { value: 'american',      emoji: '🍔', label: 'American' },
+      { value: 'asian',         emoji: '🥢', label: 'Asian' },
+      { value: 'mediterranean', emoji: '🫒', label: 'Mediterranean' },
+      { value: 'indian',        emoji: '🍛', label: 'Indian' },
+      { value: 'japanese',      emoji: '🍣', label: 'Japanese' },
+      { value: 'surprise',      emoji: '🎲', label: 'Surprise me' },
+    ],
+  },
+  {
+    id: 'avoid',
+    eyebrow: 'Anything to skip',
+    title: 'Anything to avoid?',
+    sub: 'Multi-select. Skip if nothing applies.',
+    type: 'multi',
+    layout: 'chips',
+    optional: true,
+    options: [
+      { value: 'gluten',    emoji: '🌾', label: 'Gluten' },
+      { value: 'dairy',     emoji: '🥛', label: 'Dairy' },
+      { value: 'spicy',     emoji: '🔥', label: 'Spicy' },
+      { value: 'seafood',   emoji: '🐟', label: 'Seafood' },
+      { value: 'red-meat',  emoji: '🥩', label: 'Red meat' },
+      { value: 'pork',      emoji: '🥓', label: 'Pork' },
+      { value: 'nuts',      emoji: '🥜', label: 'Nuts' },
+      { value: 'shellfish', emoji: '🦐', label: 'Shellfish' },
+      { value: 'eggs',      emoji: '🥚', label: 'Eggs' },
+    ],
+  },
+  {
+    id: 'format',
+    eyebrow: 'How should it happen',
+    title: 'How are we eating this?',
+    sub: 'Sit down, grab and go, or in our pajamas.',
+    type: 'single',
+    layout: 'list',
+    options: [
+      { value: 'sit-down',    emoji: '🍽️', label: 'Sit-down restaurant', desc: 'Real plates, table service' },
+      { value: 'fast-casual', emoji: '🥡', label: 'Fast casual',          desc: 'Order at counter, eat in or out' },
+      { value: 'delivery',    emoji: '🛵', label: 'Takeout or delivery',  desc: 'Bring it to me' },
+      { value: 'cook',        emoji: '👨‍🍳', label: 'Cook at home',        desc: "I've got time and ambition" },
+    ],
+  },
+  {
+    id: 'vibe',
+    eyebrow: 'Who is eating',
+    title: "Who's eating?",
+    sub: 'Helps us match the energy.',
+    type: 'single',
+    layout: 'cols',
+    options: [
+      { value: 'solo',   emoji: '🧘', label: 'Solo' },
+      { value: 'date',   emoji: '🌹', label: 'Date night' },
+      { value: 'family', emoji: '👨‍👩‍👧', label: 'Family with kids' },
+      { value: 'group',  emoji: '🥂', label: 'Group of friends' },
+    ],
+  },
+  {
+    id: 'budget',
+    eyebrow: 'The damage',
+    title: "What's the budget?",
+    sub: 'Be honest. Future you will thank you.',
+    type: 'single',
+    layout: 'cols',
+    options: [
+      { value: '$',   emoji: '💵', label: '$',   desc: 'Easy on the wallet' },
+      { value: '$$',  emoji: '💰', label: '$$',  desc: 'Mid-range, treat night' },
+      { value: '$$$', emoji: '💎', label: '$$$', desc: "Going for it" },
+    ],
+  },
+  {
+    id: 'distance',
+    eyebrow: 'Last one',
+    title: 'How far will you go?',
+    sub: 'For the right meal, of course.',
+    type: 'single',
+    layout: 'list',
+    options: [
+      { value: '1',    emoji: '🚶',  label: 'Under 1 mile',  desc: 'Walking distance' },
+      { value: '3',    emoji: '🚗',  label: 'Under 3 miles', desc: 'Quick drive' },
+      { value: 'any',  emoji: '🛣️', label: 'Anywhere',      desc: "I'll travel for it" },
+    ],
+  },
+];
+
+const LOADING_MSGS = [
+  'Consulting the culinary oracle…',
+  'Whisking flavors together…',
+  'Sniffing out the perfect bite…',
+  'Polling our panel of imaginary chefs…',
+  'Cross-referencing your cravings…',
+  'Doing a little napkin math on the macros…',
+  'Getting the kitchen warmed up…',
+];
+
+/* ============================================================
+   Nutrition profiles (rough per-serving estimates)
+   kcal = calories, p = protein g, c = carbs g, f = fat g
+============================================================ */
+const NUTRITION_PROFILES = {
+  'salad-light':     { kcal: 320,  p: 12, c: 30,  f: 14 },
+  'salad-protein':   { kcal: 480,  p: 38, c: 25,  f: 24 },
+  'lean-fish':       { kcal: 460,  p: 42, c: 25,  f: 18 },
+  'lean-protein':    { kcal: 540,  p: 46, c: 30,  f: 22 },
+  'grain-bowl':      { kcal: 580,  p: 25, c: 75,  f: 18 },
+  'rice-bowl':       { kcal: 620,  p: 35, c: 75,  f: 18 },
+  'pasta-light':     { kcal: 620,  p: 22, c: 85,  f: 18 },
+  'pasta-rich':      { kcal: 850,  p: 30, c: 80,  f: 38 },
+  'pizza-thin':      { kcal: 720,  p: 30, c: 80,  f: 28 },
+  'pizza-loaded':    { kcal: 920,  p: 38, c: 85,  f: 42 },
+  'taco-trio':       { kcal: 580,  p: 32, c: 55,  f: 22 },
+  'wrap-handheld':   { kcal: 620,  p: 32, c: 65,  f: 22 },
+  'curry-light':     { kcal: 600,  p: 28, c: 75,  f: 18 },
+  'curry-rich':      { kcal: 780,  p: 32, c: 75,  f: 36 },
+  'noodle-soup':     { kcal: 540,  p: 30, c: 75,  f: 12 },
+  'ramen-rich':      { kcal: 820,  p: 38, c: 85,  f: 32 },
+  'fried-indulgent': { kcal: 950,  p: 42, c: 70,  f: 52 },
+  'burger-platter':  { kcal: 1050, p: 45, c: 90,  f: 55 },
+  'sushi-set':       { kcal: 520,  p: 35, c: 80,  f: 8  },
+  'small-plates':    { kcal: 480,  p: 22, c: 40,  f: 24 },
+  'meat-feast':      { kcal: 950,  p: 70, c: 30,  f: 58 },
+  'snack':           { kcal: 340,  p: 10, c: 55,  f: 10 },
+  'sandwich':        { kcal: 680,  p: 32, c: 70,  f: 26 },
+};
+
+function getProfile(prof) {
+  return NUTRITION_PROFILES[prof] || NUTRITION_PROFILES['lean-protein'];
+}
+
+/* ============================================================
+   Food database
+============================================================ */
+const FOOD_DATA = {
+  italian: {
+    label: 'Italian', osm: ['italian','pizza'],
+    queries: ['italian restaurants','pizza','pasta'],
+    dishes: [
+      { name: 'Margherita pizza',          tags: ['comfort','classic','balanced','indulgent'], prof: 'pizza-thin' },
+      { name: 'Wood-fired pepperoni pizza',tags: ['comfort','classic','indulgent'],            prof: 'pizza-loaded' },
+      { name: 'Lasagna',                   tags: ['comfort','indulgent'],                       prof: 'pasta-rich' },
+      { name: 'Cacio e pepe',              tags: ['comfort','classic','balanced','indulgent'], prof: 'pasta-light' },
+      { name: 'Spaghetti carbonara',       tags: ['comfort','indulgent','classic'],            prof: 'pasta-rich' },
+      { name: 'Mushroom risotto',          tags: ['comfort','adventurous','balanced','indulgent'], prof: 'pasta-rich' },
+      { name: 'Eggplant parmesan',         tags: ['comfort','classic','indulgent','balanced'], prof: 'pasta-rich' },
+      { name: 'Caprese salad',             tags: ['light','healthy','balanced','classic'],     prof: 'salad-light' },
+      { name: 'Arugula and prosciutto pizza', tags: ['light','classic','balanced'],            prof: 'pizza-thin' },
+      { name: 'Grilled branzino',          tags: ['light','healthy','adventurous'],            prof: 'lean-fish' },
+      { name: 'Linguine alle vongole',     tags: ['light','adventurous','balanced'],           prof: 'pasta-light' },
+      { name: 'Truffle tagliatelle',       tags: ['adventurous','indulgent'],                   prof: 'pasta-rich' },
+      { name: 'Osso buco',                 tags: ['adventurous','indulgent','comfort'],         prof: 'meat-feast' },
+      { name: 'Burrata with heirloom tomatoes', tags: ['light','balanced','indulgent','classic'], prof: 'small-plates' },
+      { name: 'Chicken piccata',           tags: ['classic','balanced','healthy'],             prof: 'lean-protein' },
+    ],
+    recipes: [
+      { name: 'Cacio e Pepe', brief: 'Three ingredients, deeply Roman, deeply right.', ingredients: ['spaghetti','pecorino romano','black pepper','butter','olive oil','sea salt'], tags: ['comfort','classic','balanced','indulgent'], prof: 'pasta-light' },
+      { name: 'Sheet-pan chicken parm', brief: 'Crispy, saucy, cheesy — minimal cleanup.', ingredients: ['chicken breasts','breadcrumbs','parmesan','mozzarella','marinara','basil','olive oil'], tags: ['comfort','classic','indulgent'], prof: 'pasta-rich' },
+      { name: 'Caprese salad', brief: 'Three ingredients, peak summer energy.', ingredients: ['tomatoes','fresh mozzarella','basil','olive oil','balsamic glaze','flaky salt'], tags: ['light','healthy','balanced','classic'], prof: 'salad-light' },
+      { name: 'Mushroom risotto', brief: 'Slow stir, big payoff.', ingredients: ['arborio rice','mixed mushrooms','shallots','white wine','parmesan','butter','thyme','vegetable stock'], tags: ['comfort','balanced','indulgent','adventurous'], prof: 'pasta-rich' },
+    ],
+  },
+  mexican: {
+    label: 'Mexican', osm: ['mexican'],
+    queries: ['mexican restaurants','tacos','taqueria'],
+    dishes: [
+      { name: 'Al pastor tacos',     tags: ['comfort','classic','balanced','adventurous'], prof: 'taco-trio' },
+      { name: 'Carne asada tacos',   tags: ['comfort','classic','balanced'],               prof: 'taco-trio' },
+      { name: 'Carnitas tacos',      tags: ['comfort','classic','indulgent'],              prof: 'taco-trio' },
+      { name: 'Baja fish tacos',     tags: ['light','balanced','classic'],                 prof: 'taco-trio' },
+      { name: 'Halibut ceviche',     tags: ['light','healthy','adventurous'],              prof: 'salad-light' },
+      { name: 'Mole poblano',        tags: ['adventurous','indulgent'],                     prof: 'meat-feast' },
+      { name: 'Birria tacos',        tags: ['comfort','indulgent','adventurous'],          prof: 'fried-indulgent' },
+      { name: 'Chiles en nogada',    tags: ['adventurous','balanced'],                      prof: 'curry-rich' },
+      { name: 'Chicken burrito bowl',tags: ['balanced','healthy','classic'],               prof: 'rice-bowl' },
+      { name: 'Enchiladas verdes',   tags: ['comfort','classic','balanced'],               prof: 'pasta-rich' },
+      { name: 'Elote',               tags: ['comfort','classic','indulgent'],              prof: 'snack' },
+      { name: 'Quesabirria',         tags: ['comfort','indulgent'],                         prof: 'fried-indulgent' },
+      { name: 'Tlayuda',             tags: ['adventurous','classic'],                       prof: 'pizza-thin' },
+      { name: 'Chilaquiles verdes',  tags: ['comfort','classic','balanced'],               prof: 'pasta-rich' },
+    ],
+    recipes: [
+      { name: 'Sheet-pan chicken fajitas', brief: 'Sizzling peppers, charred chicken, 25 minutes.', ingredients: ['chicken thighs','bell peppers','red onion','cumin','smoked paprika','lime','tortillas','cilantro'], tags: ['comfort','classic','balanced'], prof: 'wrap-handheld' },
+      { name: 'Al pastor tacos', brief: 'Pineapple, achiote, pork — the holy trinity.', ingredients: ['pork shoulder','pineapple','achiote paste','guajillo chiles','garlic','onion','corn tortillas','cilantro','lime'], tags: ['comfort','classic','adventurous','indulgent'], prof: 'taco-trio' },
+      { name: 'Halibut ceviche', brief: 'Citrus does the cooking. You just slice.', ingredients: ['halibut','lime','red onion','cilantro','jalapeño','avocado','sea salt','tortilla chips'], tags: ['light','healthy','adventurous'], prof: 'salad-light' },
+      { name: 'Chilaquiles verdes', brief: 'Tortilla chips swimming in salsa, crowned with an egg.', ingredients: ['corn tortillas','tomatillos','jalapeños','garlic','cilantro','queso fresco','crema','eggs','onion'], tags: ['comfort','classic','balanced'], prof: 'pasta-rich' },
+    ],
+  },
+  american: {
+    label: 'American', osm: ['american','burger','barbecue'],
+    queries: ['american restaurants','burgers','bbq'],
+    dishes: [
+      { name: 'Smash burger',           tags: ['comfort','classic','indulgent'],              prof: 'burger-platter' },
+      { name: 'Buttermilk fried chicken',tags: ['comfort','classic','indulgent'],             prof: 'fried-indulgent' },
+      { name: 'Mac and cheese',         tags: ['comfort','classic','indulgent'],              prof: 'pasta-rich' },
+      { name: 'Smoked brisket sandwich',tags: ['comfort','classic','indulgent'],              prof: 'sandwich' },
+      { name: 'Loaded nachos',          tags: ['comfort','indulgent'],                         prof: 'fried-indulgent' },
+      { name: 'Cobb salad',             tags: ['light','balanced','classic'],                 prof: 'salad-protein' },
+      { name: 'Grain bowl',             tags: ['light','healthy','balanced'],                  prof: 'grain-bowl' },
+      { name: 'Cedar-plank salmon',     tags: ['light','healthy','balanced'],                  prof: 'lean-fish' },
+      { name: 'Buffalo wings',          tags: ['comfort','classic','indulgent'],              prof: 'fried-indulgent' },
+      { name: 'Korean-fried-chicken sandwich', tags: ['adventurous','indulgent'],             prof: 'fried-indulgent' },
+      { name: 'Beef tartare',           tags: ['adventurous','indulgent'],                     prof: 'small-plates' },
+      { name: 'New England lobster roll',tags: ['classic','indulgent','adventurous'],         prof: 'sandwich' },
+      { name: 'Avocado toast',          tags: ['light','healthy','classic'],                   prof: 'snack' },
+      { name: 'Smoked BBQ ribs',        tags: ['comfort','classic','indulgent'],              prof: 'meat-feast' },
+      { name: 'Kale Caesar',            tags: ['light','healthy','balanced','classic'],       prof: 'salad-protein' },
+    ],
+    recipes: [
+      { name: 'Smash burgers', brief: 'Thin patties, crispy edges, secret sauce. The good stuff.', ingredients: ['ground beef 80/20','american cheese','potato buns','yellow onion','pickles','mayo','ketchup','mustard'], tags: ['comfort','classic','indulgent'], prof: 'burger-platter' },
+      { name: 'Roast sheet-pan salmon', brief: '20 minutes, healthy enough to feel virtuous.', ingredients: ['salmon fillets','olive oil','lemon','garlic','dill','asparagus','baby potatoes','salt','pepper'], tags: ['light','healthy','balanced','classic'], prof: 'lean-fish' },
+      { name: 'Crispy buffalo wings', brief: 'Game day, dish form.', ingredients: ['chicken wings','baking powder','butter','hot sauce','garlic powder','blue cheese','celery'], tags: ['comfort','classic','indulgent'], prof: 'fried-indulgent' },
+      { name: 'Kale Caesar', brief: 'Better than the romaine version. Fight me.', ingredients: ['lacinato kale','parmesan','sourdough','anchovies','garlic','lemon','egg yolk','olive oil'], tags: ['light','healthy','balanced','classic'], prof: 'salad-protein' },
+    ],
+  },
+  asian: {
+    label: 'Asian', osm: ['asian','chinese','thai','vietnamese','korean'],
+    queries: ['asian restaurants','thai food','pho','dim sum','korean bbq'],
+    dishes: [
+      { name: 'Beef pho',              tags: ['comfort','classic','balanced'],            prof: 'noodle-soup' },
+      { name: 'Pad thai',              tags: ['comfort','classic','balanced'],            prof: 'noodle-soup' },
+      { name: 'Drunken noodles',       tags: ['comfort','adventurous'],                    prof: 'noodle-soup' },
+      { name: 'Bibimbap',              tags: ['balanced','classic','healthy'],             prof: 'rice-bowl' },
+      { name: 'Korean fried chicken',  tags: ['comfort','indulgent','classic'],            prof: 'fried-indulgent' },
+      { name: 'Banh mi',               tags: ['classic','balanced','comfort'],             prof: 'sandwich' },
+      { name: 'Mapo tofu',             tags: ['adventurous','comfort','indulgent'],        prof: 'curry-rich' },
+      { name: 'Soup dumplings',        tags: ['adventurous','classic','balanced','comfort'], prof: 'small-plates' },
+      { name: 'Larb',                  tags: ['light','healthy','adventurous'],            prof: 'salad-protein' },
+      { name: 'Green papaya salad',    tags: ['light','healthy','adventurous'],            prof: 'salad-light' },
+      { name: 'Beef rendang',          tags: ['adventurous','indulgent','comfort'],        prof: 'curry-rich' },
+      { name: 'Wonton soup',           tags: ['comfort','classic','light','balanced'],     prof: 'noodle-soup' },
+      { name: 'Korean BBQ',            tags: ['indulgent','classic','adventurous'],        prof: 'meat-feast' },
+      { name: 'Char kway teow',        tags: ['adventurous','classic','indulgent'],        prof: 'pasta-rich' },
+      { name: 'Fresh summer rolls',    tags: ['light','healthy','classic'],                prof: 'snack' },
+    ],
+    recipes: [
+      { name: 'Garlic noodles', brief: '15 minutes. Wildly garlicky. Cancel kissing plans.', ingredients: ['lo mein noodles','garlic','butter','soy sauce','oyster sauce','fish sauce','brown sugar','green onion'], tags: ['comfort','classic','indulgent'], prof: 'pasta-rich' },
+      { name: 'Quick chicken pho', brief: "Cheater's broth, full-strength flavor.", ingredients: ['rice noodles','chicken broth','rotisserie chicken','star anise','cinnamon','ginger','onion','fish sauce','bean sprouts','thai basil','lime'], tags: ['comfort','classic','balanced','healthy'], prof: 'noodle-soup' },
+      { name: 'Bibimbap bowls', brief: 'Crispy rice, runny egg, gochujang. Healthy by accident.', ingredients: ['short-grain rice','spinach','carrots','bean sprouts','shiitake mushrooms','ground beef','eggs','gochujang','sesame oil','soy sauce'], tags: ['balanced','classic','healthy','adventurous'], prof: 'rice-bowl' },
+      { name: 'Larb-style chicken lettuce wraps', brief: 'Bright, herby, crunchy, fast.', ingredients: ['ground chicken','shallots','lime','fish sauce','toasted rice powder','mint','cilantro','thai chiles','butter lettuce'], tags: ['light','healthy','adventurous'], prof: 'salad-protein' },
+    ],
+  },
+  mediterranean: {
+    label: 'Mediterranean', osm: ['mediterranean','greek','lebanese','turkish'],
+    queries: ['mediterranean restaurants','greek food','falafel','hummus'],
+    dishes: [
+      { name: 'Chicken shawarma',       tags: ['comfort','classic','balanced'],             prof: 'wrap-handheld' },
+      { name: 'Falafel platter',        tags: ['classic','healthy','balanced'],             prof: 'grain-bowl' },
+      { name: 'Greek village salad',    tags: ['light','healthy','classic'],                prof: 'salad-light' },
+      { name: 'Lamb gyro',              tags: ['comfort','classic','indulgent'],            prof: 'wrap-handheld' },
+      { name: 'Hummus and warm pita',   tags: ['comfort','classic','balanced'],             prof: 'small-plates' },
+      { name: 'Grilled octopus',        tags: ['adventurous','light','balanced'],           prof: 'lean-fish' },
+      { name: 'Spanakopita',            tags: ['comfort','classic','indulgent'],            prof: 'small-plates' },
+      { name: 'Mezze platter',          tags: ['light','classic','balanced','adventurous'], prof: 'small-plates' },
+      { name: 'Whole grilled branzino', tags: ['light','healthy','classic','adventurous'],  prof: 'lean-fish' },
+      { name: 'Moussaka',               tags: ['comfort','classic','indulgent'],            prof: 'pasta-rich' },
+      { name: 'Tahini grain bowl',      tags: ['healthy','balanced','light'],               prof: 'grain-bowl' },
+      { name: 'Lamb kofta',             tags: ['comfort','adventurous','indulgent'],        prof: 'meat-feast' },
+    ],
+    recipes: [
+      { name: 'Sheet-pan chicken shawarma', brief: 'Yogurt marinade, crispy edges. Weeknight win.', ingredients: ['chicken thighs','yogurt','garlic','lemon','cumin','coriander','paprika','turmeric','olive oil','pita','tahini'], tags: ['comfort','classic','balanced','healthy'], prof: 'wrap-handheld' },
+      { name: 'Crispy chickpea bowls', brief: 'Roasted chickpeas, lemony tahini, herbed everything.', ingredients: ['chickpeas','olive oil','smoked paprika','farro','cucumber','tomato','red onion','tahini','lemon','parsley','mint'], tags: ['light','healthy','balanced'], prof: 'grain-bowl' },
+      { name: 'Lamb kofta', brief: 'Spiced patties, charred edges, cooling yogurt.', ingredients: ['ground lamb','onion','garlic','parsley','cumin','sumac','allspice','greek yogurt','mint','flatbread'], tags: ['comfort','adventurous','indulgent'], prof: 'meat-feast' },
+    ],
+  },
+  indian: {
+    label: 'Indian', osm: ['indian'],
+    queries: ['indian restaurants','curry','tandoori'],
+    dishes: [
+      { name: 'Butter chicken',          tags: ['comfort','classic','indulgent'],          prof: 'curry-rich' },
+      { name: 'Chicken tikka masala',    tags: ['comfort','classic','indulgent'],          prof: 'curry-rich' },
+      { name: 'Saag paneer',             tags: ['comfort','classic','balanced','indulgent'], prof: 'curry-rich' },
+      { name: 'Chana masala',            tags: ['comfort','classic','healthy','balanced'], prof: 'curry-light' },
+      { name: 'Lamb biryani',            tags: ['comfort','classic','indulgent','adventurous'], prof: 'rice-bowl' },
+      { name: 'Tandoori chicken',        tags: ['classic','balanced','healthy'],           prof: 'lean-protein' },
+      { name: 'Masala dosa',             tags: ['adventurous','classic','balanced'],        prof: 'wrap-handheld' },
+      { name: 'Chicken vindaloo',        tags: ['adventurous','indulgent','comfort'],      prof: 'curry-rich' },
+      { name: 'Dal tadka',               tags: ['comfort','classic','healthy','balanced'], prof: 'curry-light' },
+      { name: 'Aloo gobi',               tags: ['classic','healthy','balanced'],            prof: 'curry-light' },
+      { name: 'Pani puri',               tags: ['adventurous','light','classic'],           prof: 'snack' },
+      { name: 'Lamb rogan josh',         tags: ['adventurous','indulgent','comfort'],      prof: 'curry-rich' },
+    ],
+    recipes: [
+      { name: 'Weeknight butter chicken', brief: 'Pantry-friendly, comfort-food legend.', ingredients: ['chicken thighs','yogurt','butter','tomato puree','garam masala','garlic','ginger','heavy cream','basmati rice','cilantro'], tags: ['comfort','classic','indulgent'], prof: 'curry-rich' },
+      { name: 'Chana masala', brief: 'One pot, one hour, deeply spiced.', ingredients: ['chickpeas','onion','tomatoes','garlic','ginger','cumin','coriander','garam masala','turmeric','cilantro','basmati rice'], tags: ['comfort','classic','healthy','balanced'], prof: 'curry-light' },
+      { name: 'Saag paneer', brief: 'Silky greens, golden cubes of cheese.', ingredients: ['paneer','spinach','butter','garlic','ginger','green chile','garam masala','cumin','heavy cream','naan'], tags: ['comfort','classic','indulgent','balanced'], prof: 'curry-rich' },
+    ],
+  },
+  japanese: {
+    label: 'Japanese', osm: ['japanese','sushi','ramen'],
+    queries: ['japanese restaurants','sushi','ramen','izakaya'],
+    dishes: [
+      { name: 'Tonkotsu ramen',     tags: ['comfort','classic','indulgent'],         prof: 'ramen-rich' },
+      { name: 'Spicy miso ramen',   tags: ['comfort','adventurous','indulgent'],     prof: 'ramen-rich' },
+      { name: 'Omakase sushi',      tags: ['adventurous','indulgent','classic'],     prof: 'sushi-set' },
+      { name: 'Salmon nigiri set',  tags: ['light','healthy','classic'],             prof: 'sushi-set' },
+      { name: 'Chirashi bowl',      tags: ['light','healthy','balanced','classic'],  prof: 'rice-bowl' },
+      { name: 'Chicken katsu curry',tags: ['comfort','classic','indulgent'],         prof: 'fried-indulgent' },
+      { name: 'Yakitori platter',   tags: ['classic','balanced','adventurous'],      prof: 'lean-protein' },
+      { name: 'Onigiri',            tags: ['light','classic','balanced'],             prof: 'snack' },
+      { name: 'Hot udon',           tags: ['comfort','classic','balanced'],          prof: 'noodle-soup' },
+      { name: 'Okonomiyaki',        tags: ['adventurous','indulgent','comfort'],     prof: 'pasta-rich' },
+      { name: 'Tempura platter',    tags: ['classic','indulgent'],                    prof: 'fried-indulgent' },
+      { name: 'Salmon donburi',     tags: ['comfort','balanced','classic','healthy'], prof: 'rice-bowl' },
+    ],
+    recipes: [
+      { name: 'Crispy salmon donburi', brief: '20 minutes, peak weeknight.', ingredients: ['salmon','soy sauce','mirin','rice','furikake','cucumber','avocado','scallion','sesame seeds'], tags: ['light','healthy','classic','balanced'], prof: 'rice-bowl' },
+      { name: 'Quick chicken katsu curry', brief: 'Crispy cutlet, glossy curry, big payoff.', ingredients: ['chicken breasts','panko','egg','flour','onion','carrot','japanese curry roux','rice','pickled ginger'], tags: ['comfort','classic','indulgent'], prof: 'fried-indulgent' },
+      { name: 'Miso-glazed eggplant', brief: 'Soft, smoky, sweet, savory. Plant magic.', ingredients: ['japanese eggplant','white miso','mirin','sake','sugar','sesame seeds','rice','scallion'], tags: ['light','adventurous','balanced','healthy'], prof: 'salad-protein' },
+    ],
+  },
+};
+
+const AVOID_KEYWORDS = {
+  gluten:    ['pasta','pizza','bread','sandwich','tortilla','noodle','dumpling','breaded','panini','roll','bao','naan','pita','lasagna','ravioli','gnocchi','spaghetti','linguine','tagliatelle','penne','farro','udon','ramen','pho ',' pho','dosa','samosa','panko','spanakopita','sourdough','flour','crust','wonton','okonomiyaki','tempura','katsu','crouton','toast','breadcrumb','bun'],
+  dairy:     ['cheese','cream','butter','yogurt','milk','parmesan','mozzarella','ricotta','mascarpone','pecorino','burrata','tiramisu','queso','crema','feta','paneer','ghee'],
+  spicy:     ['spicy','jalapeño','jalapeno','sriracha','vindaloo','gochujang','rendang','larb','drunken','mapo','laksa','rogan josh','arrabbiata','diavolo','buffalo'],
+  seafood:   ['fish','tuna','salmon','cod','sea bass','branzino','sushi','sashimi','ceviche','halibut','octopus','calamari','squid','anchovy','nigiri','chirashi','furikake','donburi'],
+  shellfish: ['shrimp','lobster','crab','oyster','mussel','clam','scallop','prawn','vongole'],
+  'red-meat':['beef','steak','burger','lamb','venison','meatball','meatloaf','brisket','short rib','tartare','rendang','rogan josh','asada','birria','kofta','smash','carne','moussaka','osso buco'],
+  pork:      ['pork','bacon','ham','sausage','pancetta','prosciutto','salami','chorizo','carbonara','al pastor','carnitas','tonkotsu','quesabirria'],
+  nuts:      ['almond','walnut','pecan','peanut','cashew','pesto','nut butter','satay'],
+  eggs:      ['egg','omelet','frittata','carbonara','meringue','tempura','katsu','panko'],
+};
+
+/* ============================================================
+   Application state
+============================================================ */
+const state = {
+  step: 0,
+  answers: {},
+  targets: null,        // { kcal, p, c, f } with each optional, or null
+  coords: null,
+  recommendation: null,
+  places: [],
+};
+
+/* ============================================================
+   Rendering
+============================================================ */
+const main = document.getElementById('main');
+const progressEl = document.getElementById('progress');
+const progressBar = document.getElementById('progressBar');
+const progressLabel = document.getElementById('progressLabel');
+const progressStep = document.getElementById('progressStep');
+const progressTotal = document.getElementById('progressTotal');
+
+function setProgress(step, total) {
+  if (step < 0 || step >= total) {
+    progressEl.classList.add('hidden');
+    progressLabel.style.display = 'none';
+  } else {
+    progressEl.classList.remove('hidden');
+    progressLabel.style.display = 'flex';
+    const pct = ((step + 1) / total) * 100;
+    progressBar.style.width = pct + '%';
+    progressStep.textContent = `Question ${step + 1} of ${total}`;
+    progressTotal.textContent = `${Math.round(pct)}%`;
+  }
+}
+
+function shouldSkipQuestion(q) {
+  return q.id === 'distance' && state.answers.format === 'cook';
+}
+
+function getVisibleTotal() {
+  return QUESTIONS.filter((q) => !shouldSkipQuestion(q)).length;
+}
+
+function getVisibleStep(step) {
+  let count = 0;
+  for (let i = 0; i <= step && i < QUESTIONS.length; i++) {
+    if (!shouldSkipQuestion(QUESTIONS[i])) count++;
+  }
+  return count - 1;
+}
+
+function nextVisibleStep(from) {
+  let i = from + 1;
+  while (i < QUESTIONS.length && shouldSkipQuestion(QUESTIONS[i])) i++;
+  return i < QUESTIONS.length ? i : -1;
+}
+
+function prevVisibleStep(from) {
+  let i = from - 1;
+  while (i >= 0 && shouldSkipQuestion(QUESTIONS[i])) i--;
+  return i;
+}
+
+function transitionTo(renderFn) {
+  const current = main.firstElementChild;
+  if (current) {
+    current.classList.add('leaving');
+    setTimeout(() => {
+      main.innerHTML = '';
+      renderFn();
+    }, 220);
+  } else {
+    main.innerHTML = '';
+    renderFn();
+  }
+}
+
+/* ---------- Welcome ---------- */
+function renderWelcome() {
+  setProgress(-1, QUESTIONS.length);
+  const el = document.createElement('div');
+  el.className = 'screen welcome';
+  el.innerHTML = `
+    <div class="hero-art">🍜</div>
+    <div class="eyebrow">Tonight's question</div>
+    <h1>What should<br/>I <em>eat?</em></h1>
+    <p class="lede">Eight quick questions. We'll match your mood and find something nearby that actually sounds good.</p>
+    <button id="startBtn" class="btn btn-lg">Let's figure it out →</button>
+  `;
+  main.appendChild(el);
+  document.getElementById('startBtn').addEventListener('click', () => {
+    transitionTo(renderTargets);
+  });
+}
+
+/* ---------- Targets (optional, before Q1) ---------- */
+function renderTargets() {
+  setProgress(-1, QUESTIONS.length);
+  const t = state.targets || {};
+  const el = document.createElement('div');
+  el.className = 'screen';
+  el.innerHTML = `
+    <div class="q-eyebrow">Optional · Advanced</div>
+    <h2 class="q-title serif">Aiming for specific numbers?</h2>
+    <p class="q-sub">Set per-meal calorie & macro targets and we'll fit dishes to your numbers. All four are optional — leave any blank to ignore.</p>
+
+    <div class="targets-grid">
+      <div class="field">
+        <label for="t-kcal">Calories</label>
+        <div class="field-row">
+          <input id="t-kcal" type="number" inputmode="numeric" min="100" max="3000" placeholder="600" value="${t.kcal ?? ''}" />
+          <span class="field-unit">kcal</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="t-p">Protein</label>
+        <div class="field-row">
+          <input id="t-p" type="number" inputmode="numeric" min="0" max="300" placeholder="40" value="${t.p ?? ''}" />
+          <span class="field-unit">g</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="t-c">Carbs</label>
+        <div class="field-row">
+          <input id="t-c" type="number" inputmode="numeric" min="0" max="500" placeholder="60" value="${t.c ?? ''}" />
+          <span class="field-unit">g</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="t-f">Fat</label>
+        <div class="field-row">
+          <input id="t-f" type="number" inputmode="numeric" min="0" max="200" placeholder="20" value="${t.f ?? ''}" />
+          <span class="field-unit">g</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="targets-hint">
+      <strong>Per-meal numbers</strong>, not daily. Typical dinner is around 500–800 kcal. Skip if you don't care about counting tonight — we'll just match your taste.
+    </div>
+
+    <div class="nav-row">
+      <button id="backBtn" class="btn btn-ghost">← Back</button>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button id="skipBtn" class="btn-link">Skip — go by taste</button>
+        <button id="nextBtn" class="btn">Continue →</button>
+      </div>
+    </div>
+  `;
+  main.appendChild(el);
+
+  const inputs = ['t-kcal','t-p','t-c','t-f'].map(id => document.getElementById(id));
+  inputs.forEach((inp) => {
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveAndContinue(); });
+  });
+
+  document.getElementById('backBtn').addEventListener('click', () => transitionTo(renderWelcome));
+  document.getElementById('skipBtn').addEventListener('click', () => {
+    state.targets = null;
+    state.step = 0;
+    transitionTo(renderQuestion);
+  });
+  document.getElementById('nextBtn').addEventListener('click', saveAndContinue);
+}
+
+function saveAndContinue() {
+  const kcal = parseTargetInput('t-kcal');
+  const p    = parseTargetInput('t-p');
+  const c    = parseTargetInput('t-c');
+  const f    = parseTargetInput('t-f');
+  if (kcal == null && p == null && c == null && f == null) {
+    state.targets = null;
+  } else {
+    state.targets = {};
+    if (kcal != null) state.targets.kcal = kcal;
+    if (p    != null) state.targets.p    = p;
+    if (c    != null) state.targets.c    = c;
+    if (f    != null) state.targets.f    = f;
+  }
+  state.step = 0;
+  transitionTo(renderQuestion);
+}
+
+function parseTargetInput(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const v = (el.value || '').trim();
+  if (v === '') return null;
+  const n = parseFloat(v);
+  if (!isFinite(n) || n <= 0) return null;
+  return Math.round(n);
+}
+
+/* ---------- Question ---------- */
+function renderQuestion() {
+  const q = QUESTIONS[state.step];
+  setProgress(getVisibleStep(state.step), getVisibleTotal());
+
+  const el = document.createElement('div');
+  el.className = 'screen';
+  const optionsClass = q.layout === 'chips' ? 'options chips' : (q.layout === 'cols' ? 'options cols-2' : 'options');
+  const isMulti = q.type === 'multi';
+  const current = state.answers[q.id] ?? (isMulti ? [] : null);
+  const isLastVisible = nextVisibleStep(state.step) === -1;
+
+  const customAvoidHtml = q.id === 'avoid' ? `
+    <div class="custom-avoid-label">Anything else?</div>
+    <input id="avoidCustom" type="text" class="custom-avoid"
+           placeholder="Type other foods to avoid — e.g. cilantro, blue cheese, mushrooms"
+           value="${escapeHtml(state.answers.avoidCustom || '')}"
+           autocomplete="off" spellcheck="false" />
+  ` : '';
+
+  el.innerHTML = `
+    <div class="q-eyebrow">${q.eyebrow}</div>
+    <h2 class="q-title serif">${q.title}</h2>
+    <p class="q-sub">${q.sub}</p>
+    <div class="${optionsClass}" id="opts"></div>
+    ${customAvoidHtml}
+    ${state.targets ? targetBannerHtml() : ''}
+    <div class="nav-row">
+      <button id="backBtn" class="btn btn-ghost">← Back</button>
+      <div style="display:flex; gap:10px; align-items:center;">
+        ${q.optional ? '<button id="skipBtn" class="btn-link">Skip</button>' : ''}
+        <button id="nextBtn" class="btn" ${(!isMulti && current === null) ? 'disabled' : ''}>
+          ${isLastVisible ? 'Find food →' : 'Next →'}
+        </button>
+      </div>
+    </div>
+  `;
+  main.appendChild(el);
+
+  const avoidInput = document.getElementById('avoidCustom');
+  if (avoidInput) {
+    avoidInput.addEventListener('input', (e) => {
+      state.answers.avoidCustom = e.target.value;
+    });
+    avoidInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); advance(q); }
+    });
+  }
+
+  const optsEl = document.getElementById('opts');
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt' + (q.layout === 'chips' ? ' chip' : '');
+    btn.style.animationDelay = (i * 35) + 'ms';
+    const selected = isMulti
+      ? Array.isArray(current) && current.includes(opt.value)
+      : current === opt.value;
+    if (selected) btn.classList.add('selected');
+    btn.innerHTML = `
+      <span class="opt-emoji">${opt.emoji}</span>
+      <span class="opt-content">
+        <span class="opt-label">${opt.label}</span>
+        ${opt.desc ? `<span class="opt-desc">${opt.desc}</span>` : ''}
+      </span>
+    `;
+    btn.addEventListener('click', () => onOptionPick(q, opt));
+    optsEl.appendChild(btn);
+  });
+
+  document.getElementById('backBtn').addEventListener('click', () => {
+    const prev = prevVisibleStep(state.step);
+    if (prev >= 0) {
+      state.step = prev;
+      transitionTo(renderQuestion);
+    } else {
+      transitionTo(renderTargets);
+    }
+  });
+  document.getElementById('nextBtn').addEventListener('click', () => advance(q));
+  if (q.optional) {
+    document.getElementById('skipBtn').addEventListener('click', () => {
+      if (isMulti) state.answers[q.id] = [];
+      else state.answers[q.id] = null;
+      advance(q);
+    });
+  }
+}
+
+function targetBannerHtml() {
+  const t = state.targets;
+  const parts = [];
+  if (t.kcal) parts.push(`<span class="num">${t.kcal}</span> kcal`);
+  if (t.p)    parts.push(`<span class="num">${t.p}</span>g protein`);
+  if (t.c)    parts.push(`<span class="num">${t.c}</span>g carbs`);
+  if (t.f)    parts.push(`<span class="num">${t.f}</span>g fat`);
+  return `<div class="target-banner"><span class="label">Targeting</span> ${parts.join(' · ')}</div>`;
+}
+
+function onOptionPick(q, opt) {
+  if (q.type === 'multi') {
+    const cur = Array.isArray(state.answers[q.id]) ? state.answers[q.id] : [];
+    const idx = cur.indexOf(opt.value);
+    if (idx >= 0) cur.splice(idx, 1);
+    else cur.push(opt.value);
+    state.answers[q.id] = cur;
+    renderQuestion();
+  } else {
+    state.answers[q.id] = opt.value;
+    setTimeout(() => advance(q), 220);
+  }
+}
+
+function advance(q) {
+  const next = nextVisibleStep(state.step);
+  if (next >= 0) {
+    state.step = next;
+    transitionTo(renderQuestion);
+  } else {
+    if (state.answers.format === 'cook') {
+      transitionTo(renderLoading);
+      runRecommendation();
+    } else {
+      transitionTo(renderLocation);
+    }
+  }
+}
+
+function lastVisibleQuestionIndex() {
+  for (let i = QUESTIONS.length - 1; i >= 0; i--) {
+    if (!shouldSkipQuestion(QUESTIONS[i])) return i;
+  }
+  return QUESTIONS.length - 1;
+}
+
+/* ---------- Location ---------- */
+function renderLocation() {
+  setProgress(-1, QUESTIONS.length);
+  const el = document.createElement('div');
+  el.className = 'screen';
+  el.innerHTML = `
+    <div class="loc-card">
+      <div class="loc-icon">📍</div>
+      <h2 class="serif" style="font-size:26px; margin-bottom:8px;">Where are you?</h2>
+      <p style="color:var(--text-dim); font-size:15px; max-width:380px; margin: 0 auto 18px;">
+        We'll find places nearby that match. Your location stays in your browser — we don't store it.
+      </p>
+      <button id="geoBtn" class="btn">Use my location</button>
+      <div style="margin-top:18px; font-size:12px; color:var(--text-muted); letter-spacing:0.1em; text-transform:uppercase;">— or —</div>
+      <div class="zip-row">
+        <input id="zipInput" class="zip-input" placeholder="ZIP or city" />
+        <button id="zipBtn" class="btn">Go</button>
+      </div>
+      <div id="locStatus" style="margin-top:14px; font-size:13px; color:var(--text-muted); min-height:18px;"></div>
+    </div>
+    <div class="nav-row">
+      <button id="backBtn" class="btn btn-ghost">← Back</button>
+    </div>
+  `;
+  main.appendChild(el);
+
+  document.getElementById('backBtn').addEventListener('click', () => {
+    state.step = lastVisibleQuestionIndex();
+    transitionTo(renderQuestion);
+  });
+
+  document.getElementById('geoBtn').addEventListener('click', requestGeolocation);
+  document.getElementById('zipBtn').addEventListener('click', useZip);
+  document.getElementById('zipInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') useZip();
+  });
+}
+
+function setLocStatus(msg) {
+  const s = document.getElementById('locStatus');
+  if (s) s.textContent = msg || '';
+}
+
+function requestGeolocation() {
+  if (!('geolocation' in navigator)) {
+    setLocStatus("Your browser doesn't support geolocation — try ZIP instead.");
+    return;
+  }
+  setLocStatus('Asking your browser…');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      state.coords = { lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'your location' };
+      transitionTo(renderLoading);
+      runRecommendation();
+    },
+    (err) => {
+      console.warn(err);
+      setLocStatus("Couldn't get location — type a ZIP or city below.");
+    },
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+  );
+}
+
+async function useZip() {
+  const input = document.getElementById('zipInput');
+  const q = (input.value || '').trim();
+  if (!q) {
+    setLocStatus('Type a ZIP code or city first.');
+    return;
+  }
+  setLocStatus('Looking that up…');
+  try {
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const data = await r.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      setLocStatus("Couldn't find that place. Try a different ZIP or city.");
+      return;
+    }
+    state.coords = {
+      lat: parseFloat(data[0].lat),
+      lon: parseFloat(data[0].lon),
+      label: data[0].display_name?.split(',').slice(0, 2).join(',') || q,
+    };
+    transitionTo(renderLoading);
+    runRecommendation();
+  } catch (e) {
+    console.error(e);
+    setLocStatus('Lookup failed. Check your connection and try again.');
+  }
+}
+
+/* ---------- Loading ---------- */
+let loadingInterval = null;
+function renderLoading() {
+  setProgress(-1, QUESTIONS.length);
+  const el = document.createElement('div');
+  el.className = 'screen loading';
+  el.innerHTML = `
+    <div class="pot">
+      <span class="steam s1"></span>
+      <span class="steam s2"></span>
+      <span class="steam s3"></span>
+      🍲
+    </div>
+    <h2 class="serif">Thinking…</h2>
+    <p class="loading-msg" id="loadingMsg">${pickRandom(LOADING_MSGS)}</p>
+  `;
+  main.appendChild(el);
+  let i = 0;
+  if (loadingInterval) clearInterval(loadingInterval);
+  loadingInterval = setInterval(() => {
+    i = (i + 1) % LOADING_MSGS.length;
+    const m = document.getElementById('loadingMsg');
+    if (!m) return;
+    m.style.opacity = '0';
+    setTimeout(() => {
+      m.textContent = LOADING_MSGS[i];
+      m.style.opacity = '1';
+    }, 300);
+  }, 2200);
+}
+function stopLoading() { if (loadingInterval) { clearInterval(loadingInterval); loadingInterval = null; } }
+
+/* ============================================================
+   Recommendation engine
+============================================================ */
+function getCustomAvoidKeywords() {
+  const raw = (state.answers && state.answers.avoidCustom) || '';
+  return String(raw)
+    .split(/[,\n;]/)
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s.length >= 2);
+}
+
+function avoidsMatch(text, avoid) {
+  const t = ' ' + String(text).toLowerCase() + ' ';
+  if (avoid && avoid.length) {
+    for (const a of avoid) {
+      const kws = AVOID_KEYWORDS[a] || [];
+      for (const kw of kws) {
+        if (t.includes(kw.toLowerCase())) return true;
+      }
+    }
+  }
+  const custom = getCustomAvoidKeywords();
+  for (const kw of custom) {
+    if (t.includes(kw)) return true;
+  }
+  return false;
+}
+
+function ingredientsBlocked(ings, avoid) {
+  if (!ings) return false;
+  for (const ing of ings) if (avoidsMatch(ing, avoid)) return true;
+  return false;
+}
+
+function macroDistance(profile, targets) {
+  const p = profile || {};
+  let total = 0, count = 0;
+  if (targets.kcal) { total += Math.abs((p.kcal || 0) - targets.kcal) / Math.max(targets.kcal, 1); count++; }
+  if (targets.p)    { total += Math.abs((p.p    || 0) - targets.p)    / Math.max(targets.p, 1);    count++; }
+  if (targets.c)    { total += Math.abs((p.c    || 0) - targets.c)    / Math.max(targets.c, 1);    count++; }
+  if (targets.f)    { total += Math.abs((p.f    || 0) - targets.f)    / Math.max(targets.f, 1);    count++; }
+  return count ? total / count : 0;
+}
+
+function pickCuisineKey(answers) {
+  if (answers.cuisine && answers.cuisine !== 'surprise' && FOOD_DATA[answers.cuisine]) {
+    return answers.cuisine;
+  }
+  const avoid = answers.avoid || [];
+  const candidates = Object.keys(FOOD_DATA).filter((k) =>
+    FOOD_DATA[k].dishes.some((d) => !avoidsMatch(d.name, avoid))
+  );
+  // If targets are set, prefer cuisines that have at least one dish within tolerance
+  if (state.targets) {
+    const fitCandidates = candidates.filter((k) =>
+      FOOD_DATA[k].dishes.some((d) =>
+        !avoidsMatch(d.name, avoid) && macroDistance(getProfile(d.prof), state.targets) < 0.4
+      )
+    );
+    if (fitCandidates.length) return pickRandom(fitCandidates);
+  }
+  return pickRandom(candidates.length ? candidates : Object.keys(FOOD_DATA));
+}
+
+function rankByTargets(items, targets) {
+  return items
+    .map((it) => ({ it, d: macroDistance(getProfile(it.prof), targets) }))
+    .sort((a, b) => a.d - b.d)
+    .map((x) => x.it);
+}
+
+function generateRecommendation(answers) {
+  const cuisineKey = pickCuisineKey(answers);
+  const data = FOOD_DATA[cuisineKey];
+  const moodTag = answers.mood;
+  const healthTag = answers.health;
+  const avoid = answers.avoid || [];
+
+  // Tier 1: cuisine + mood/health + avoid
+  let pool = data.dishes.filter((d) =>
+    (d.tags.includes(moodTag) || d.tags.includes(healthTag)) && !avoidsMatch(d.name, avoid)
+  );
+  // Tier 2: cuisine + avoid
+  if (pool.length < 3) pool = data.dishes.filter((d) => !avoidsMatch(d.name, avoid));
+
+  let picked, looseTargets = false;
+  if (state.targets) {
+    const ranked = rankByTargets(pool, state.targets);
+    const tight = ranked.filter((d) => macroDistance(getProfile(d.prof), state.targets) < 0.35);
+    if (tight.length >= 3) {
+      picked = tight.slice(0, 5);
+    } else if (ranked.length >= 3) {
+      // Take the 3-5 closest, even if outside tight tolerance
+      picked = ranked.slice(0, 4);
+      looseTargets = true;
+    } else {
+      // Broaden across cuisines for target matching
+      const all = [];
+      Object.values(FOOD_DATA).forEach((d) => d.dishes.forEach((dd) => all.push(dd)));
+      const broad = all.filter((d) => !avoidsMatch(d.name, avoid));
+      const broadRanked = rankByTargets(broad, state.targets);
+      picked = broadRanked.slice(0, 5);
+    }
+  } else {
+    shuffle(pool);
+    picked = pool.slice(0, Math.min(5, Math.max(3, Math.min(pool.length, 4))));
+  }
+
+  return {
+    cuisineKey,
+    cuisineLabel: data.label,
+    summary: buildSummary(answers, data, looseTargets),
+    dishes: picked.map((d) => ({ name: d.name, prof: d.prof, profile: getProfile(d.prof) })),
+    search_queries: data.queries,
+    cuisine_tags: data.osm,
+    looseTargets,
+  };
+}
+
+function generateRecipes(answers) {
+  const cuisineKey = pickCuisineKey(answers);
+  const data = FOOD_DATA[cuisineKey];
+  const moodTag = answers.mood;
+  const healthTag = answers.health;
+  const avoid = answers.avoid || [];
+
+  let pool = data.recipes.filter((r) =>
+    (r.tags.includes(moodTag) || r.tags.includes(healthTag)) &&
+    !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid)
+  );
+  if (pool.length < 2) {
+    pool = data.recipes.filter((r) =>
+      !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid)
+    );
+  }
+  if (pool.length < 2) {
+    const all = [];
+    Object.values(FOOD_DATA).forEach((d) => d.recipes.forEach((r) => all.push(r)));
+    pool = all.filter((r) =>
+      (r.tags.includes(moodTag) || r.tags.includes(healthTag)) &&
+      !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid)
+    );
+  }
+
+  let recipes, looseTargets = false;
+  if (state.targets) {
+    const ranked = rankByTargets(pool, state.targets);
+    const tight = ranked.filter((r) => macroDistance(getProfile(r.prof), state.targets) < 0.4);
+    if (tight.length >= 2) {
+      recipes = tight.slice(0, 3);
+    } else if (ranked.length >= 2) {
+      recipes = ranked.slice(0, 3);
+      looseTargets = true;
+    } else {
+      const all = [];
+      Object.values(FOOD_DATA).forEach((d) => d.recipes.forEach((r) => all.push(r)));
+      const broad = all.filter((r) =>
+        !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid)
+      );
+      recipes = rankByTargets(broad, state.targets).slice(0, 3);
+    }
+  } else {
+    shuffle(pool);
+    recipes = pool.slice(0, Math.min(3, Math.max(2, pool.length)));
+  }
+
+  return {
+    cuisineKey,
+    cuisineLabel: data.label,
+    summary: buildSummary(answers, data, looseTargets),
+    recipes: recipes.map((r) => ({ ...r, profile: getProfile(r.prof) })),
+    looseTargets,
+  };
+}
+
+function buildSummary(answers, cuisineData, looseTargets) {
+  const moodWord = ({
+    comfort: 'comfort-food', light: 'light', adventurous: 'adventurous', classic: 'classic',
+  })[answers.mood] || 'good-eats';
+  const cuisine = cuisineData.label;
+
+  const openers = [
+    `${cuisine} ${moodWord} is the move.`,
+    `You're in a ${moodWord} ${cuisine} mood — say less.`,
+    `Locked in: ${cuisine}, ${moodWord}, decisive.`,
+    `${capitalize(moodWord)} ${cuisine} energy. Got it.`,
+    `Tonight reads: ${cuisine}, ${moodWord}, no notes.`,
+  ];
+
+  const closerPool = [];
+  if (answers.vibe === 'date')   closerPool.push("Romantic enough to count as effort.", "Date-night dish energy — eye contact required.");
+  if (answers.vibe === 'family') closerPool.push("Kid-friendly, parent-respectable.", "Built for the whole crew.");
+  if (answers.vibe === 'group')  closerPool.push("Made for big tables and louder stories.", "Group-of-friends energy — share everything.");
+  if (answers.vibe === 'solo')   closerPool.push("Solo-mission energy — treat yourself.", "Just you, no compromises.");
+
+  if (answers.budget === '$$$') closerPool.push("Splurge mode activated.");
+  if (answers.budget === '$' && answers.vibe !== 'date') closerPool.push("Wallet stays happy too.", "Cheap, cheerful, undefeated.");
+
+  if (answers.health === 'indulgent') closerPool.push("Cheese, butter, no regrets.");
+  if (answers.health === 'healthy')   closerPool.push("Salads with personality.", "Virtuous but not boring.");
+
+  if (answers.format === 'cook')     closerPool.push("Apron on, let's cook.", "Hot stove, big payoff.");
+  if (answers.format === 'delivery') closerPool.push("Couch-mode dinner, coming up.", "Slippers stay on.");
+
+  const opener = pickRandom(openers);
+  let closer = closerPool.length ? pickRandom(closerPool) : '';
+  if (state.targets) {
+    const tCloser = looseTargets
+      ? "These are as close to your targets as we could get."
+      : "All within striking distance of your targets.";
+    closer = closer ? `${closer} ${tCloser}` : tCloser;
+  }
+  return closer ? `${opener} ${closer}` : opener;
+}
+
+/* ---------- Recommendation flow ---------- */
+async function runRecommendation() {
+  const isCook = state.answers.format === 'cook';
+  const startedAt = Date.now();
+  const MIN_DWELL = 1200;
+
+  try {
+    if (isCook) {
+      const rec = generateRecipes(state.answers);
+      state.recommendation = rec;
+      await holdAtLeast(startedAt, MIN_DWELL);
+      stopLoading();
+      transitionTo(renderRecipes);
+    } else {
+      const rec = generateRecommendation(state.answers);
+      state.recommendation = rec;
+      const places = await findPlaces(rec);
+      state.places = places;
+      await holdAtLeast(startedAt, MIN_DWELL);
+      stopLoading();
+      transitionTo(renderRestaurants);
+    }
+  } catch (err) {
+    console.error(err);
+    stopLoading();
+    transitionTo(() => renderError(
+      'Something went sideways.',
+      err.message || "We couldn't pull nearby places. Try again, or change your distance."
+    ));
+  }
+}
+
+function holdAtLeast(startedAt, ms) {
+  const elapsed = Date.now() - startedAt;
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms - elapsed)));
+}
+
+/* ---------- Overpass restaurant search ---------- */
+async function findPlaces(rec) {
+  if (!state.coords) return [];
+  const distChoice = state.answers.distance;
+  const radiusMeters = distChoice === '1' ? 1600 : distChoice === '3' ? 4800 : 12000;
+
+  const cuisineTags = (rec.cuisine_tags || []).map((t) => String(t).toLowerCase().trim()).filter(Boolean);
+  const { lat, lon } = state.coords;
+
+  const cuisineRegex = cuisineTags.length ? cuisineTags.map(escapeRegex).join('|') : null;
+  const cuisineFilter = cuisineRegex ? `["cuisine"~"${cuisineRegex}",i]` : '';
+  const query = `
+    [out:json][timeout:20];
+    (
+      node["amenity"~"restaurant|fast_food|cafe"]${cuisineFilter}(around:${radiusMeters},${lat},${lon});
+    );
+    out body 40;
+  `;
+
+  let elements = [];
+  try {
+    const r = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(query),
+    });
+    if (r.ok) {
+      const data = await r.json();
+      elements = (data.elements || []).filter((e) => e.tags && e.tags.name);
+    }
+  } catch (e) {
+    console.warn('Overpass failed', e);
+  }
+
+  if (elements.length === 0 && cuisineRegex) {
+    try {
+      const fallbackQ = `
+        [out:json][timeout:20];
+        (
+          node["amenity"~"restaurant|fast_food|cafe"](around:${radiusMeters},${lat},${lon});
+        );
+        out body 40;
+      `;
+      const r = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(fallbackQ),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        elements = (data.elements || []).filter((e) => e.tags && e.tags.name);
+      }
+    } catch {}
+  }
+
+  const scored = elements.map((e) => {
+    const distMi = haversine(lat, lon, e.lat, e.lon);
+    const tagCuisine = (e.tags.cuisine || '').toLowerCase();
+    let score = 0;
+    if (cuisineTags.length) {
+      for (const t of cuisineTags) if (tagCuisine.includes(t)) { score += 10; break; }
+    }
+    score -= distMi;
+    return {
+      name: e.tags.name,
+      cuisine: tagCuisine.replace(/_/g, ' ').replace(/;/g, ', ') || null,
+      lat: e.lat, lon: e.lon, distMi,
+      amenity: e.tags.amenity, score,
+    };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 8);
+}
+
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* ---------- Restaurant Results ---------- */
+function macroLineHtml(prof) {
+  if (!prof) return '';
+  return `<span class="kcal">${prof.kcal} kcal</span> · ${prof.p}p · ${prof.c}c · ${prof.f}f`;
+}
+
+function renderRestaurants() {
+  setProgress(-1, QUESTIONS.length);
+  const rec = state.recommendation;
+  const places = state.places;
+  const el = document.createElement('div');
+  el.className = 'screen';
+
+  let placesHtml = '';
+  if (places.length === 0) {
+    const fallbackQuery = (rec.search_queries && rec.search_queries[0]) || (rec.cuisine_tags && rec.cuisine_tags[0]) || 'restaurants';
+    const url = state.coords
+      ? `https://www.google.com/maps/search/${encodeURIComponent(fallbackQuery + ' near ' + state.coords.lat + ',' + state.coords.lon)}`
+      : `https://www.google.com/maps/search/${encodeURIComponent(fallbackQuery)}`;
+    placesHtml = `
+      <div class="notice">
+        Couldn't find specific matches in our nearby data — but here's a Google Maps search ready to go:
+      </div>
+      <a class="place-card" href="${url}" target="_blank" rel="noopener">
+        <div class="pin">🔎</div>
+        <div class="place-body">
+          <div class="place-name">Search "${escapeHtml(fallbackQuery)}" on Google Maps</div>
+          <div class="place-meta">Opens in a new tab</div>
+          <div class="place-action">Open Maps →</div>
+        </div>
+      </a>
+    `;
+  } else {
+    placesHtml = places.map((p, i) => {
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + p.lat + ',' + p.lon)}`;
+      const distLabel = p.distMi < 0.1 ? 'right here' : p.distMi.toFixed(1) + ' mi';
+      const meta = [
+        p.cuisine ? capitalize(p.cuisine) : (p.amenity === 'cafe' ? 'Café' : (p.amenity === 'fast_food' ? 'Fast casual' : 'Restaurant')),
+        distLabel,
+      ].filter(Boolean);
+      return `
+        <a class="place-card" href="${mapsUrl}" target="_blank" rel="noopener" style="animation-delay:${i*55}ms;">
+          <div class="pin">🍴</div>
+          <div class="place-body">
+            <div class="place-name">${escapeHtml(p.name)}</div>
+            <div class="place-meta">${meta.map((m, idx) => `<span>${escapeHtml(m)}</span>${idx < meta.length-1 ? '<span class="dot">·</span>' : ''}`).join('')}</div>
+            <div class="place-action">Get directions →</div>
+          </div>
+        </a>
+      `;
+    }).join('');
+  }
+
+  const dishesHtml = (rec.dishes || []).map((d) => `
+    <div class="dish-row">
+      <span class="name">${escapeHtml(d.name)}</span>
+      <span class="macros">${macroLineHtml(d.profile)}</span>
+    </div>
+  `).join('');
+
+  const targetsBanner = state.targets ? targetBannerHtml() : '';
+
+  el.innerHTML = `
+    <div class="summary-card">
+      <div class="eyebrow">Your verdict</div>
+      <h2 class="serif">${escapeHtml(rec.summary || "Here's what I'd do.")}</h2>
+      ${targetsBanner}
+      ${dishesHtml ? `<div class="dish-list">${dishesHtml}</div>` : ''}
+    </div>
+
+    <div class="section-title">Nearby spots</div>
+    ${placesHtml}
+
+    <div class="results-actions">
+      <button id="shareBtn" class="btn">${shareIconSvg()} Share</button>
+      <button id="restartBtn" class="btn btn-ghost">Start over</button>
+      <button id="backToQ" class="btn btn-ghost">Tweak my answers</button>
+    </div>
+  `;
+  main.appendChild(el);
+
+  document.getElementById('shareBtn').addEventListener('click', () => shareResult('restaurants'));
+  document.getElementById('restartBtn').addEventListener('click', restart);
+  document.getElementById('backToQ').addEventListener('click', () => {
+    state.step = lastVisibleQuestionIndex();
+    transitionTo(renderQuestion);
+  });
+}
+
+/* ---------- Recipes (cook at home) ---------- */
+function renderRecipes() {
+  setProgress(-1, QUESTIONS.length);
+  const rec = state.recommendation;
+  const recipes = rec.recipes || [];
+
+  const el = document.createElement('div');
+  el.className = 'screen';
+
+  const recipeHtml = recipes.map((r, i) => {
+    const ingredients = (r.ingredients || []).join(', ');
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(r.name + ' recipe')}`;
+    const prof = r.profile;
+    const macroPills = prof ? `
+      <div class="recipe-macros">
+        <span class="pill kcal"><span class="v">${prof.kcal}</span> kcal</span>
+        <span class="pill"><span class="v">${prof.p}</span>g protein</span>
+        <span class="pill"><span class="v">${prof.c}</span>g carbs</span>
+        <span class="pill"><span class="v">${prof.f}</span>g fat</span>
+      </div>
+    ` : '';
+    return `
+      <a class="recipe-card" href="${searchUrl}" target="_blank" rel="noopener" style="animation-delay:${i*70}ms;">
+        <div style="display:flex; gap:14px; align-items:flex-start;">
+          <div class="pin">🍳</div>
+          <div class="place-body">
+            <div class="place-name">${escapeHtml(r.name)}</div>
+            <div class="place-meta">${escapeHtml(r.brief || '')}</div>
+          </div>
+        </div>
+        ${macroPills}
+        <div class="recipe-ing"><strong>You'll need:</strong> ${escapeHtml(ingredients)}</div>
+        <div class="place-action" style="margin-top:6px;">Find a recipe →</div>
+      </a>
+    `;
+  }).join('');
+
+  const targetsBanner = state.targets ? targetBannerHtml() : '';
+
+  el.innerHTML = `
+    <div class="summary-card">
+      <div class="eyebrow">Cooking tonight</div>
+      <h2 class="serif">${escapeHtml(rec.summary || "Let's get cooking.")}</h2>
+      ${targetsBanner}
+    </div>
+
+    <div class="section-title">Recipe ideas</div>
+    ${recipeHtml || '<div class="notice">No recipes matched — try changing your filters.</div>'}
+
+    <div class="results-actions">
+      <button id="shareBtn" class="btn">${shareIconSvg()} Share</button>
+      <button id="restartBtn" class="btn btn-ghost">Start over</button>
+      <button id="backToQ" class="btn btn-ghost">Tweak my answers</button>
+    </div>
+  `;
+  main.appendChild(el);
+  document.getElementById('shareBtn').addEventListener('click', () => shareResult('recipes'));
+  document.getElementById('restartBtn').addEventListener('click', restart);
+  document.getElementById('backToQ').addEventListener('click', () => {
+    state.step = lastVisibleQuestionIndex();
+    transitionTo(renderQuestion);
+  });
+}
+
+/* ---------- Error ---------- */
+function renderError(title, msg) {
+  setProgress(-1, QUESTIONS.length);
+  const el = document.createElement('div');
+  el.className = 'screen';
+  el.innerHTML = `
+    <div class="summary-card">
+      <div class="eyebrow" style="color: var(--terracotta);">Hmm</div>
+      <h2 class="serif">${escapeHtml(title)}</h2>
+      <p style="margin-top:8px;">${escapeHtml(msg)}</p>
+    </div>
+    <div class="results-actions">
+      <button id="retryBtn" class="btn">Try again</button>
+      <button id="restartBtn" class="btn btn-ghost">Start over</button>
+    </div>
+  `;
+  main.appendChild(el);
+  document.getElementById('retryBtn').addEventListener('click', () => {
+    transitionTo(renderLoading);
+    runRecommendation();
+  });
+  document.getElementById('restartBtn').addEventListener('click', restart);
+}
+
+/* ---------- Restart ---------- */
+function restart() {
+  state.step = -1;
+  state.answers = {};
+  state.targets = null;
+  state.coords = null;
+  state.recommendation = null;
+  state.places = [];
+  transitionTo(renderWelcome);
+}
+
+/* ---------- Share ---------- */
+function shareIconSvg() {
+  return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>`;
+}
+
+function targetsLine() {
+  const t = state.targets; if (!t) return '';
+  const parts = [];
+  if (t.kcal) parts.push(`${t.kcal} kcal`);
+  if (t.p)    parts.push(`${t.p}g protein`);
+  if (t.c)    parts.push(`${t.c}g carbs`);
+  if (t.f)    parts.push(`${t.f}g fat`);
+  return parts.length ? `Targeting ${parts.join(' / ')}` : '';
+}
+
+function buildShareText(mode) {
+  const rec = state.recommendation || {};
+  const summary = (rec.summary || '').trim();
+  const lines = ['🍴 What should I eat?'];
+  if (summary) lines.push('', summary);
+  const tl = targetsLine();
+  if (tl) lines.push('', tl);
+
+  if (mode === 'recipes') {
+    const recipes = rec.recipes || [];
+    if (recipes.length) {
+      lines.push('', 'Cooking ideas:');
+      recipes.forEach((r) => {
+        if (!r || !r.name) return;
+        const m = r.profile;
+        const macros = m ? ` (~${m.kcal} kcal · ${m.p}p/${m.c}c/${m.f}f)` : '';
+        lines.push(`• ${r.name}${macros}${r.brief ? ' — ' + r.brief : ''}`);
+      });
+    }
+  } else {
+    const dishes = rec.dishes || [];
+    if (dishes.length) {
+      lines.push('', 'Trying:');
+      dishes.forEach((d) => {
+        const m = d.profile;
+        const macros = m ? ` (~${m.kcal} kcal · ${m.p}p/${m.c}c/${m.f}f)` : '';
+        lines.push(`• ${d.name}${macros}`);
+      });
+    }
+    const top = (state.places || []).slice(0, 3);
+    if (top.length) {
+      lines.push('', 'Top picks nearby:');
+      top.forEach((p) => {
+        const dist = p.distMi < 0.1 ? 'right here' : p.distMi.toFixed(1) + ' mi';
+        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + p.lat + ',' + p.lon)}`;
+        lines.push(`• ${p.name} (${dist}) ${url}`);
+      });
+    }
+  }
+  return lines.join('\n');
+}
+
+async function shareResult(mode) {
+  const text = buildShareText(mode);
+  const shareData = { title: 'What Should I Eat?', text };
+  try {
+    if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+      await navigator.share(shareData);
+      return;
+    }
+  } catch (err) {
+    if (err && err.name === 'AbortError') return;
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      showToast('Copied — paste it to a friend');
+      return;
+    }
+  } catch {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied — paste it to a friend');
+  } catch {
+    showToast("Couldn't copy — long-press to select");
+  }
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  const m = document.getElementById('toastMsg');
+  if (!toast || !m) return;
+  m.textContent = msg;
+  toast.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+
+/* ---------- Helpers ---------- */
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/* ---------- Boot ---------- */
+renderWelcome();
+</script>
+</body>
+</html>

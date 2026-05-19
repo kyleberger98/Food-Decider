@@ -25,6 +25,7 @@
     --forest: #6b8a4a;
     --forest-deep: #4a6b3a;
     --gold: #d4a574;
+    --rose: #c97e7e;
     --shadow: 0 12px 40px rgba(0,0,0,0.5);
     --radius: 16px;
     --radius-sm: 10px;
@@ -76,6 +77,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
   }
   .brand-mark {
     width: 28px; height: 28px;
@@ -129,18 +131,19 @@
   @keyframes fadeOut { to { opacity: 0; transform: translateY(-12px); } }
   .screen.leaving { animation: fadeOut 0.25s ease forwards; }
 
-  .welcome { text-align: center; padding: 24px 0; }
+  /* ---------- Welcome ---------- */
+  .welcome { text-align: center; padding: 12px 0 0; }
   .eyebrow {
     font-size: 12px;
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--terracotta);
     font-weight: 600;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
   }
   .welcome h1 {
-    font-size: clamp(40px, 9vw, 64px);
-    margin-bottom: 18px;
+    font-size: clamp(40px, 9vw, 60px);
+    margin-bottom: 14px;
     color: var(--cream);
   }
   .welcome h1 em {
@@ -149,15 +152,15 @@
     font-weight: 500;
   }
   .lede {
-    font-size: 17px;
+    font-size: 16px;
     color: var(--text-dim);
     max-width: 460px;
-    margin: 0 auto 36px;
+    margin: 0 auto 28px;
     line-height: 1.55;
   }
   .hero-art {
-    width: 220px;
-    height: 220px;
+    width: 160px;
+    height: 160px;
     margin: 0 auto 8px;
     border-radius: 50%;
     background:
@@ -168,14 +171,95 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 92px;
+    font-size: 70px;
     animation: float 6s ease-in-out infinite;
   }
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
+  .path-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 420px;
+    margin: 0 auto 26px;
+  }
+  .path-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    color: var(--cream);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font: inherit;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+    transition: all 0.18s ease;
+  }
+  .path-btn.primary {
+    background: linear-gradient(135deg, var(--terracotta), var(--terracotta-deep));
+    border-color: var(--terracotta);
+    color: #1a0e08;
+  }
+  .path-btn.primary:hover {
+    background: linear-gradient(135deg, var(--terracotta-deep), var(--terracotta));
+    color: var(--cream);
+  }
+  .path-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--terracotta);
+    transform: translateY(-1px);
+  }
+  .path-btn .emoji { font-size: 24px; flex-shrink: 0; }
+  .path-btn .label { font-weight: 600; line-height: 1.2; }
+  .path-btn .desc { font-size: 13px; opacity: 0.8; font-weight: 400; margin-top: 2px; }
+  .path-btn.primary .desc { color: rgba(26,14,8,0.7); }
+  .path-btn.primary:hover .desc { color: rgba(245,233,216,0.85); }
+  .path-btn .arrow { margin-left: auto; opacity: 0.6; font-size: 18px; }
+
+  .shortcut-section {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .shortcut-section-title {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .shortcut-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .shortcut {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 10px 14px;
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.18s ease;
+  }
+  .shortcut:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--terracotta);
+    transform: translateY(-1px);
+  }
+  .shortcut .emoji { font-size: 18px; }
+  .shortcut .label { font-weight: 500; }
+
+  /* ---------- Question screen ---------- */
   .q-eyebrow {
     font-size: 11px;
     letter-spacing: 0.18em;
@@ -284,7 +368,7 @@
   }
   .btn-link:hover { color: var(--terracotta); }
 
-  /* ---------- Targets screen ---------- */
+  /* ---------- Targets / fields ---------- */
   .targets-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -351,7 +435,32 @@
   .target-banner .label { color: var(--forest); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
   .target-banner .num { color: var(--cream); font-weight: 600; }
 
-  /* ---------- Location screen ---------- */
+  /* Custom avoid input */
+  .custom-avoid {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font: inherit;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s ease;
+    margin-top: 14px;
+  }
+  .custom-avoid:focus { border-color: var(--terracotta); }
+  .custom-avoid::placeholder { color: var(--text-muted); }
+  .custom-avoid-label {
+    margin-top: 18px;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  /* ---------- Location ---------- */
   .loc-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -389,31 +498,6 @@
   }
   .zip-input:focus { border-color: var(--terracotta); }
 
-  /* Free-text avoid input (on the avoid question) */
-  .custom-avoid {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    font: inherit;
-    font-size: 15px;
-    outline: none;
-    transition: border-color 0.2s ease;
-    margin-top: 14px;
-  }
-  .custom-avoid:focus { border-color: var(--terracotta); }
-  .custom-avoid::placeholder { color: var(--text-muted); }
-  .custom-avoid-label {
-    margin-top: 18px;
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    font-weight: 600;
-  }
-
   /* ---------- Loading ---------- */
   .loading { text-align: center; padding: 40px 0; }
   .pot {
@@ -446,45 +530,117 @@
     100% { opacity: 0; transform: translate(-50%, -30px) scale(1.4); }
   }
   .loading h2 { font-size: 26px; margin-bottom: 8px; }
-  .loading-msg {
-    color: var(--text-dim);
-    font-size: 15px;
-    min-height: 22px;
-    transition: opacity 0.4s ease;
-  }
+  .loading-msg { color: var(--text-dim); font-size: 15px; min-height: 22px; transition: opacity 0.4s ease; }
 
-  /* ---------- Results ---------- */
-  .summary-card {
-    background: linear-gradient(135deg, rgba(217,119,87,0.08), rgba(107,138,74,0.05));
-    border: 1px solid var(--border-strong);
+  /* ---------- Hero card (results) ---------- */
+  .hero-card {
+    background: linear-gradient(135deg, rgba(217,119,87,0.14), rgba(212,165,116,0.08), rgba(107,138,74,0.05));
+    border: 1px solid var(--terracotta);
     border-radius: var(--radius);
-    padding: 24px;
-    margin-bottom: 24px;
+    padding: 28px 24px 22px;
+    margin-bottom: 16px;
+    position: relative;
     animation: revealUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   @keyframes revealUp {
     from { opacity: 0; transform: translateY(20px) scale(0.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
-  .summary-card h2 { font-size: 24px; margin-bottom: 8px; color: var(--cream); }
-  .summary-card p { color: var(--text-dim); }
-
-  /* dish list (with macros) */
-  .dish-list { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
-  .dish-row {
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    font-weight: 700;
+    margin-bottom: 10px;
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    padding: 10px 14px;
-    background: rgba(0,0,0,0.18);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    align-items: center;
+    gap: 8px;
   }
-  .dish-row .name { font-family: 'Fraunces', serif; font-weight: 600; color: var(--cream); font-size: 16px; }
-  .dish-row .macros { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .dish-row .macros .kcal { color: var(--gold); font-weight: 600; }
+  .hero-eyebrow .pos { color: var(--text-muted); font-weight: 600; }
+  .hero-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 6vw, 38px);
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  .hero-brief {
+    color: var(--text-dim);
+    font-size: 15px;
+    margin-bottom: 14px;
+    line-height: 1.55;
+  }
+  .hero-reasoning {
+    font-style: italic;
+    color: var(--gold);
+    font-size: 14px;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 2px solid rgba(212,165,116,0.4);
+  }
+  .hero-macros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 18px;
+  }
+  .hero-macros .pill {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(217,119,87,0.3);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-macros .pill .v { color: var(--cream); font-weight: 600; }
+  .hero-macros .pill.kcal .v { color: var(--gold); }
+  .hero-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .hero-actions .btn { padding: 13px 22px; }
+  .hero-dislike {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+  }
+  .hero-dislike:hover {
+    border-color: var(--rose);
+    color: var(--rose);
+    background: rgba(201,126,126,0.08);
+  }
 
+  /* ---------- Filter badge ---------- */
+  .filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(107,138,74,0.14);
+    border: 1px solid rgba(107,138,74,0.35);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--forest);
+    font-weight: 600;
+    margin-top: 10px;
+  }
+  .filter-badge .icon { font-size: 13px; }
+
+  /* ---------- Sections ---------- */
   .section-title {
     font-size: 13px;
     letter-spacing: 0.18em;
@@ -493,7 +649,46 @@
     margin: 28px 0 12px;
     font-weight: 600;
   }
+  .section-sub {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: -4px 0 12px;
+  }
 
+  /* ---------- Alt dish list ---------- */
+  .alt-list { display: flex; flex-direction: column; gap: 8px; }
+  .alt-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    width: 100%;
+  }
+  .alt-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-strong);
+    transform: translateX(2px);
+  }
+  .alt-card .alt-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    color: var(--cream);
+    font-size: 15px;
+  }
+  .alt-card .alt-macros { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .alt-card .alt-macros .kcal { color: var(--gold); font-weight: 600; }
+  .alt-card .swap-icon { color: var(--terracotta); font-weight: 700; font-size: 14px; margin-left: 6px; }
+
+  /* ---------- Place / recipe cards ---------- */
   .place-card, .recipe-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -552,6 +747,27 @@
     align-items: center;
     gap: 4px;
   }
+  .delivery-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .delivery-pill {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .delivery-pill:hover {
+    border-color: var(--terracotta);
+    color: var(--cream);
+  }
 
   .recipe-card { flex-direction: column; }
   .recipe-card .pin { margin-bottom: 4px; }
@@ -580,7 +796,7 @@
   }
   .recipe-ing strong { color: var(--cream); font-weight: 600; }
 
-  /* Recipe search cards (Google search shortcuts) */
+  /* ---------- Recipe search ---------- */
   .search-card {
     display: flex;
     align-items: center;
@@ -633,12 +849,7 @@
     font-weight: 700;
     flex-shrink: 0;
   }
-  .search-engines {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-  }
+  .search-engines { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
   .search-engine-pill {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -653,12 +864,87 @@
     align-items: center;
     gap: 5px;
   }
-  .search-engine-pill:hover {
-    border-color: var(--terracotta);
-    color: var(--cream);
-  }
-  .search-engine-pill .icon { font-size: 13px; }
+  .search-engine-pill:hover { border-color: var(--terracotta); color: var(--cream); }
 
+  /* ---------- Couple swipe mode ---------- */
+  .couple-intro {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    text-align: center;
+  }
+  .couple-intro h2 { font-size: 26px; margin-bottom: 10px; }
+  .couple-intro p { color: var(--text-dim); font-size: 15px; line-height: 1.6; margin-bottom: 8px; }
+  .couple-intro .icon {
+    width: 64px; height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose), var(--terracotta));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+  }
+
+  .swipe-shell { text-align: center; padding: 8px 0; }
+  .swipe-turn {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--rose);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .swipe-counter {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+  .swipe-card {
+    background: linear-gradient(135deg, rgba(217,119,87,0.10), rgba(201,126,126,0.06));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 36px 24px;
+    margin-bottom: 18px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    animation: cardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: scale(0.94) translateY(12px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .swipe-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--cream);
+    margin-bottom: 12px;
+    line-height: 1.15;
+  }
+  .swipe-card .brief { color: var(--text-dim); font-size: 15px; line-height: 1.5; }
+  .swipe-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .swipe-btn {
+    width: 68px; height: 68px;
+    border-radius: 50%;
+    border: 2px solid;
+    background: var(--bg-card);
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .swipe-btn.no { color: var(--rose); border-color: var(--rose); }
+  .swipe-btn.yes { color: var(--forest); border-color: var(--forest); }
+  .swipe-btn:hover { transform: scale(1.08); }
+  .swipe-btn:active { transform: scale(0.95); }
+
+  /* ---------- Misc ---------- */
   .results-actions {
     margin-top: 28px;
     display: flex;
@@ -666,7 +952,6 @@
     flex-wrap: wrap;
     justify-content: center;
   }
-
   .notice {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -677,7 +962,6 @@
     font-size: 14px;
     margin-bottom: 16px;
   }
-
   .toast {
     position: fixed;
     left: 50%;
@@ -712,10 +996,10 @@
 
   @media (max-width: 480px) {
     .options.cols-2 { grid-template-columns: 1fr; }
-    .welcome h1 { font-size: 44px; }
-    .hero-art { width: 180px; height: 180px; font-size: 72px; }
+    .shortcut-grid { grid-template-columns: 1fr 1fr; }
+    .welcome h1 { font-size: 40px; }
+    .hero-art { width: 130px; height: 130px; font-size: 56px; }
     .btn-lg { padding: 16px 28px; }
-    .nav-row { flex-direction: row; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -731,7 +1015,7 @@
 
 <div class="app">
   <header class="topbar">
-    <div class="brand">
+    <div class="brand" id="brand">
       <span class="brand-mark">🍴</span>
       <span>Hungry<small>find your craving</small></span>
     </div>
@@ -749,16 +1033,10 @@
 
 <script>
 /* ============================================================
-   Question definitions
+   QUESTIONS (full mode)
 ============================================================ */
 const QUESTIONS = [
-  {
-    id: 'mood',
-    eyebrow: 'First things first',
-    title: "What's the mood?",
-    sub: 'Sets the whole tone — pick whatever feels right today.',
-    type: 'single',
-    layout: 'list',
+  { id: 'mood', eyebrow: 'First things first', title: "What's the mood?", sub: 'Sets the whole tone — pick whatever feels right today.', type: 'single', layout: 'list',
     options: [
       { value: 'comfort',    emoji: '🍲', label: 'Comfort food',     desc: 'Warm, familiar, hits the spot' },
       { value: 'light',      emoji: '🥗', label: 'Something light',  desc: 'Fresh and easy on the stomach' },
@@ -766,26 +1044,14 @@ const QUESTIONS = [
       { value: 'classic',    emoji: '🍔', label: 'Just a classic',   desc: "Don't overthink it" },
     ],
   },
-  {
-    id: 'health',
-    eyebrow: 'How are we feeling',
-    title: 'Healthy or full indulgence?',
-    sub: "No judgment — sometimes you need the cheese.",
-    type: 'single',
-    layout: 'list',
+  { id: 'health', eyebrow: 'How are we feeling', title: 'Healthy or full indulgence?', sub: "No judgment — sometimes you need the cheese.", type: 'single', layout: 'list',
     options: [
       { value: 'healthy',   emoji: '🥦', label: 'Healthy',          desc: 'Lean, veggie-forward, balanced macros' },
       { value: 'balanced',  emoji: '⚖️', label: 'Balanced',         desc: "A little of both — I'm reasonable" },
       { value: 'indulgent', emoji: '🧀', label: 'Full indulgence',  desc: 'Cheese, butter, fried, yes' },
     ],
   },
-  {
-    id: 'cuisine',
-    eyebrow: 'The big question',
-    title: 'Any cuisine in mind?',
-    sub: 'Pick one or let us roll the dice.',
-    type: 'single',
-    layout: 'cols',
+  { id: 'cuisine', eyebrow: 'The big question', title: 'Any cuisine in mind?', sub: 'Pick one or let us roll the dice.', type: 'single', layout: 'cols',
     options: [
       { value: 'italian',       emoji: '🍝', label: 'Italian' },
       { value: 'mexican',       emoji: '🌮', label: 'Mexican' },
@@ -797,14 +1063,7 @@ const QUESTIONS = [
       { value: 'surprise',      emoji: '🎲', label: 'Surprise me' },
     ],
   },
-  {
-    id: 'avoid',
-    eyebrow: 'Anything to skip',
-    title: 'Anything to avoid?',
-    sub: 'Multi-select. Skip if nothing applies.',
-    type: 'multi',
-    layout: 'chips',
-    optional: true,
+  { id: 'avoid', eyebrow: 'Anything to skip', title: 'Anything to avoid?', sub: 'Multi-select. Skip if nothing applies.', type: 'multi', layout: 'chips', optional: true,
     options: [
       { value: 'gluten',    emoji: '🌾', label: 'Gluten' },
       { value: 'dairy',     emoji: '🥛', label: 'Dairy' },
@@ -817,13 +1076,7 @@ const QUESTIONS = [
       { value: 'eggs',      emoji: '🥚', label: 'Eggs' },
     ],
   },
-  {
-    id: 'format',
-    eyebrow: 'How should it happen',
-    title: 'How are we eating this?',
-    sub: 'Sit down, grab and go, or in our pajamas.',
-    type: 'single',
-    layout: 'list',
+  { id: 'format', eyebrow: 'How should it happen', title: 'How are we eating this?', sub: 'Sit down, grab and go, or in our pajamas.', type: 'single', layout: 'list',
     options: [
       { value: 'sit-down',    emoji: '🍽️', label: 'Sit-down restaurant', desc: 'Real plates, table service' },
       { value: 'fast-casual', emoji: '🥡', label: 'Fast casual',          desc: 'Order at counter, eat in or out' },
@@ -831,13 +1084,7 @@ const QUESTIONS = [
       { value: 'cook',        emoji: '👨‍🍳', label: 'Cook at home',        desc: "I've got time and ambition" },
     ],
   },
-  {
-    id: 'vibe',
-    eyebrow: 'Who is eating',
-    title: "Who's eating?",
-    sub: 'Helps us match the energy.',
-    type: 'single',
-    layout: 'cols',
+  { id: 'vibe', eyebrow: 'Who is eating', title: "Who's eating?", sub: 'Helps us match the energy.', type: 'single', layout: 'cols',
     options: [
       { value: 'solo',   emoji: '🧘', label: 'Solo' },
       { value: 'date',   emoji: '🌹', label: 'Date night' },
@@ -845,32 +1092,72 @@ const QUESTIONS = [
       { value: 'group',  emoji: '🥂', label: 'Group of friends' },
     ],
   },
-  {
-    id: 'budget',
-    eyebrow: 'The damage',
-    title: "What's the budget?",
-    sub: 'Be honest. Future you will thank you.',
-    type: 'single',
-    layout: 'cols',
+  { id: 'budget', eyebrow: 'The damage', title: "What's the budget?", sub: 'Be honest. Future you will thank you.', type: 'single', layout: 'cols',
     options: [
       { value: '$',   emoji: '💵', label: '$',   desc: 'Easy on the wallet' },
       { value: '$$',  emoji: '💰', label: '$$',  desc: 'Mid-range, treat night' },
       { value: '$$$', emoji: '💎', label: '$$$', desc: "Going for it" },
     ],
   },
-  {
-    id: 'distance',
-    eyebrow: 'Last one',
-    title: 'How far will you go?',
-    sub: 'For the right meal, of course.',
-    type: 'single',
-    layout: 'list',
+  { id: 'distance', eyebrow: 'Last one', title: 'How far will you go?', sub: 'For the right meal, of course.', type: 'single', layout: 'list',
     options: [
       { value: '1',    emoji: '🚶',  label: 'Under 1 mile',  desc: 'Walking distance' },
       { value: '3',    emoji: '🚗',  label: 'Under 3 miles', desc: 'Quick drive' },
       { value: 'any',  emoji: '🛣️', label: 'Anywhere',      desc: "I'll travel for it" },
     ],
   },
+];
+
+/* QUICK mode — only 3 questions */
+const QUICK_QUESTIONS = [
+  { id: 'format', eyebrow: 'Question 1 of 3', title: "Cooking or eating out?", sub: '', type: 'single', layout: 'list',
+    options: [
+      { value: 'sit-down',    emoji: '🍽️', label: 'Eat out',          desc: 'Restaurant near me' },
+      { value: 'delivery',    emoji: '🛵', label: 'Takeout / delivery',desc: 'Order in' },
+      { value: 'fast-casual', emoji: '🥡', label: 'Fast casual',        desc: 'Quick stop' },
+      { value: 'cook',        emoji: '👨‍🍳', label: 'Cook at home',      desc: 'Make something' },
+    ],
+  },
+  { id: 'time', eyebrow: 'Question 2 of 3', title: "How much time?", sub: '', type: 'single', layout: 'list',
+    options: [
+      { value: 'rush',    emoji: '⏱️', label: 'Under 15 min',     desc: 'I am hungry now' },
+      { value: 'quick',   emoji: '🚀', label: '15-30 min',         desc: 'Reasonable speed' },
+      { value: 'normal',  emoji: '🕰️', label: '30-60 min',        desc: 'Some patience' },
+      { value: 'plenty',  emoji: '🌙', label: "I've got time",     desc: 'Slow it down' },
+    ],
+  },
+  { id: 'vibe', eyebrow: 'Question 3 of 3', title: "Who's eating?", sub: '', type: 'single', layout: 'cols',
+    options: [
+      { value: 'solo',   emoji: '🧘', label: 'Solo' },
+      { value: 'date',   emoji: '🌹', label: 'Date night' },
+      { value: 'family', emoji: '👨‍👩‍👧', label: 'Family' },
+      { value: 'group',  emoji: '🥂', label: 'Friends' },
+    ],
+  },
+];
+
+/* THEMED SHORTCUTS — one-tap presets */
+const SHORTCUTS = [
+  { id: 'date-night',  emoji: '🌹', label: 'Date night',
+    answers: { vibe: 'date', mood: 'classic', health: 'balanced', budget: '$$', format: 'sit-down', distance: '3' } },
+  { id: 'sick-day',    emoji: '🤒', label: 'Sick day',
+    answers: { vibe: 'solo', mood: 'comfort', health: 'balanced', format: 'cook' },
+    preferDishes: ['pho', 'soup', 'porridge', 'congee', 'chicken noodle', 'ramen', 'wonton'] },
+  { id: 'post-workout',emoji: '💪', label: 'Post-workout',
+    answers: { vibe: 'solo', mood: 'classic', health: 'healthy', format: 'cook' },
+    preferProf: ['lean-protein','lean-fish','rice-bowl','grain-bowl','salad-protein'] },
+  { id: 'kid-friendly',emoji: '👶', label: 'Kid-friendly',
+    answers: { vibe: 'family', mood: 'classic', health: 'balanced', budget: '$$', avoid: ['spicy'] } },
+  { id: 'cheap-eats',  emoji: '💵', label: 'Under $10',
+    answers: { budget: '$', mood: 'classic', health: 'balanced', format: 'fast-casual', distance: '3' } },
+  { id: 'fast-meal',   emoji: '⏱️', label: 'Under 15 min',
+    answers: { format: 'cook', mood: 'classic', health: 'balanced' },
+    timeBudget: 'rush' },
+  { id: 'hangover',    emoji: '🥴', label: 'Hangover cure',
+    answers: { vibe: 'solo', mood: 'comfort', health: 'indulgent', format: 'delivery' },
+    preferDishes: ['pho', 'ramen', 'burger', 'breakfast', 'pozole'] },
+  { id: 'surprise',    emoji: '🎲', label: 'Just pick something',
+    answers: { mood: 'classic', health: 'balanced', cuisine: 'surprise' } },
 ];
 
 const LOADING_MSGS = [
@@ -885,7 +1172,6 @@ const LOADING_MSGS = [
 
 /* ============================================================
    Nutrition profiles (rough per-serving estimates)
-   kcal = calories, p = protein g, c = carbs g, f = fat g
 ============================================================ */
 const NUTRITION_PROFILES = {
   'salad-light':     { kcal: 320,  p: 12, c: 30,  f: 14 },
@@ -912,13 +1198,10 @@ const NUTRITION_PROFILES = {
   'snack':           { kcal: 340,  p: 10, c: 55,  f: 10 },
   'sandwich':        { kcal: 680,  p: 32, c: 70,  f: 26 },
 };
-
-function getProfile(prof) {
-  return NUTRITION_PROFILES[prof] || NUTRITION_PROFILES['lean-protein'];
-}
+function getProfile(prof) { return NUTRITION_PROFILES[prof] || NUTRITION_PROFILES['lean-protein']; }
 
 /* ============================================================
-   Food database
+   FOOD DATA
 ============================================================ */
 const FOOD_DATA = {
   italian: {
@@ -946,6 +1229,11 @@ const FOOD_DATA = {
       { name: 'Sheet-pan chicken parm', brief: 'Crispy, saucy, cheesy — minimal cleanup.', ingredients: ['chicken breasts','breadcrumbs','parmesan','mozzarella','marinara','basil','olive oil'], tags: ['comfort','classic','indulgent'], prof: 'pasta-rich' },
       { name: 'Caprese salad', brief: 'Three ingredients, peak summer energy.', ingredients: ['tomatoes','fresh mozzarella','basil','olive oil','balsamic glaze','flaky salt'], tags: ['light','healthy','balanced','classic'], prof: 'salad-light' },
       { name: 'Mushroom risotto', brief: 'Slow stir, big payoff.', ingredients: ['arborio rice','mixed mushrooms','shallots','white wine','parmesan','butter','thyme','vegetable stock'], tags: ['comfort','balanced','indulgent','adventurous'], prof: 'pasta-rich' },
+      { name: 'Pasta puttanesca', brief: 'Anchovies, capers, olives — pantry pasta with attitude.', ingredients: ['spaghetti','anchovies','garlic','olive oil','crushed tomatoes','capers','kalamata olives','red pepper flakes','parsley'], tags: ['adventurous','classic','balanced'], prof: 'pasta-light' },
+      { name: 'Beef ragu pappardelle', brief: 'Slow-cooked, deeply savory. Worth every minute.', ingredients: ['pappardelle','beef chuck','onion','carrot','celery','red wine','crushed tomatoes','tomato paste','parmesan','rosemary'], tags: ['comfort','indulgent','classic'], prof: 'pasta-rich' },
+      { name: 'Saltimbocca alla romana', brief: 'Pan-seared chicken with prosciutto and sage. Twenty minutes flat.', ingredients: ['chicken cutlets','prosciutto','fresh sage','butter','flour','white wine','lemon','parmesan'], tags: ['classic','balanced','adventurous'], prof: 'lean-protein' },
+      { name: 'Crispy gnocchi with brown butter & sage', brief: 'Skillet-crisped pillows, nutty butter. No boiling required.', ingredients: ['shelf-stable gnocchi','butter','fresh sage','garlic','parmesan','lemon','pine nuts','black pepper'], tags: ['comfort','indulgent','adventurous'], prof: 'pasta-rich' },
+      { name: 'Shrimp scampi linguine', brief: 'Garlicky, lemony, buttery. Pasta night, fancy version.', ingredients: ['linguine','shrimp','garlic','butter','white wine','lemon','red pepper flakes','parsley','olive oil'], tags: ['light','classic','balanced','adventurous'], prof: 'pasta-light' },
     ],
   },
   mexican: {
@@ -972,6 +1260,11 @@ const FOOD_DATA = {
       { name: 'Al pastor tacos', brief: 'Pineapple, achiote, pork — the holy trinity.', ingredients: ['pork shoulder','pineapple','achiote paste','guajillo chiles','garlic','onion','corn tortillas','cilantro','lime'], tags: ['comfort','classic','adventurous','indulgent'], prof: 'taco-trio' },
       { name: 'Halibut ceviche', brief: 'Citrus does the cooking. You just slice.', ingredients: ['halibut','lime','red onion','cilantro','jalapeño','avocado','sea salt','tortilla chips'], tags: ['light','healthy','adventurous'], prof: 'salad-light' },
       { name: 'Chilaquiles verdes', brief: 'Tortilla chips swimming in salsa, crowned with an egg.', ingredients: ['corn tortillas','tomatillos','jalapeños','garlic','cilantro','queso fresco','crema','eggs','onion'], tags: ['comfort','classic','balanced'], prof: 'pasta-rich' },
+      { name: 'Chicken tinga tacos', brief: 'Smoky chipotle pulled chicken. Keeps in the fridge for days.', ingredients: ['chicken thighs','chipotles in adobo','fire-roasted tomatoes','onion','garlic','cumin','corn tortillas','cotija cheese','cilantro','lime'], tags: ['comfort','classic','balanced'], prof: 'taco-trio' },
+      { name: 'Pozole rojo', brief: 'Slow-simmered hominy stew with chiles. Hangover medicine, basically.', ingredients: ['pork shoulder','hominy','guajillo chiles','ancho chiles','garlic','onion','oregano','lime','radish','cabbage'], tags: ['comfort','adventurous','indulgent'], prof: 'noodle-soup' },
+      { name: 'Shrimp aguachile', brief: 'Spicy citrus-cured shrimp. Five minutes from sea to plate.', ingredients: ['raw shrimp','lime','serrano chiles','cucumber','red onion','cilantro','avocado','sea salt','tortilla chips'], tags: ['light','healthy','adventurous'], prof: 'salad-light' },
+      { name: 'Beef barbacoa bowls', brief: 'Slow-braised, fall-apart beef over rice with bright pickled onion.', ingredients: ['beef chuck','chipotles','lime','oregano','cumin','garlic','beef broth','rice','cilantro','pickled red onion'], tags: ['comfort','classic','indulgent','balanced'], prof: 'rice-bowl' },
+      { name: 'Esquites (Mexican street corn salad)', brief: 'All the magic of elote — in a bowl, no stick required.', ingredients: ['fresh corn','mayo','cotija','lime','chili powder','cilantro','butter','jalapeño','garlic'], tags: ['classic','indulgent','adventurous'], prof: 'snack' },
     ],
   },
   american: {
@@ -999,6 +1292,11 @@ const FOOD_DATA = {
       { name: 'Roast sheet-pan salmon', brief: '20 minutes, healthy enough to feel virtuous.', ingredients: ['salmon fillets','olive oil','lemon','garlic','dill','asparagus','baby potatoes','salt','pepper'], tags: ['light','healthy','balanced','classic'], prof: 'lean-fish' },
       { name: 'Crispy buffalo wings', brief: 'Game day, dish form.', ingredients: ['chicken wings','baking powder','butter','hot sauce','garlic powder','blue cheese','celery'], tags: ['comfort','classic','indulgent'], prof: 'fried-indulgent' },
       { name: 'Kale Caesar', brief: 'Better than the romaine version. Fight me.', ingredients: ['lacinato kale','parmesan','sourdough','anchovies','garlic','lemon','egg yolk','olive oil'], tags: ['light','healthy','balanced','classic'], prof: 'salad-protein' },
+      { name: 'Carolina pulled pork sandwiches', brief: 'Low-and-slow shoulder, vinegary slaw, soft buns.', ingredients: ['pork shoulder','brown sugar','paprika','mustard powder','apple cider vinegar','cabbage','mayo','hamburger buns','pickles'], tags: ['comfort','classic','indulgent'], prof: 'sandwich' },
+      { name: 'Cozy beef chili', brief: 'Bowl weather. Better the next day.', ingredients: ['ground beef','kidney beans','crushed tomatoes','onion','garlic','chili powder','cumin','smoked paprika','cornmeal','sour cream','cheddar'], tags: ['comfort','classic','indulgent','balanced'], prof: 'curry-rich' },
+      { name: 'Brown butter sea scallops', brief: 'Three-minute sear, nutty butter, lemon. Restaurant-fancy at home.', ingredients: ['sea scallops','butter','garlic','lemon','capers','parsley','olive oil','flaky salt'], tags: ['light','adventurous','classic','indulgent'], prof: 'lean-fish' },
+      { name: 'Mushroom & Swiss patty melt', brief: 'Diner classic — buttery rye, melty cheese, jammy onions.', ingredients: ['ground beef','swiss cheese','cremini mushrooms','yellow onion','rye bread','butter','thyme','thousand island'], tags: ['comfort','classic','indulgent'], prof: 'sandwich' },
+      { name: 'Honey-mustard sheet-pan chicken', brief: 'Crispy thighs, roasted potatoes, sticky glaze.', ingredients: ['chicken thighs','dijon mustard','honey','garlic','baby potatoes','green beans','olive oil','thyme','lemon'], tags: ['classic','balanced','comfort','healthy'], prof: 'lean-protein' },
     ],
   },
   asian: {
@@ -1026,6 +1324,11 @@ const FOOD_DATA = {
       { name: 'Quick chicken pho', brief: "Cheater's broth, full-strength flavor.", ingredients: ['rice noodles','chicken broth','rotisserie chicken','star anise','cinnamon','ginger','onion','fish sauce','bean sprouts','thai basil','lime'], tags: ['comfort','classic','balanced','healthy'], prof: 'noodle-soup' },
       { name: 'Bibimbap bowls', brief: 'Crispy rice, runny egg, gochujang. Healthy by accident.', ingredients: ['short-grain rice','spinach','carrots','bean sprouts','shiitake mushrooms','ground beef','eggs','gochujang','sesame oil','soy sauce'], tags: ['balanced','classic','healthy','adventurous'], prof: 'rice-bowl' },
       { name: 'Larb-style chicken lettuce wraps', brief: 'Bright, herby, crunchy, fast.', ingredients: ['ground chicken','shallots','lime','fish sauce','toasted rice powder','mint','cilantro','thai chiles','butter lettuce'], tags: ['light','healthy','adventurous'], prof: 'salad-protein' },
+      { name: 'Korean bulgogi bowls', brief: 'Sweet-savory marinated steak, sticky rice, runny egg.', ingredients: ['flank steak','soy sauce','pear','brown sugar','sesame oil','garlic','short-grain rice','eggs','kimchi','gochujang'], tags: ['comfort','classic','balanced','adventurous'], prof: 'rice-bowl' },
+      { name: 'Chinese garlic eggplant', brief: 'Silky eggplant in a sweet-savory garlic sauce. Quick wok dinner.', ingredients: ['chinese eggplant','garlic','ginger','soy sauce','rice vinegar','brown sugar','sesame oil','green onion','jasmine rice'], tags: ['light','adventurous','healthy','balanced'], prof: 'salad-protein' },
+      { name: 'Better-than-takeout beef and broccoli', brief: 'Tender beef, glossy sauce, 20 minutes start to finish.', ingredients: ['flank steak','broccoli','soy sauce','oyster sauce','cornstarch','garlic','ginger','brown sugar','jasmine rice'], tags: ['comfort','classic','balanced'], prof: 'rice-bowl' },
+      { name: 'Cold sesame noodles', brief: 'Twenty minutes. Nutty, springy, perfect leftovers.', ingredients: ['lo mein noodles','tahini','soy sauce','rice vinegar','garlic','sesame oil','chili crisp','cucumber','green onion','sesame seeds'], tags: ['light','classic','balanced'], prof: 'pasta-light' },
+      { name: 'Crispy salt-and-pepper tofu', brief: 'Cornstarch crust, blistered chiles, big flavor. Vegan win.', ingredients: ['firm tofu','cornstarch','garlic','scallions','red chiles','sichuan peppercorns','soy sauce','rice','sesame oil'], tags: ['adventurous','balanced','healthy','classic'], prof: 'salad-protein' },
     ],
   },
   mediterranean: {
@@ -1049,6 +1352,11 @@ const FOOD_DATA = {
       { name: 'Sheet-pan chicken shawarma', brief: 'Yogurt marinade, crispy edges. Weeknight win.', ingredients: ['chicken thighs','yogurt','garlic','lemon','cumin','coriander','paprika','turmeric','olive oil','pita','tahini'], tags: ['comfort','classic','balanced','healthy'], prof: 'wrap-handheld' },
       { name: 'Crispy chickpea bowls', brief: 'Roasted chickpeas, lemony tahini, herbed everything.', ingredients: ['chickpeas','olive oil','smoked paprika','farro','cucumber','tomato','red onion','tahini','lemon','parsley','mint'], tags: ['light','healthy','balanced'], prof: 'grain-bowl' },
       { name: 'Lamb kofta', brief: 'Spiced patties, charred edges, cooling yogurt.', ingredients: ['ground lamb','onion','garlic','parsley','cumin','sumac','allspice','greek yogurt','mint','flatbread'], tags: ['comfort','adventurous','indulgent'], prof: 'meat-feast' },
+      { name: 'Greek lemon chicken & rice', brief: 'One-pan roast with bright lemon-egg pan sauce.', ingredients: ['chicken thighs','lemon','garlic','olive oil','oregano','chicken broth','eggs','rice','dill','parsley'], tags: ['comfort','classic','balanced'], prof: 'lean-protein' },
+      { name: 'Spanish paella', brief: 'Saffron-stained rice with chorizo, chicken, and shellfish. Showstopper.', ingredients: ['short-grain rice','chorizo','chicken thighs','shrimp','mussels','saffron','tomato','bell pepper','onion','peas','lemon'], tags: ['adventurous','classic','indulgent'], prof: 'rice-bowl' },
+      { name: 'Moroccan chicken tagine', brief: 'Sweet-savory braise with apricots and warm spices.', ingredients: ['chicken thighs','dried apricots','onion','garlic','ginger','cinnamon','cumin','paprika','olives','almonds','couscous'], tags: ['adventurous','comfort','balanced'], prof: 'curry-rich' },
+      { name: 'Lemony orzo & feta salad', brief: 'Lemony, herby, vegetable-packed. Holds beautifully in the fridge.', ingredients: ['orzo','cucumber','tomato','red onion','kalamata olives','feta','lemon','olive oil','parsley','mint','dill'], tags: ['light','healthy','balanced','classic'], prof: 'grain-bowl' },
+      { name: 'Beef souvlaki with tzatziki', brief: 'Garlicky grilled skewers, cool yogurt sauce, warm pita.', ingredients: ['beef sirloin','lemon','garlic','oregano','olive oil','yogurt','cucumber','dill','pita','red onion'], tags: ['classic','adventurous','balanced','indulgent'], prof: 'meat-feast' },
     ],
   },
   indian: {
@@ -1072,6 +1380,11 @@ const FOOD_DATA = {
       { name: 'Weeknight butter chicken', brief: 'Pantry-friendly, comfort-food legend.', ingredients: ['chicken thighs','yogurt','butter','tomato puree','garam masala','garlic','ginger','heavy cream','basmati rice','cilantro'], tags: ['comfort','classic','indulgent'], prof: 'curry-rich' },
       { name: 'Chana masala', brief: 'One pot, one hour, deeply spiced.', ingredients: ['chickpeas','onion','tomatoes','garlic','ginger','cumin','coriander','garam masala','turmeric','cilantro','basmati rice'], tags: ['comfort','classic','healthy','balanced'], prof: 'curry-light' },
       { name: 'Saag paneer', brief: 'Silky greens, golden cubes of cheese.', ingredients: ['paneer','spinach','butter','garlic','ginger','green chile','garam masala','cumin','heavy cream','naan'], tags: ['comfort','classic','indulgent','balanced'], prof: 'curry-rich' },
+      { name: 'Chicken biryani', brief: 'Layered rice and spiced chicken — patience-required, payoff-guaranteed.', ingredients: ['basmati rice','chicken thighs','yogurt','onion','tomato','biryani masala','saffron','mint','cilantro','ghee','cashews'], tags: ['comfort','classic','indulgent','adventurous'], prof: 'rice-bowl' },
+      { name: 'Vegetable korma', brief: 'Creamy, nutty, mildly spiced. Vegetables for skeptics.', ingredients: ['cauliflower','green beans','potato','carrot','cashews','coconut milk','onion','ginger','garlic','garam masala','basmati rice'], tags: ['comfort','balanced','classic'], prof: 'curry-rich' },
+      { name: 'Tandoori shrimp', brief: 'Yogurt-marinated shrimp with charred edges. Twenty minutes flat.', ingredients: ['shrimp','yogurt','lemon','garlic','ginger','tandoori masala','paprika','cilantro','basmati rice','cucumber raita'], tags: ['light','healthy','adventurous','classic'], prof: 'lean-protein' },
+      { name: 'Dal makhani', brief: 'Slow-simmered black lentils with cream. Quintessential comfort.', ingredients: ['black lentils','kidney beans','butter','cream','tomato','ginger','garlic','garam masala','fenugreek','naan'], tags: ['comfort','classic','indulgent','balanced'], prof: 'curry-rich' },
+      { name: 'Aloo gobi', brief: 'Cauliflower and potato, deeply spiced. Vegetarian gold.', ingredients: ['cauliflower','potato','onion','tomato','ginger','garlic','turmeric','cumin','garam masala','cilantro','lemon'], tags: ['classic','healthy','balanced','adventurous'], prof: 'curry-light' },
     ],
   },
   japanese: {
@@ -1095,6 +1408,11 @@ const FOOD_DATA = {
       { name: 'Crispy salmon donburi', brief: '20 minutes, peak weeknight.', ingredients: ['salmon','soy sauce','mirin','rice','furikake','cucumber','avocado','scallion','sesame seeds'], tags: ['light','healthy','classic','balanced'], prof: 'rice-bowl' },
       { name: 'Quick chicken katsu curry', brief: 'Crispy cutlet, glossy curry, big payoff.', ingredients: ['chicken breasts','panko','egg','flour','onion','carrot','japanese curry roux','rice','pickled ginger'], tags: ['comfort','classic','indulgent'], prof: 'fried-indulgent' },
       { name: 'Miso-glazed eggplant', brief: 'Soft, smoky, sweet, savory. Plant magic.', ingredients: ['japanese eggplant','white miso','mirin','sake','sugar','sesame seeds','rice','scallion'], tags: ['light','adventurous','balanced','healthy'], prof: 'salad-protein' },
+      { name: 'Beef gyudon (beef bowl)', brief: 'Sweet-savory simmered beef over rice. Tokyo office lunch, at home.', ingredients: ['thin-sliced ribeye','yellow onion','soy sauce','mirin','sake','sugar','dashi','rice','pickled ginger','scallion'], tags: ['comfort','classic','balanced'], prof: 'rice-bowl' },
+      { name: 'Salmon teriyaki', brief: 'Glossy, sweet-savory, ten-minute cook.', ingredients: ['salmon fillets','soy sauce','mirin','sake','sugar','ginger','sesame seeds','rice','broccoli','scallion'], tags: ['classic','balanced','healthy','light'], prof: 'lean-fish' },
+      { name: 'Cold soba salad', brief: 'Buckwheat noodles, sesame dressing, crunchy vegetables. Best on hot days.', ingredients: ['soba noodles','soy sauce','sesame oil','rice vinegar','cucumber','edamame','carrot','scallion','sesame seeds','nori'], tags: ['light','healthy','classic','balanced'], prof: 'salad-protein' },
+      { name: 'Tonkatsu pork cutlet', brief: 'Panko-crusted cutlet over rice with shredded cabbage and tangy sauce.', ingredients: ['pork loin chops','panko','egg','flour','cabbage','tonkatsu sauce','rice','lemon','mustard'], tags: ['comfort','classic','indulgent'], prof: 'fried-indulgent' },
+      { name: 'Yakitori chicken skewers', brief: 'Glazed grilled chicken skewers — izakaya at home.', ingredients: ['chicken thighs','scallions','soy sauce','mirin','sake','brown sugar','rice','shichimi togarashi'], tags: ['classic','balanced','adventurous'], prof: 'lean-protein' },
     ],
   },
 };
@@ -1111,20 +1429,389 @@ const AVOID_KEYWORDS = {
   eggs:      ['egg','omelet','frittata','carbonara','meringue','tempura','katsu','panko'],
 };
 
-/* ============================================================
-   Application state
-============================================================ */
-const state = {
-  step: 0,
-  answers: {},
-  targets: null,        // { kcal, p, c, f } with each optional, or null
-  coords: null,
-  recommendation: null,
-  places: [],
+const AVOID_LABELS = {
+  gluten: 'gluten', dairy: 'dairy', spicy: 'spicy', seafood: 'seafood', shellfish: 'shellfish',
+  'red-meat': 'red meat', pork: 'pork', nuts: 'nuts', eggs: 'eggs',
 };
 
 /* ============================================================
-   Rendering
+   STATE + persistence
+============================================================ */
+const STORAGE_KEY = 'food_decider_v3';
+
+const state = {
+  flow: 'welcome',        // welcome | quick | full | shortcut | couple
+  shortcut: null,         // current shortcut config if applicable
+  step: 0,
+  answers: {},
+  targets: null,
+  coords: null,
+  recommendation: null,
+  candidates: [],         // ordered list of candidate dishes (or recipes)
+  heroIndex: 0,           // current hero in candidates
+  places: [],
+  couple: null,
+};
+
+const persisted = { dislikes: [], recentPicks: [] };
+
+function loadPersisted() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (Array.isArray(obj.dislikes)) persisted.dislikes = obj.dislikes.slice(0, 200);
+    if (Array.isArray(obj.recentPicks)) persisted.recentPicks = obj.recentPicks.slice(0, 30);
+  } catch {}
+}
+function savePersisted() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)); } catch {}
+}
+function addDislike(name) {
+  if (!name) return;
+  const k = String(name).toLowerCase();
+  persisted.dislikes = persisted.dislikes.filter((d) => d.toLowerCase() !== k);
+  persisted.dislikes.unshift(name);
+  persisted.dislikes = persisted.dislikes.slice(0, 200);
+  savePersisted();
+}
+function isDisliked(name) {
+  const k = String(name || '').toLowerCase();
+  return persisted.dislikes.some((d) => d.toLowerCase() === k);
+}
+function addRecentPick(name) {
+  if (!name) return;
+  const k = String(name).toLowerCase();
+  persisted.recentPicks = persisted.recentPicks.filter((d) => d.toLowerCase() !== k);
+  persisted.recentPicks.unshift(name);
+  persisted.recentPicks = persisted.recentPicks.slice(0, 10);
+  savePersisted();
+}
+function isRecentlyPicked(name) {
+  const k = String(name || '').toLowerCase();
+  return persisted.recentPicks.some((d) => d.toLowerCase() === k);
+}
+loadPersisted();
+
+/* ============================================================
+   Time-of-day / context defaults
+============================================================ */
+function timeOfDayDefaults() {
+  const h = new Date().getHours();
+  if (h < 11)  return { moodHint: 'classic',     healthHint: 'balanced', period: 'morning' };
+  if (h < 14)  return { moodHint: 'light',       healthHint: 'balanced', period: 'lunch' };
+  if (h < 17)  return { moodHint: 'light',       healthHint: 'balanced', period: 'snack' };
+  if (h < 21)  return { moodHint: 'comfort',     healthHint: 'balanced', period: 'dinner' };
+  return         { moodHint: 'comfort',     healthHint: 'indulgent',  period: 'late night' };
+}
+
+/* ============================================================
+   Avoid matching (predefined + custom typed list + persistent dislikes)
+============================================================ */
+function getCustomAvoidKeywords() {
+  const raw = (state.answers && state.answers.avoidCustom) || '';
+  return String(raw).split(/[,\n;]/).map((s) => s.trim().toLowerCase()).filter((s) => s.length >= 2);
+}
+
+function avoidsMatch(text, avoid) {
+  const t = ' ' + String(text).toLowerCase() + ' ';
+  if (avoid && avoid.length) {
+    for (const a of avoid) {
+      const kws = AVOID_KEYWORDS[a] || [];
+      for (const kw of kws) {
+        if (t.includes(kw.toLowerCase())) return true;
+      }
+    }
+  }
+  const custom = getCustomAvoidKeywords();
+  for (const kw of custom) if (t.includes(kw)) return true;
+  return false;
+}
+function ingredientsBlocked(ings, avoid) {
+  if (!ings) return false;
+  for (const ing of ings) if (avoidsMatch(ing, avoid)) return true;
+  return false;
+}
+
+/* ============================================================
+   Macro / target distance
+============================================================ */
+function macroDistance(profile, targets) {
+  const p = profile || {};
+  let total = 0, count = 0;
+  if (targets.kcal) { total += Math.abs((p.kcal || 0) - targets.kcal) / Math.max(targets.kcal, 1); count++; }
+  if (targets.p)    { total += Math.abs((p.p    || 0) - targets.p)    / Math.max(targets.p, 1);    count++; }
+  if (targets.c)    { total += Math.abs((p.c    || 0) - targets.c)    / Math.max(targets.c, 1);    count++; }
+  if (targets.f)    { total += Math.abs((p.f    || 0) - targets.f)    / Math.max(targets.f, 1);    count++; }
+  return count ? total / count : 0;
+}
+
+/* ============================================================
+   Cuisine + dish candidate selection
+============================================================ */
+function pickCuisineKey(answers) {
+  if (answers.cuisine && answers.cuisine !== 'surprise' && FOOD_DATA[answers.cuisine]) {
+    return answers.cuisine;
+  }
+  const avoid = answers.avoid || [];
+  const candidates = Object.keys(FOOD_DATA).filter((k) =>
+    FOOD_DATA[k].dishes.some((d) => !avoidsMatch(d.name, avoid) && !isDisliked(d.name))
+  );
+  if (state.targets) {
+    const fitCandidates = candidates.filter((k) =>
+      FOOD_DATA[k].dishes.some((d) =>
+        !avoidsMatch(d.name, avoid) && !isDisliked(d.name) &&
+        macroDistance(getProfile(d.prof), state.targets) < 0.4
+      )
+    );
+    if (fitCandidates.length) return pickRandom(fitCandidates);
+  }
+  return pickRandom(candidates.length ? candidates : Object.keys(FOOD_DATA));
+}
+
+function rankByTargets(items, targets) {
+  return items.slice().sort((a, b) =>
+    macroDistance(getProfile(a.prof), targets) - macroDistance(getProfile(b.prof), targets)
+  );
+}
+
+function dishMatchesShortcut(dish, shortcut) {
+  if (!shortcut) return true;
+  const name = (dish.name || '').toLowerCase();
+  if (shortcut.preferDishes && shortcut.preferDishes.length) {
+    return shortcut.preferDishes.some((kw) => name.includes(kw));
+  }
+  if (shortcut.preferProf && shortcut.preferProf.length) {
+    return shortcut.preferProf.includes(dish.prof);
+  }
+  return true;
+}
+
+function buildDishCandidates(answers) {
+  const cuisineKey = pickCuisineKey(answers);
+  const data = FOOD_DATA[cuisineKey];
+  const moodTag = answers.mood;
+  const healthTag = answers.health;
+  const avoid = answers.avoid || [];
+  const shortcut = state.shortcut;
+
+  // Layered filtering: prefer tighter matches, fall back to broader
+  let pool = data.dishes.filter((d) =>
+    (d.tags.includes(moodTag) || d.tags.includes(healthTag)) &&
+    !avoidsMatch(d.name, avoid) && !isDisliked(d.name)
+  );
+  if (pool.length < 4) {
+    pool = data.dishes.filter((d) => !avoidsMatch(d.name, avoid) && !isDisliked(d.name));
+  }
+
+  // Shortcut preferences boost matching dishes to the front
+  if (shortcut) {
+    const preferred = pool.filter((d) => dishMatchesShortcut(d, shortcut));
+    const others = pool.filter((d) => !dishMatchesShortcut(d, shortcut));
+    pool = [...shuffle(preferred.slice()), ...shuffle(others.slice())];
+  } else if (state.targets) {
+    pool = rankByTargets(pool, state.targets);
+  } else {
+    pool = shuffle(pool.slice());
+  }
+
+  // Deprioritize (but don't drop) recently-picked dishes
+  pool.sort((a, b) => {
+    const ar = isRecentlyPicked(a.name) ? 1 : 0;
+    const br = isRecentlyPicked(b.name) ? 1 : 0;
+    return ar - br;
+  });
+
+  const candidates = pool.slice(0, 8).map((d) => ({
+    name: d.name,
+    prof: d.prof,
+    tags: d.tags,
+    profile: getProfile(d.prof),
+    cuisineKey,
+    cuisineLabel: data.label,
+  }));
+
+  return { candidates, cuisineKey, cuisineData: data };
+}
+
+function buildRecipeCandidates(answers) {
+  const cuisineKey = pickCuisineKey(answers);
+  const data = FOOD_DATA[cuisineKey];
+  const moodTag = answers.mood;
+  const healthTag = answers.health;
+  const avoid = answers.avoid || [];
+  const shortcut = state.shortcut;
+
+  let pool = data.recipes.filter((r) =>
+    (r.tags.includes(moodTag) || r.tags.includes(healthTag)) &&
+    !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid) &&
+    !isDisliked(r.name)
+  );
+  if (pool.length < 3) {
+    pool = data.recipes.filter((r) =>
+      !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid) && !isDisliked(r.name)
+    );
+  }
+  if (pool.length < 3) {
+    const all = [];
+    Object.values(FOOD_DATA).forEach((d) => d.recipes.forEach((r) => all.push(r)));
+    pool = all.filter((r) =>
+      !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid) && !isDisliked(r.name)
+    );
+  }
+
+  if (shortcut) {
+    const preferred = pool.filter((r) => dishMatchesShortcut(r, shortcut));
+    const others = pool.filter((r) => !dishMatchesShortcut(r, shortcut));
+    pool = [...shuffle(preferred.slice()), ...shuffle(others.slice())];
+  } else if (state.targets) {
+    pool = rankByTargets(pool, state.targets);
+  } else {
+    pool = shuffle(pool.slice());
+  }
+
+  pool.sort((a, b) => {
+    const ar = isRecentlyPicked(a.name) ? 1 : 0;
+    const br = isRecentlyPicked(b.name) ? 1 : 0;
+    return ar - br;
+  });
+
+  const candidates = pool.slice(0, 6).map((r) => ({
+    name: r.name,
+    brief: r.brief,
+    ingredients: r.ingredients,
+    prof: r.prof,
+    tags: r.tags,
+    profile: getProfile(r.prof),
+    cuisineKey,
+    cuisineLabel: data.label,
+  }));
+
+  return { candidates, cuisineKey, cuisineData: data };
+}
+
+/* ============================================================
+   Reasoning generator (the "because you said..." line)
+============================================================ */
+function buildReasoning(dish, answers) {
+  const bits = [];
+  const moodWords = { comfort: 'comfort food', light: 'something light', adventurous: 'adventurous', classic: 'a classic' };
+  const healthWords = { healthy: 'healthy', balanced: 'balanced', indulgent: 'indulgence' };
+  if (answers.mood) bits.push(moodWords[answers.mood] || answers.mood);
+  if (answers.health) bits.push(healthWords[answers.health] || answers.health);
+  if (answers.vibe === 'date')   bits.push('date night');
+  if (answers.vibe === 'family') bits.push('feeding the family');
+  if (answers.vibe === 'group')  bits.push('a group meal');
+  if (answers.vibe === 'solo' && bits.length === 0) bits.push('solo dinner');
+  if (state.targets && state.targets.kcal) bits.push(`~${state.targets.kcal} kcal`);
+  if (state.shortcut) {
+    const label = state.shortcut.label.toLowerCase();
+    if (!bits.some(b => b.includes(label))) bits.unshift(label);
+  }
+  const pieces = bits.slice(0, 3);
+  if (!pieces.length) return `Because it fits your ${dish.cuisineLabel.toLowerCase()} vibe.`;
+  return `Because you said ${pieces.join(' + ')}.`;
+}
+
+/* ============================================================
+   Build a search-query set for cook mode (from earlier feature)
+============================================================ */
+function buildRecipeSearches(answers, rec) {
+  const cuisineLabel = rec.cuisineLabel || '';
+  const cuisineLower = cuisineLabel.toLowerCase();
+  const searches = [];
+
+  const moodWord = ({
+    comfort: 'comfort food', light: 'light', adventurous: 'adventurous', classic: 'classic weeknight',
+  })[answers.mood] || '';
+
+  if (cuisineLower) {
+    searches.push({ label: `${capitalize(moodWord || 'easy')} ${cuisineLabel} recipes`,
+      query: `easy ${moodWord} ${cuisineLower} recipes`.replace(/\s+/g, ' ').trim() });
+  }
+  searches.push({ label: `30-minute ${cuisineLabel || 'weeknight'} recipes`, query: `30 minute ${cuisineLower} recipes`.trim() });
+  if (answers.health === 'healthy') searches.push({ label: `Healthy ${cuisineLabel} recipes`, query: `healthy ${cuisineLower} dinner recipes`.trim() });
+  else if (answers.health === 'indulgent') searches.push({ label: `Best indulgent ${cuisineLabel} dishes`, query: `best indulgent ${cuisineLower} comfort food recipes`.trim() });
+
+  if (answers.vibe === 'date')   searches.push({ label: `${cuisineLabel} date night recipes`,     query: `${cuisineLower} date night dinner recipes impressive`.trim() });
+  if (answers.vibe === 'family') searches.push({ label: `Kid-friendly ${cuisineLabel} recipes`,   query: `kid friendly family ${cuisineLower} dinner recipes`.trim() });
+  if (answers.vibe === 'group')  searches.push({ label: `${cuisineLabel} recipes for a crowd`,    query: `${cuisineLower} recipes for a crowd party feeding many`.trim() });
+  if (answers.vibe === 'solo')   searches.push({ label: `${cuisineLabel} recipes for one`,        query: `${cuisineLower} recipes for one solo cooking small batch`.trim() });
+
+  const avoid = Array.isArray(answers.avoid) ? answers.avoid : [];
+  const dietParts = [];
+  if (avoid.includes('gluten')) dietParts.push('gluten-free');
+  if (avoid.includes('dairy'))  dietParts.push('dairy-free');
+  if (avoid.includes('nuts'))   dietParts.push('nut-free');
+  if (avoid.includes('eggs'))   dietParts.push('egg-free');
+  const noProtein = avoid.includes('red-meat') && avoid.includes('pork');
+  const noSea = avoid.includes('seafood') && avoid.includes('shellfish');
+  if (noProtein && noSea) dietParts.push('vegetarian');
+  else if (noProtein) dietParts.push('pescatarian');
+  if (dietParts.length) searches.push({ label: `${capitalize(dietParts.join(' '))} ${cuisineLabel} recipes`, query: `${dietParts.join(' ')} ${cuisineLower} recipes`.trim() });
+
+  if (state.targets) {
+    if (state.targets.kcal) searches.push({ label: `${cuisineLabel} recipes under ${state.targets.kcal} calories`, query: `${cuisineLower} recipes under ${state.targets.kcal} calories per serving`.trim() });
+    if (state.targets.p && state.targets.p >= 30) searches.push({ label: `High-protein ${cuisineLabel} recipes`, query: `high protein ${cuisineLower} recipes ${state.targets.p}g protein`.trim() });
+    if (state.targets.c && state.targets.c <= 40) searches.push({ label: `Low-carb ${cuisineLabel} recipes`,    query: `low carb ${cuisineLower} recipes`.trim() });
+  }
+
+  const customs = String(answers.avoidCustom || '').split(/[,;\n]/).map(s => s.trim()).filter(s => s.length >= 2);
+  if (customs.length) {
+    const noStr = customs.slice(0, 4).map(c => `-"${c}"`).join(' ');
+    searches.push({ label: `${cuisineLabel} recipes without ${customs.slice(0, 3).join(', ')}`, query: `${cuisineLower} recipes ${noStr}`.replace(/\s+/g, ' ').trim() });
+  }
+
+  const seen = new Set();
+  return searches.filter((s) => {
+    if (!s.query) return false;
+    if (seen.has(s.query)) return false;
+    seen.add(s.query); return true;
+  }).slice(0, 7);
+}
+
+/* ============================================================
+   Price tier estimation (Google-style $ / $$ / $$$)
+============================================================ */
+function budgetToTier(budget) { return budget === '$' ? 1 : budget === '$$' ? 2 : budget === '$$$' ? 3 : null; }
+function tierToDollars(tier) {
+  if (!tier || tier < 1) return '';
+  return '$'.repeat(Math.max(1, Math.min(3, Math.round(tier))));
+}
+function estimatePriceTier(tags) {
+  const explicitKeys = ['price:level', 'price_range', 'price', 'fee:level'];
+  for (const k of explicitKeys) {
+    const v = tags[k]; if (!v) continue;
+    const s = String(v).toLowerCase().trim();
+    if (s === '$'  || s === '1' || /\b(low|cheap|budget|inexpensive)\b/.test(s)) return { tier: 1, confident: true };
+    if (s === '$$$'|| s === '3' || /\b(high|expensive|fine[\s_-]?dining|upscale|premium)\b/.test(s)) return { tier: 3, confident: true };
+    if (s === '$$' || s === '2' || /\b(mid|medium|moderate|average)\b/.test(s)) return { tier: 2, confident: true };
+    const dollarMatch = s.match(/^\$+$/);
+    if (dollarMatch) {
+      const n = Math.max(1, Math.min(3, dollarMatch[0].length));
+      return { tier: n, confident: true };
+    }
+  }
+  const amenity = String(tags.amenity || '').toLowerCase();
+  const cuisine = String(tags.cuisine || '').toLowerCase();
+  const name    = String(tags.name || '').toLowerCase();
+  const highEndCuisines = ['fine_dining','french','molecular','tasting_menu','steak_house','steakhouse'];
+  const highEndKeywords = ['steakhouse','steak house','fine dining','tasting menu',"chef's table",'omakase','michelin','prime','reserve','wine room'];
+  if (highEndCuisines.some(t => cuisine.includes(t))) {
+    if (cuisine.includes('omakase') || cuisine.includes('fine_dining') || cuisine.includes('french') || cuisine.includes('molecular') || cuisine.includes('tasting')) return { tier: 3, confident: false };
+  }
+  if (highEndKeywords.some(k => name.includes(k))) return { tier: 3, confident: false };
+  if (amenity === 'fast_food') return { tier: 1, confident: true };
+  const cheapKeywords = ['express','truck','diner','taqueria','dollar','value','snack','quick','cantina','drive-thru','drive thru'];
+  if (cheapKeywords.some(k => name.includes(k))) return { tier: 1, confident: false };
+  const cheapCuisines = ['burger','pizza','sandwich','kebab','doughnut','fish_and_chips','breakfast','noodle','ice_cream'];
+  if (amenity === 'cafe') return { tier: 1, confident: false };
+  if (cheapCuisines.some(t => cuisine.includes(t)) && amenity !== 'restaurant') return { tier: 1, confident: false };
+  return { tier: 2, confident: false };
+}
+
+/* ============================================================
+   Rendering helpers
 ============================================================ */
 const main = document.getElementById('main');
 const progressEl = document.getElementById('progress');
@@ -1147,67 +1834,200 @@ function setProgress(step, total) {
   }
 }
 
-function shouldSkipQuestion(q) {
-  return q.id === 'distance' && state.answers.format === 'cook';
-}
-
-function getVisibleTotal() {
-  return QUESTIONS.filter((q) => !shouldSkipQuestion(q)).length;
-}
-
-function getVisibleStep(step) {
-  let count = 0;
-  for (let i = 0; i <= step && i < QUESTIONS.length; i++) {
-    if (!shouldSkipQuestion(QUESTIONS[i])) count++;
-  }
-  return count - 1;
-}
-
-function nextVisibleStep(from) {
-  let i = from + 1;
-  while (i < QUESTIONS.length && shouldSkipQuestion(QUESTIONS[i])) i++;
-  return i < QUESTIONS.length ? i : -1;
-}
-
-function prevVisibleStep(from) {
-  let i = from - 1;
-  while (i >= 0 && shouldSkipQuestion(QUESTIONS[i])) i--;
-  return i;
-}
-
 function transitionTo(renderFn) {
   const current = main.firstElementChild;
   if (current) {
     current.classList.add('leaving');
-    setTimeout(() => {
-      main.innerHTML = '';
-      renderFn();
-    }, 220);
+    setTimeout(() => { main.innerHTML = ''; renderFn(); }, 220);
   } else {
-    main.innerHTML = '';
-    renderFn();
+    main.innerHTML = ''; renderFn();
   }
 }
 
-/* ---------- Welcome ---------- */
+/* ============================================================
+   Welcome screen — three paths + shortcuts
+============================================================ */
 function renderWelcome() {
-  setProgress(-1, QUESTIONS.length);
+  state.flow = 'welcome';
+  setProgress(-1, 1);
   const el = document.createElement('div');
   el.className = 'screen welcome';
   el.innerHTML = `
     <div class="hero-art">🍜</div>
     <div class="eyebrow">Tonight's question</div>
     <h1>What should<br/>I <em>eat?</em></h1>
-    <p class="lede">Eight quick questions. We'll match your mood and find something nearby that actually sounds good.</p>
-    <button id="startBtn" class="btn btn-lg">Let's figure it out →</button>
+    <p class="lede">Pick a path. We'll give you one confident answer — no scrolling through endless menus.</p>
+
+    <div class="path-stack">
+      <button class="path-btn primary" id="pathQuick">
+        <span class="emoji">⚡</span>
+        <span>
+          <div class="label">Decide for me</div>
+          <div class="desc">3 quick questions, hero pick</div>
+        </span>
+        <span class="arrow">→</span>
+      </button>
+      <button class="path-btn" id="pathCouple">
+        <span class="emoji">💞</span>
+        <span>
+          <div class="label">Couple mode</div>
+          <div class="desc">Both swipe, first match wins</div>
+        </span>
+        <span class="arrow">→</span>
+      </button>
+      <button class="path-btn" id="pathFull">
+        <span class="emoji">⚙️</span>
+        <span>
+          <div class="label">Customize my answers</div>
+          <div class="desc">Full preferences + macros</div>
+        </span>
+        <span class="arrow">→</span>
+      </button>
+    </div>
+
+    <div class="shortcut-section">
+      <div class="shortcut-section-title">Or pick a vibe</div>
+      <div class="shortcut-grid" id="shortcutGrid"></div>
+    </div>
   `;
   main.appendChild(el);
-  document.getElementById('startBtn').addEventListener('click', () => {
-    transitionTo(renderTargets);
+
+  document.getElementById('pathQuick').addEventListener('click', () => startQuickMode());
+  document.getElementById('pathCouple').addEventListener('click', () => startCoupleMode());
+  document.getElementById('pathFull').addEventListener('click', () => startFullMode());
+
+  const grid = document.getElementById('shortcutGrid');
+  SHORTCUTS.forEach((sc) => {
+    const btn = document.createElement('button');
+    btn.className = 'shortcut';
+    btn.innerHTML = `<span class="emoji">${sc.emoji}</span><span class="label">${sc.label}</span>`;
+    btn.addEventListener('click', () => startShortcut(sc));
+    grid.appendChild(btn);
   });
 }
 
-/* ---------- Targets (optional, before Q1) ---------- */
+/* ============================================================
+   Path: Quick mode (3 questions)
+============================================================ */
+function startQuickMode() {
+  state.flow = 'quick';
+  state.shortcut = null;
+  state.answers = {};
+  state.step = 0;
+  // Apply time-of-day defaults that the user didn't override
+  const tod = timeOfDayDefaults();
+  state.answers._timeOfDay = tod.period;
+  transitionTo(renderQuickQuestion);
+}
+
+function renderQuickQuestion() {
+  const q = QUICK_QUESTIONS[state.step];
+  setProgress(state.step, QUICK_QUESTIONS.length);
+
+  const el = document.createElement('div');
+  el.className = 'screen';
+  const optionsClass = q.layout === 'cols' ? 'options cols-2' : 'options';
+  const current = state.answers[q.id] ?? null;
+
+  el.innerHTML = `
+    <div class="q-eyebrow">${q.eyebrow}</div>
+    <h2 class="q-title serif">${q.title}</h2>
+    ${q.sub ? `<p class="q-sub">${q.sub}</p>` : '<div style="margin-bottom:18px"></div>'}
+    <div class="${optionsClass}" id="opts"></div>
+    <div class="nav-row">
+      <button id="backBtn" class="btn btn-ghost">← Back</button>
+      <button id="nextBtn" class="btn" ${current === null ? 'disabled' : ''}>
+        ${state.step === QUICK_QUESTIONS.length - 1 ? 'Find food →' : 'Next →'}
+      </button>
+    </div>
+  `;
+  main.appendChild(el);
+
+  const optsEl = document.getElementById('opts');
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.style.animationDelay = (i * 35) + 'ms';
+    if (current === opt.value) btn.classList.add('selected');
+    btn.innerHTML = `
+      <span class="opt-emoji">${opt.emoji}</span>
+      <span class="opt-content">
+        <span class="opt-label">${opt.label}</span>
+        ${opt.desc ? `<span class="opt-desc">${opt.desc}</span>` : ''}
+      </span>
+    `;
+    btn.addEventListener('click', () => {
+      state.answers[q.id] = opt.value;
+      setTimeout(() => quickAdvance(), 220);
+    });
+    optsEl.appendChild(btn);
+  });
+
+  document.getElementById('backBtn').addEventListener('click', () => {
+    if (state.step > 0) { state.step--; transitionTo(renderQuickQuestion); }
+    else { transitionTo(renderWelcome); }
+  });
+  document.getElementById('nextBtn').addEventListener('click', quickAdvance);
+}
+
+function quickAdvance() {
+  const q = QUICK_QUESTIONS[state.step];
+  if (state.answers[q.id] == null) return;
+  if (state.step < QUICK_QUESTIONS.length - 1) {
+    state.step++;
+    transitionTo(renderQuickQuestion);
+  } else {
+    finalizeQuickAnswers();
+    proceedToOutcome();
+  }
+}
+
+function finalizeQuickAnswers() {
+  // Fill in defaults from time-of-day where missing
+  const tod = timeOfDayDefaults();
+  if (!state.answers.mood)   state.answers.mood   = tod.moodHint;
+  if (!state.answers.health) state.answers.health = tod.healthHint;
+  if (!state.answers.cuisine) state.answers.cuisine = 'surprise';
+  if (!state.answers.budget) state.answers.budget = '$$';
+  if (!state.answers.avoid)  state.answers.avoid  = [];
+  // Distance default based on format
+  if (!state.answers.distance) {
+    state.answers.distance = (state.answers.format === 'cook') ? 'any'
+      : (state.answers.time === 'rush' ? '1' : state.answers.time === 'quick' ? '3' : 'any');
+  }
+}
+
+/* ============================================================
+   Path: Themed shortcut (preset answers, jump to result)
+============================================================ */
+function startShortcut(shortcut) {
+  state.flow = 'shortcut';
+  state.shortcut = shortcut;
+  state.answers = Object.assign({}, shortcut.answers || {});
+  // Fill in missing defaults
+  const tod = timeOfDayDefaults();
+  if (!state.answers.mood)   state.answers.mood   = tod.moodHint;
+  if (!state.answers.health) state.answers.health = tod.healthHint;
+  if (!state.answers.cuisine) state.answers.cuisine = 'surprise';
+  if (!state.answers.budget) state.answers.budget = '$$';
+  if (!state.answers.avoid)  state.answers.avoid  = shortcut.answers && shortcut.answers.avoid ? shortcut.answers.avoid : [];
+  if (!state.answers.format) state.answers.format = 'cook';
+  if (!state.answers.vibe)   state.answers.vibe   = 'solo';
+  if (!state.answers.distance) state.answers.distance = '3';
+  proceedToOutcome();
+}
+
+/* ============================================================
+   Path: Full custom mode (existing 8-question flow)
+============================================================ */
+function startFullMode() {
+  state.flow = 'full';
+  state.shortcut = null;
+  state.answers = {};
+  state.step = 0;
+  transitionTo(renderTargets);
+}
+
 function renderTargets() {
   setProgress(-1, QUESTIONS.length);
   const t = state.targets || {};
@@ -1219,39 +2039,17 @@ function renderTargets() {
     <p class="q-sub">Set per-meal calorie & macro targets and we'll fit dishes to your numbers. All four are optional — leave any blank to ignore.</p>
 
     <div class="targets-grid">
-      <div class="field">
-        <label for="t-kcal">Calories</label>
-        <div class="field-row">
-          <input id="t-kcal" type="number" inputmode="numeric" min="100" max="3000" placeholder="600" value="${t.kcal ?? ''}" />
-          <span class="field-unit">kcal</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="t-p">Protein</label>
-        <div class="field-row">
-          <input id="t-p" type="number" inputmode="numeric" min="0" max="300" placeholder="40" value="${t.p ?? ''}" />
-          <span class="field-unit">g</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="t-c">Carbs</label>
-        <div class="field-row">
-          <input id="t-c" type="number" inputmode="numeric" min="0" max="500" placeholder="60" value="${t.c ?? ''}" />
-          <span class="field-unit">g</span>
-        </div>
-      </div>
-      <div class="field">
-        <label for="t-f">Fat</label>
-        <div class="field-row">
-          <input id="t-f" type="number" inputmode="numeric" min="0" max="200" placeholder="20" value="${t.f ?? ''}" />
-          <span class="field-unit">g</span>
-        </div>
-      </div>
+      <div class="field"><label for="t-kcal">Calories</label>
+        <div class="field-row"><input id="t-kcal" type="number" inputmode="numeric" min="100" max="3000" placeholder="600" value="${t.kcal ?? ''}" /><span class="field-unit">kcal</span></div></div>
+      <div class="field"><label for="t-p">Protein</label>
+        <div class="field-row"><input id="t-p" type="number" inputmode="numeric" min="0" max="300" placeholder="40" value="${t.p ?? ''}" /><span class="field-unit">g</span></div></div>
+      <div class="field"><label for="t-c">Carbs</label>
+        <div class="field-row"><input id="t-c" type="number" inputmode="numeric" min="0" max="500" placeholder="60" value="${t.c ?? ''}" /><span class="field-unit">g</span></div></div>
+      <div class="field"><label for="t-f">Fat</label>
+        <div class="field-row"><input id="t-f" type="number" inputmode="numeric" min="0" max="200" placeholder="20" value="${t.f ?? ''}" /><span class="field-unit">g</span></div></div>
     </div>
 
-    <div class="targets-hint">
-      <strong>Per-meal numbers</strong>, not daily. Typical dinner is around 500–800 kcal. Skip if you don't care about counting tonight — we'll just match your taste.
-    </div>
+    <div class="targets-hint"><strong>Per-meal numbers</strong>, not daily. Typical dinner is around 500–800 kcal. Skip if you don't care about counting tonight.</div>
 
     <div class="nav-row">
       <button id="backBtn" class="btn btn-ghost">← Back</button>
@@ -1263,49 +2061,72 @@ function renderTargets() {
   `;
   main.appendChild(el);
 
-  const inputs = ['t-kcal','t-p','t-c','t-f'].map(id => document.getElementById(id));
-  inputs.forEach((inp) => {
-    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveAndContinue(); });
+  ['t-kcal','t-p','t-c','t-f'].forEach((id) => {
+    const inp = document.getElementById(id);
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveTargetsAndContinue(); });
   });
-
   document.getElementById('backBtn').addEventListener('click', () => transitionTo(renderWelcome));
-  document.getElementById('skipBtn').addEventListener('click', () => {
-    state.targets = null;
-    state.step = 0;
-    transitionTo(renderQuestion);
-  });
-  document.getElementById('nextBtn').addEventListener('click', saveAndContinue);
+  document.getElementById('skipBtn').addEventListener('click', () => { state.targets = null; state.step = 0; transitionTo(renderQuestion); });
+  document.getElementById('nextBtn').addEventListener('click', saveTargetsAndContinue);
 }
 
-function saveAndContinue() {
-  const kcal = parseTargetInput('t-kcal');
-  const p    = parseTargetInput('t-p');
-  const c    = parseTargetInput('t-c');
-  const f    = parseTargetInput('t-f');
+function saveTargetsAndContinue() {
+  const parse = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const v = (el.value || '').trim();
+    if (v === '') return null;
+    const n = parseFloat(v);
+    return isFinite(n) && n > 0 ? Math.round(n) : null;
+  };
+  const kcal = parse('t-kcal'); const p = parse('t-p'); const c = parse('t-c'); const f = parse('t-f');
   if (kcal == null && p == null && c == null && f == null) {
     state.targets = null;
   } else {
     state.targets = {};
     if (kcal != null) state.targets.kcal = kcal;
-    if (p    != null) state.targets.p    = p;
-    if (c    != null) state.targets.c    = c;
-    if (f    != null) state.targets.f    = f;
+    if (p != null) state.targets.p = p;
+    if (c != null) state.targets.c = c;
+    if (f != null) state.targets.f = f;
   }
   state.step = 0;
   transitionTo(renderQuestion);
 }
 
-function parseTargetInput(id) {
-  const el = document.getElementById(id);
-  if (!el) return null;
-  const v = (el.value || '').trim();
-  if (v === '') return null;
-  const n = parseFloat(v);
-  if (!isFinite(n) || n <= 0) return null;
-  return Math.round(n);
+function shouldSkipQuestion(q) {
+  return q.id === 'distance' && state.answers.format === 'cook';
+}
+function getVisibleTotal() { return QUESTIONS.filter((q) => !shouldSkipQuestion(q)).length; }
+function getVisibleStep(step) {
+  let count = 0;
+  for (let i = 0; i <= step && i < QUESTIONS.length; i++) if (!shouldSkipQuestion(QUESTIONS[i])) count++;
+  return count - 1;
+}
+function nextVisibleStep(from) {
+  let i = from + 1;
+  while (i < QUESTIONS.length && shouldSkipQuestion(QUESTIONS[i])) i++;
+  return i < QUESTIONS.length ? i : -1;
+}
+function prevVisibleStep(from) {
+  let i = from - 1;
+  while (i >= 0 && shouldSkipQuestion(QUESTIONS[i])) i--;
+  return i;
+}
+function lastVisibleQuestionIndex() {
+  for (let i = QUESTIONS.length - 1; i >= 0; i--) if (!shouldSkipQuestion(QUESTIONS[i])) return i;
+  return QUESTIONS.length - 1;
 }
 
-/* ---------- Question ---------- */
+function targetBannerHtml() {
+  const t = state.targets;
+  const parts = [];
+  if (t.kcal) parts.push(`<span class="num">${t.kcal}</span> kcal`);
+  if (t.p) parts.push(`<span class="num">${t.p}</span>g protein`);
+  if (t.c) parts.push(`<span class="num">${t.c}</span>g carbs`);
+  if (t.f) parts.push(`<span class="num">${t.f}</span>g fat`);
+  return `<div class="target-banner"><span class="label">Targeting</span> ${parts.join(' · ')}</div>`;
+}
+
 function renderQuestion() {
   const q = QUESTIONS[state.step];
   setProgress(getVisibleStep(state.step), getVisibleTotal());
@@ -1344,24 +2165,12 @@ function renderQuestion() {
   `;
   main.appendChild(el);
 
-  const avoidInput = document.getElementById('avoidCustom');
-  if (avoidInput) {
-    avoidInput.addEventListener('input', (e) => {
-      state.answers.avoidCustom = e.target.value;
-    });
-    avoidInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); advance(q); }
-    });
-  }
-
   const optsEl = document.getElementById('opts');
   q.options.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'opt' + (q.layout === 'chips' ? ' chip' : '');
     btn.style.animationDelay = (i * 35) + 'ms';
-    const selected = isMulti
-      ? Array.isArray(current) && current.includes(opt.value)
-      : current === opt.value;
+    const selected = isMulti ? Array.isArray(current) && current.includes(opt.value) : current === opt.value;
     if (selected) btn.classList.add('selected');
     btn.innerHTML = `
       <span class="opt-emoji">${opt.emoji}</span>
@@ -1374,74 +2183,62 @@ function renderQuestion() {
     optsEl.appendChild(btn);
   });
 
+  const avoidInput = document.getElementById('avoidCustom');
+  if (avoidInput) {
+    avoidInput.addEventListener('input', (e) => { state.answers.avoidCustom = e.target.value; });
+    avoidInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); advanceFull(q); } });
+  }
+
   document.getElementById('backBtn').addEventListener('click', () => {
     const prev = prevVisibleStep(state.step);
-    if (prev >= 0) {
-      state.step = prev;
-      transitionTo(renderQuestion);
-    } else {
-      transitionTo(renderTargets);
-    }
+    if (prev >= 0) { state.step = prev; transitionTo(renderQuestion); }
+    else { transitionTo(renderTargets); }
   });
-  document.getElementById('nextBtn').addEventListener('click', () => advance(q));
+  document.getElementById('nextBtn').addEventListener('click', () => advanceFull(q));
   if (q.optional) {
     document.getElementById('skipBtn').addEventListener('click', () => {
-      if (isMulti) state.answers[q.id] = [];
-      else state.answers[q.id] = null;
-      advance(q);
+      if (isMulti) state.answers[q.id] = []; else state.answers[q.id] = null;
+      advanceFull(q);
     });
   }
-}
-
-function targetBannerHtml() {
-  const t = state.targets;
-  const parts = [];
-  if (t.kcal) parts.push(`<span class="num">${t.kcal}</span> kcal`);
-  if (t.p)    parts.push(`<span class="num">${t.p}</span>g protein`);
-  if (t.c)    parts.push(`<span class="num">${t.c}</span>g carbs`);
-  if (t.f)    parts.push(`<span class="num">${t.f}</span>g fat`);
-  return `<div class="target-banner"><span class="label">Targeting</span> ${parts.join(' · ')}</div>`;
 }
 
 function onOptionPick(q, opt) {
   if (q.type === 'multi') {
     const cur = Array.isArray(state.answers[q.id]) ? state.answers[q.id] : [];
     const idx = cur.indexOf(opt.value);
-    if (idx >= 0) cur.splice(idx, 1);
-    else cur.push(opt.value);
+    if (idx >= 0) cur.splice(idx, 1); else cur.push(opt.value);
     state.answers[q.id] = cur;
     renderQuestion();
   } else {
     state.answers[q.id] = opt.value;
-    setTimeout(() => advance(q), 220);
+    setTimeout(() => advanceFull(q), 220);
   }
 }
 
-function advance(q) {
+function advanceFull(q) {
   const next = nextVisibleStep(state.step);
-  if (next >= 0) {
-    state.step = next;
-    transitionTo(renderQuestion);
+  if (next >= 0) { state.step = next; transitionTo(renderQuestion); }
+  else { proceedToOutcome(); }
+}
+
+/* ============================================================
+   Common: proceed to outcome (location → loading → results)
+============================================================ */
+function proceedToOutcome() {
+  if (state.answers.format === 'cook') {
+    transitionTo(renderLoading);
+    runRecommendation();
   } else {
-    if (state.answers.format === 'cook') {
-      transitionTo(renderLoading);
-      runRecommendation();
-    } else {
-      transitionTo(renderLocation);
-    }
+    transitionTo(renderLocation);
   }
 }
 
-function lastVisibleQuestionIndex() {
-  for (let i = QUESTIONS.length - 1; i >= 0; i--) {
-    if (!shouldSkipQuestion(QUESTIONS[i])) return i;
-  }
-  return QUESTIONS.length - 1;
-}
-
-/* ---------- Location ---------- */
+/* ============================================================
+   Location
+============================================================ */
 function renderLocation() {
-  setProgress(-1, QUESTIONS.length);
+  setProgress(-1, 1);
   const el = document.createElement('div');
   el.className = 'screen';
   el.innerHTML = `
@@ -1466,84 +2263,55 @@ function renderLocation() {
   main.appendChild(el);
 
   document.getElementById('backBtn').addEventListener('click', () => {
-    state.step = lastVisibleQuestionIndex();
-    transitionTo(renderQuestion);
+    if (state.flow === 'full') { state.step = lastVisibleQuestionIndex(); transitionTo(renderQuestion); }
+    else if (state.flow === 'quick') { state.step = QUICK_QUESTIONS.length - 1; transitionTo(renderQuickQuestion); }
+    else transitionTo(renderWelcome);
   });
-
   document.getElementById('geoBtn').addEventListener('click', requestGeolocation);
   document.getElementById('zipBtn').addEventListener('click', useZip);
-  document.getElementById('zipInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') useZip();
-  });
+  document.getElementById('zipInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') useZip(); });
 }
-
-function setLocStatus(msg) {
-  const s = document.getElementById('locStatus');
-  if (s) s.textContent = msg || '';
-}
-
+function setLocStatus(msg) { const s = document.getElementById('locStatus'); if (s) s.textContent = msg || ''; }
 function requestGeolocation() {
-  if (!('geolocation' in navigator)) {
-    setLocStatus("Your browser doesn't support geolocation — try ZIP instead.");
-    return;
-  }
+  if (!('geolocation' in navigator)) { setLocStatus("Your browser doesn't support geolocation — try ZIP instead."); return; }
   setLocStatus('Asking your browser…');
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       state.coords = { lat: pos.coords.latitude, lon: pos.coords.longitude, label: 'your location' };
-      transitionTo(renderLoading);
-      runRecommendation();
+      transitionTo(renderLoading); runRecommendation();
     },
-    (err) => {
-      console.warn(err);
-      setLocStatus("Couldn't get location — type a ZIP or city below.");
-    },
+    (err) => { console.warn(err); setLocStatus("Couldn't get location — type a ZIP or city below."); },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
   );
 }
-
 async function useZip() {
   const input = document.getElementById('zipInput');
   const q = (input.value || '').trim();
-  if (!q) {
-    setLocStatus('Type a ZIP code or city first.');
-    return;
-  }
+  if (!q) { setLocStatus('Type a ZIP code or city first.'); return; }
   setLocStatus('Looking that up…');
   try {
     const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
     const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
     const data = await r.json();
-    if (!Array.isArray(data) || data.length === 0) {
-      setLocStatus("Couldn't find that place. Try a different ZIP or city.");
-      return;
-    }
+    if (!Array.isArray(data) || data.length === 0) { setLocStatus("Couldn't find that place. Try a different ZIP or city."); return; }
     state.coords = {
-      lat: parseFloat(data[0].lat),
-      lon: parseFloat(data[0].lon),
+      lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon),
       label: data[0].display_name?.split(',').slice(0, 2).join(',') || q,
     };
-    transitionTo(renderLoading);
-    runRecommendation();
-  } catch (e) {
-    console.error(e);
-    setLocStatus('Lookup failed. Check your connection and try again.');
-  }
+    transitionTo(renderLoading); runRecommendation();
+  } catch (e) { console.error(e); setLocStatus('Lookup failed. Check your connection and try again.'); }
 }
 
-/* ---------- Loading ---------- */
+/* ============================================================
+   Loading
+============================================================ */
 let loadingInterval = null;
 function renderLoading() {
-  setProgress(-1, QUESTIONS.length);
+  setProgress(-1, 1);
   const el = document.createElement('div');
   el.className = 'screen loading';
   el.innerHTML = `
-    <div class="pot">
-      <span class="steam s1"></span>
-      <span class="steam s2"></span>
-      <span class="steam s3"></span>
-      🍲
-    </div>
+    <div class="pot"><span class="steam s1"></span><span class="steam s2"></span><span class="steam s3"></span>🍲</div>
     <h2 class="serif">Thinking…</h2>
     <p class="loading-msg" id="loadingMsg">${pickRandom(LOADING_MSGS)}</p>
   `;
@@ -1555,657 +2323,274 @@ function renderLoading() {
     const m = document.getElementById('loadingMsg');
     if (!m) return;
     m.style.opacity = '0';
-    setTimeout(() => {
-      m.textContent = LOADING_MSGS[i];
-      m.style.opacity = '1';
-    }, 300);
+    setTimeout(() => { m.textContent = LOADING_MSGS[i]; m.style.opacity = '1'; }, 300);
   }, 2200);
 }
 function stopLoading() { if (loadingInterval) { clearInterval(loadingInterval); loadingInterval = null; } }
 
 /* ============================================================
-   Recommendation engine
+   Recommendation flow
 ============================================================ */
-function getCustomAvoidKeywords() {
-  const raw = (state.answers && state.answers.avoidCustom) || '';
-  return String(raw)
-    .split(/[,\n;]/)
-    .map((s) => s.trim().toLowerCase())
-    .filter((s) => s.length >= 2);
-}
-
-function avoidsMatch(text, avoid) {
-  const t = ' ' + String(text).toLowerCase() + ' ';
-  if (avoid && avoid.length) {
-    for (const a of avoid) {
-      const kws = AVOID_KEYWORDS[a] || [];
-      for (const kw of kws) {
-        if (t.includes(kw.toLowerCase())) return true;
-      }
-    }
-  }
-  const custom = getCustomAvoidKeywords();
-  for (const kw of custom) {
-    if (t.includes(kw)) return true;
-  }
-  return false;
-}
-
-function ingredientsBlocked(ings, avoid) {
-  if (!ings) return false;
-  for (const ing of ings) if (avoidsMatch(ing, avoid)) return true;
-  return false;
-}
-
-function macroDistance(profile, targets) {
-  const p = profile || {};
-  let total = 0, count = 0;
-  if (targets.kcal) { total += Math.abs((p.kcal || 0) - targets.kcal) / Math.max(targets.kcal, 1); count++; }
-  if (targets.p)    { total += Math.abs((p.p    || 0) - targets.p)    / Math.max(targets.p, 1);    count++; }
-  if (targets.c)    { total += Math.abs((p.c    || 0) - targets.c)    / Math.max(targets.c, 1);    count++; }
-  if (targets.f)    { total += Math.abs((p.f    || 0) - targets.f)    / Math.max(targets.f, 1);    count++; }
-  return count ? total / count : 0;
-}
-
-function pickCuisineKey(answers) {
-  if (answers.cuisine && answers.cuisine !== 'surprise' && FOOD_DATA[answers.cuisine]) {
-    return answers.cuisine;
-  }
-  const avoid = answers.avoid || [];
-  const candidates = Object.keys(FOOD_DATA).filter((k) =>
-    FOOD_DATA[k].dishes.some((d) => !avoidsMatch(d.name, avoid))
-  );
-  // If targets are set, prefer cuisines that have at least one dish within tolerance
-  if (state.targets) {
-    const fitCandidates = candidates.filter((k) =>
-      FOOD_DATA[k].dishes.some((d) =>
-        !avoidsMatch(d.name, avoid) && macroDistance(getProfile(d.prof), state.targets) < 0.4
-      )
-    );
-    if (fitCandidates.length) return pickRandom(fitCandidates);
-  }
-  return pickRandom(candidates.length ? candidates : Object.keys(FOOD_DATA));
-}
-
-function rankByTargets(items, targets) {
-  return items
-    .map((it) => ({ it, d: macroDistance(getProfile(it.prof), targets) }))
-    .sort((a, b) => a.d - b.d)
-    .map((x) => x.it);
-}
-
-function generateRecommendation(answers) {
-  const cuisineKey = pickCuisineKey(answers);
-  const data = FOOD_DATA[cuisineKey];
-  const moodTag = answers.mood;
-  const healthTag = answers.health;
-  const avoid = answers.avoid || [];
-
-  // Tier 1: cuisine + mood/health + avoid
-  let pool = data.dishes.filter((d) =>
-    (d.tags.includes(moodTag) || d.tags.includes(healthTag)) && !avoidsMatch(d.name, avoid)
-  );
-  // Tier 2: cuisine + avoid
-  if (pool.length < 3) pool = data.dishes.filter((d) => !avoidsMatch(d.name, avoid));
-
-  let picked, looseTargets = false;
-  if (state.targets) {
-    const ranked = rankByTargets(pool, state.targets);
-    const tight = ranked.filter((d) => macroDistance(getProfile(d.prof), state.targets) < 0.35);
-    if (tight.length >= 3) {
-      picked = tight.slice(0, 5);
-    } else if (ranked.length >= 3) {
-      // Take the 3-5 closest, even if outside tight tolerance
-      picked = ranked.slice(0, 4);
-      looseTargets = true;
-    } else {
-      // Broaden across cuisines for target matching
-      const all = [];
-      Object.values(FOOD_DATA).forEach((d) => d.dishes.forEach((dd) => all.push(dd)));
-      const broad = all.filter((d) => !avoidsMatch(d.name, avoid));
-      const broadRanked = rankByTargets(broad, state.targets);
-      picked = broadRanked.slice(0, 5);
-    }
-  } else {
-    shuffle(pool);
-    picked = pool.slice(0, Math.min(5, Math.max(3, Math.min(pool.length, 4))));
-  }
-
-  return {
-    cuisineKey,
-    cuisineLabel: data.label,
-    summary: buildSummary(answers, data, looseTargets),
-    dishes: picked.map((d) => ({ name: d.name, prof: d.prof, profile: getProfile(d.prof) })),
-    search_queries: data.queries,
-    cuisine_tags: data.osm,
-    looseTargets,
-  };
-}
-
-function generateRecipes(answers) {
-  const cuisineKey = pickCuisineKey(answers);
-  const data = FOOD_DATA[cuisineKey];
-  const moodTag = answers.mood;
-  const healthTag = answers.health;
-  const avoid = answers.avoid || [];
-
-  let pool = data.recipes.filter((r) =>
-    (r.tags.includes(moodTag) || r.tags.includes(healthTag)) &&
-    !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid)
-  );
-  if (pool.length < 2) {
-    pool = data.recipes.filter((r) =>
-      !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid)
-    );
-  }
-  if (pool.length < 2) {
-    const all = [];
-    Object.values(FOOD_DATA).forEach((d) => d.recipes.forEach((r) => all.push(r)));
-    pool = all.filter((r) =>
-      (r.tags.includes(moodTag) || r.tags.includes(healthTag)) &&
-      !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid)
-    );
-  }
-
-  let recipes, looseTargets = false;
-  if (state.targets) {
-    const ranked = rankByTargets(pool, state.targets);
-    const tight = ranked.filter((r) => macroDistance(getProfile(r.prof), state.targets) < 0.4);
-    if (tight.length >= 2) {
-      recipes = tight.slice(0, 3);
-    } else if (ranked.length >= 2) {
-      recipes = ranked.slice(0, 3);
-      looseTargets = true;
-    } else {
-      const all = [];
-      Object.values(FOOD_DATA).forEach((d) => d.recipes.forEach((r) => all.push(r)));
-      const broad = all.filter((r) =>
-        !avoidsMatch(r.name, avoid) && !ingredientsBlocked(r.ingredients, avoid)
-      );
-      recipes = rankByTargets(broad, state.targets).slice(0, 3);
-    }
-  } else {
-    shuffle(pool);
-    recipes = pool.slice(0, Math.min(3, Math.max(2, pool.length)));
-  }
-
-  return {
-    cuisineKey,
-    cuisineLabel: data.label,
-    summary: buildSummary(answers, data, looseTargets),
-    recipes: recipes.map((r) => ({ ...r, profile: getProfile(r.prof) })),
-    looseTargets,
-  };
-}
-
-function buildSummary(answers, cuisineData, looseTargets) {
-  const moodWord = ({
-    comfort: 'comfort-food', light: 'light', adventurous: 'adventurous', classic: 'classic',
-  })[answers.mood] || 'good-eats';
-  const cuisine = cuisineData.label;
-
-  const openers = [
-    `${cuisine} ${moodWord} is the move.`,
-    `You're in a ${moodWord} ${cuisine} mood — say less.`,
-    `Locked in: ${cuisine}, ${moodWord}, decisive.`,
-    `${capitalize(moodWord)} ${cuisine} energy. Got it.`,
-    `Tonight reads: ${cuisine}, ${moodWord}, no notes.`,
-  ];
-
-  const closerPool = [];
-  if (answers.vibe === 'date')   closerPool.push("Romantic enough to count as effort.", "Date-night dish energy — eye contact required.");
-  if (answers.vibe === 'family') closerPool.push("Kid-friendly, parent-respectable.", "Built for the whole crew.");
-  if (answers.vibe === 'group')  closerPool.push("Made for big tables and louder stories.", "Group-of-friends energy — share everything.");
-  if (answers.vibe === 'solo')   closerPool.push("Solo-mission energy — treat yourself.", "Just you, no compromises.");
-
-  if (answers.budget === '$$$') closerPool.push("Splurge mode activated.");
-  if (answers.budget === '$' && answers.vibe !== 'date') closerPool.push("Wallet stays happy too.", "Cheap, cheerful, undefeated.");
-
-  if (answers.health === 'indulgent') closerPool.push("Cheese, butter, no regrets.");
-  if (answers.health === 'healthy')   closerPool.push("Salads with personality.", "Virtuous but not boring.");
-
-  if (answers.format === 'cook')     closerPool.push("Apron on, let's cook.", "Hot stove, big payoff.");
-  if (answers.format === 'delivery') closerPool.push("Couch-mode dinner, coming up.", "Slippers stay on.");
-
-  const opener = pickRandom(openers);
-  let closer = closerPool.length ? pickRandom(closerPool) : '';
-  if (state.targets) {
-    const tCloser = looseTargets
-      ? "These are as close to your targets as we could get."
-      : "All within striking distance of your targets.";
-    closer = closer ? `${closer} ${tCloser}` : tCloser;
-  }
-  return closer ? `${opener} ${closer}` : opener;
-}
-
-/* ---------- Recommendation flow ---------- */
 async function runRecommendation() {
   const isCook = state.answers.format === 'cook';
   const startedAt = Date.now();
-  const MIN_DWELL = 1200;
-
+  const MIN_DWELL = 1100;
   try {
     if (isCook) {
-      const rec = generateRecipes(state.answers);
-      state.recommendation = rec;
+      const { candidates, cuisineKey, cuisineData } = buildRecipeCandidates(state.answers);
+      state.candidates = candidates;
+      state.heroIndex = 0;
+      state.recommendation = { mode: 'cook', cuisineKey, cuisineLabel: cuisineData.label, queries: cuisineData.queries };
       await holdAtLeast(startedAt, MIN_DWELL);
       stopLoading();
-      transitionTo(renderRecipes);
+      transitionTo(renderRecipeResults);
     } else {
-      const rec = generateRecommendation(state.answers);
-      state.recommendation = rec;
-      const places = await findPlaces(rec);
+      const { candidates, cuisineKey, cuisineData } = buildDishCandidates(state.answers);
+      state.candidates = candidates;
+      state.heroIndex = 0;
+      state.recommendation = {
+        mode: 'eat-out', cuisineKey, cuisineLabel: cuisineData.label,
+        queries: cuisineData.queries, cuisine_tags: cuisineData.osm,
+      };
+      const places = await findPlaces(state.recommendation);
       state.places = places;
       await holdAtLeast(startedAt, MIN_DWELL);
       stopLoading();
-      transitionTo(renderRestaurants);
+      transitionTo(renderRestaurantResults);
     }
   } catch (err) {
-    console.error(err);
-    stopLoading();
-    transitionTo(() => renderError(
-      'Something went sideways.',
-      err.message || "We couldn't pull nearby places. Try again, or change your distance."
-    ));
+    console.error(err); stopLoading();
+    transitionTo(() => renderError('Something went sideways.', err.message || "We couldn't pull nearby places. Try again, or change your distance."));
   }
 }
-
 function holdAtLeast(startedAt, ms) {
   const elapsed = Date.now() - startedAt;
   return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms - elapsed)));
 }
 
-/* ---------- Recipe search section HTML ---------- */
-function buildRecipeSearchSectionHtml() {
-  const rec = state.recommendation;
-  if (!rec) return '';
-  const searches = buildRecipeSearches(state.answers, rec);
-  if (!searches.length) return '';
-
-  const cards = searches.map((s, i) => {
-    const url = `https://www.google.com/search?q=${encodeURIComponent(s.query)}`;
-    return `
-      <a class="search-card" href="${url}" target="_blank" rel="noopener" style="animation-delay:${i*45}ms;">
-        <div class="s-icon">🔍</div>
-        <div class="s-body">
-          <div class="s-label">${escapeHtml(s.label)}</div>
-          <div class="s-query">${escapeHtml(s.query)}</div>
-        </div>
-        <div class="s-arrow">→</div>
-      </a>
-    `;
-  }).join('');
-
-  // Quick links to other recipe destinations using the broadest search query we built
-  const broadQuery = searches[0]?.query || (rec.cuisineLabel || '').toLowerCase() + ' recipes';
-  const otherEngines = [
-    { label: '📺 YouTube',         url: `https://www.youtube.com/results?search_query=${encodeURIComponent(broadQuery)}` },
-    { label: '🥄 AllRecipes',      url: `https://www.allrecipes.com/search?q=${encodeURIComponent(broadQuery)}` },
-    { label: '📰 NYT Cooking',     url: `https://cooking.nytimes.com/search?q=${encodeURIComponent(broadQuery)}` },
-    { label: '📌 Pinterest',       url: `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(broadQuery + ' recipe')}` },
-  ];
-  const enginePills = otherEngines.map((e) =>
-    `<a class="search-engine-pill" href="${e.url}" target="_blank" rel="noopener">${e.label}</a>`
-  ).join('');
-
-  return `
-    <div class="section-title">More recipe searches</div>
-    <p style="color:var(--text-dim); font-size:13px; margin: -4px 0 12px;">Built from your answers — tap to open in a new tab.</p>
-    ${cards}
-    <div style="margin-top:14px;">
-      <div class="section-title" style="margin: 12px 0 8px;">Or browse elsewhere</div>
-      <div class="search-engines">${enginePills}</div>
-    </div>
-  `;
-}
-
-/* ---------- Recipe search builder (Google searches from answers) ---------- */
-function buildRecipeSearches(answers, rec) {
-  const cuisineLabel = rec.cuisineLabel || '';
-  const cuisineLower = cuisineLabel.toLowerCase();
-  const searches = [];
-
-  const moodWord = ({
-    comfort: 'comfort food',
-    light: 'light',
-    adventurous: 'adventurous',
-    classic: 'classic weeknight',
-  })[answers.mood] || '';
-
-  // 1) Cuisine + mood
-  if (cuisineLower) {
-    searches.push({
-      label: `${capitalize(moodWord || 'easy')} ${cuisineLabel} recipes`,
-      query: `easy ${moodWord} ${cuisineLower} recipes`.replace(/\s+/g, ' ').trim(),
-    });
-  }
-
-  // 2) Quick / time-saving
-  searches.push({
-    label: `30-minute ${cuisineLabel || 'weeknight'} recipes`,
-    query: `30 minute ${cuisineLower} recipes`.trim(),
-  });
-
-  // 3) Health-aligned
-  if (answers.health === 'healthy') {
-    searches.push({
-      label: `Healthy ${cuisineLabel} recipes`,
-      query: `healthy ${cuisineLower} dinner recipes`.trim(),
-    });
-  } else if (answers.health === 'indulgent') {
-    searches.push({
-      label: `Best indulgent ${cuisineLabel} dishes`,
-      query: `best indulgent ${cuisineLower} comfort food recipes`.trim(),
-    });
-  }
-
-  // 4) Vibe-aligned
-  if (answers.vibe === 'date') {
-    searches.push({
-      label: `${cuisineLabel} date night recipes`,
-      query: `${cuisineLower} date night dinner recipes impressive`.trim(),
-    });
-  } else if (answers.vibe === 'family') {
-    searches.push({
-      label: `Kid-friendly ${cuisineLabel} recipes`,
-      query: `kid friendly family ${cuisineLower} dinner recipes`.trim(),
-    });
-  } else if (answers.vibe === 'group') {
-    searches.push({
-      label: `${cuisineLabel} recipes for a crowd`,
-      query: `${cuisineLower} recipes for a crowd party feeding many`.trim(),
-    });
-  } else if (answers.vibe === 'solo') {
-    searches.push({
-      label: `${cuisineLabel} recipes for one`,
-      query: `${cuisineLower} recipes for one solo cooking small batch`.trim(),
-    });
-  }
-
-  // 5) Diet constraints from avoid chips
-  const avoid = Array.isArray(answers.avoid) ? answers.avoid : [];
-  const dietParts = [];
-  if (avoid.includes('gluten')) dietParts.push('gluten-free');
-  if (avoid.includes('dairy'))  dietParts.push('dairy-free');
-  if (avoid.includes('nuts'))   dietParts.push('nut-free');
-  if (avoid.includes('eggs'))   dietParts.push('egg-free');
-  const noProtein = avoid.includes('red-meat') && avoid.includes('pork');
-  const noSea = avoid.includes('seafood') && avoid.includes('shellfish');
-  if (noProtein && noSea) dietParts.push('vegetarian');
-  else if (noProtein) dietParts.push('pescatarian');
-  if (dietParts.length) {
-    searches.push({
-      label: `${capitalize(dietParts.join(' '))} ${cuisineLabel} recipes`,
-      query: `${dietParts.join(' ')} ${cuisineLower} recipes`.trim(),
-    });
-  }
-
-  // 6) Macro targets
-  if (state.targets) {
-    if (state.targets.kcal) {
-      searches.push({
-        label: `${cuisineLabel} recipes under ${state.targets.kcal} calories`,
-        query: `${cuisineLower} recipes under ${state.targets.kcal} calories per serving`.trim(),
-      });
-    }
-    if (state.targets.p && state.targets.p >= 30) {
-      searches.push({
-        label: `High-protein ${cuisineLabel} recipes`,
-        query: `high protein ${cuisineLower} recipes ${state.targets.p}g protein`.trim(),
-      });
-    }
-    if (state.targets.c && state.targets.c <= 40) {
-      searches.push({
-        label: `Low-carb ${cuisineLabel} recipes`,
-        query: `low carb ${cuisineLower} recipes`.trim(),
-      });
-    }
-  }
-
-  // 7) Custom avoidances → exclude terms via Google `-"term"` operators
-  const customs = String(answers.avoidCustom || '')
-    .split(/[,;\n]/).map(s => s.trim()).filter(s => s.length >= 2);
-  if (customs.length) {
-    const noStr = customs.slice(0, 4).map(c => `-"${c}"`).join(' ');
-    searches.push({
-      label: `${cuisineLabel} recipes without ${customs.slice(0, 3).join(', ')}`,
-      query: `${cuisineLower} recipes ${noStr}`.replace(/\s+/g, ' ').trim(),
-    });
-  }
-
-  // De-dupe by query
-  const seen = new Set();
-  return searches.filter((s) => {
-    if (!s.query) return false;
-    if (seen.has(s.query)) return false;
-    seen.add(s.query);
-    return true;
-  }).slice(0, 7);
-}
-
-/* ---------- Price tier estimation (Google-style $ / $$ / $$$) ---------- */
-function budgetToTier(budget) {
-  return budget === '$' ? 1 : budget === '$$' ? 2 : budget === '$$$' ? 3 : null;
-}
-function tierToDollars(tier) {
-  if (!tier || tier < 1) return '';
-  return '$'.repeat(Math.max(1, Math.min(3, Math.round(tier))));
-}
-
-// Returns { tier: 1|2|3, confident: bool }
-function estimatePriceTier(tags) {
-  // 1) Explicit OSM tags (rare but authoritative)
-  const explicitKeys = ['price:level', 'price_range', 'price', 'fee:level'];
-  for (const k of explicitKeys) {
-    const v = tags[k];
-    if (!v) continue;
-    const s = String(v).toLowerCase().trim();
-    if (s === '$' || s === '1' || /\b(low|cheap|budget|inexpensive)\b/.test(s)) return { tier: 1, confident: true };
-    if (s === '$$$' || s === '3' || /\b(high|expensive|fine[\s_-]?dining|upscale|premium)\b/.test(s)) return { tier: 3, confident: true };
-    if (s === '$$' || s === '2' || /\b(mid|medium|moderate|average)\b/.test(s)) return { tier: 2, confident: true };
-    // Dollar-sign count
-    const dollarMatch = s.match(/^\$+$/);
-    if (dollarMatch) {
-      const n = Math.max(1, Math.min(3, dollarMatch[0].length));
-      return { tier: n, confident: true };
-    }
-  }
-
-  // 2) Heuristic: amenity + cuisine + name signals
-  const amenity = String(tags.amenity || '').toLowerCase();
-  const cuisine = String(tags.cuisine || '').toLowerCase();
-  const name    = String(tags.name || '').toLowerCase();
-
-  // Strong $$$ signals
-  const highEndCuisines = ['fine_dining','french','molecular','tasting_menu','sushi','steak_house','steakhouse'];
-  const highEndKeywords = ['steakhouse','steak house','fine dining','tasting menu',"chef's table",'omakase','michelin','prime','reserve','wine room'];
-  if (highEndCuisines.some(t => cuisine.includes(t))) {
-    // sushi alone isn't necessarily fancy, but as a cuisine tag it skews mid; only count if also "omakase" etc.
-    if (cuisine.includes('omakase') || cuisine.includes('fine_dining') || cuisine.includes('french') || cuisine.includes('molecular') || cuisine.includes('tasting')) {
-      return { tier: 3, confident: false };
-    }
-  }
-  if (highEndKeywords.some(k => name.includes(k))) return { tier: 3, confident: false };
-
-  // Strong $ signals
-  if (amenity === 'fast_food') return { tier: 1, confident: true };
-  const cheapKeywords = ['express','truck','diner','taqueria','dollar','value','snack','quick','cantina','drive-thru','drive thru'];
-  if (cheapKeywords.some(k => name.includes(k))) return { tier: 1, confident: false };
-  const cheapCuisines = ['burger','pizza','sandwich','kebab','doughnut','fish_and_chips','breakfast','noodle','ice_cream'];
-  if (amenity === 'cafe') return { tier: 1, confident: false };
-  if (cheapCuisines.some(t => cuisine.includes(t)) && amenity !== 'restaurant') return { tier: 1, confident: false };
-
-  // Default: $$ (most sit-down restaurants)
-  return { tier: 2, confident: false };
-}
-
-/* ---------- Overpass restaurant search ---------- */
+/* ============================================================
+   Overpass restaurant search
+============================================================ */
 async function findPlaces(rec) {
   if (!state.coords) return [];
   const distChoice = state.answers.distance;
   const radiusMeters = distChoice === '1' ? 1600 : distChoice === '3' ? 4800 : 12000;
   const radiusMi = radiusMeters / 1609.34;
-
   const cuisineTags = (rec.cuisine_tags || []).map((t) => String(t).toLowerCase().trim()).filter(Boolean);
   const { lat, lon } = state.coords;
-
   const cuisineRegex = cuisineTags.length ? cuisineTags.map(escapeRegex).join('|') : null;
   const cuisineFilter = cuisineRegex ? `["cuisine"~"${cuisineRegex}",i]` : '';
   const query = `
     [out:json][timeout:20];
-    (
-      node["amenity"~"restaurant|fast_food|cafe"]${cuisineFilter}(around:${radiusMeters},${lat},${lon});
-    );
+    (node["amenity"~"restaurant|fast_food|cafe"]${cuisineFilter}(around:${radiusMeters},${lat},${lon}););
     out body 40;
   `;
-
   let elements = [];
   try {
     const r = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'data=' + encodeURIComponent(query),
     });
-    if (r.ok) {
-      const data = await r.json();
-      elements = (data.elements || []).filter((e) => e.tags && e.tags.name);
-    }
-  } catch (e) {
-    console.warn('Overpass failed', e);
-  }
-
+    if (r.ok) { const data = await r.json(); elements = (data.elements || []).filter((e) => e.tags && e.tags.name); }
+  } catch (e) { console.warn('Overpass failed', e); }
   if (elements.length === 0 && cuisineRegex) {
     try {
       const fallbackQ = `
         [out:json][timeout:20];
-        (
-          node["amenity"~"restaurant|fast_food|cafe"](around:${radiusMeters},${lat},${lon});
-        );
+        (node["amenity"~"restaurant|fast_food|cafe"](around:${radiusMeters},${lat},${lon}););
         out body 40;
       `;
       const r = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'data=' + encodeURIComponent(fallbackQ),
       });
-      if (r.ok) {
-        const data = await r.json();
-        elements = (data.elements || []).filter((e) => e.tags && e.tags.name);
-      }
+      if (r.ok) { const data = await r.json(); elements = (data.elements || []).filter((e) => e.tags && e.tags.name); }
     } catch {}
   }
-
   const targetTier = budgetToTier(state.answers.budget);
-
   let scored = elements.map((e) => {
     const distMi = haversine(lat, lon, e.lat, e.lon);
     const tagCuisine = (e.tags.cuisine || '').toLowerCase();
     const priceEst = estimatePriceTier(e.tags);
-
-    // Quadratic distance penalty, normalized to the user's chosen radius.
-    // "Under 1 mile" cares more about every 0.1mi than "Anywhere" does.
-    // At edge of radius: -14. At 50% of radius: -3.5. At 10%: -0.14.
     const distRatio = distMi / radiusMi;
     let score = -14 * distRatio * distRatio;
-    if (cuisineTags.length) {
-      for (const t of cuisineTags) if (tagCuisine.includes(t)) { score += 6; break; }
-    }
+    if (cuisineTags.length) for (const t of cuisineTags) if (tagCuisine.includes(t)) { score += 6; break; }
     if (targetTier) {
       const diff = Math.abs(priceEst.tier - targetTier);
-      if (diff === 0)      score += 8;   // matches budget — preferred
-      else if (diff === 1) score += 2;   // adjacent — acceptable
-      else                 score -= 6;   // off by 2 tiers — penalized
+      if (diff === 0) score += 8;
+      else if (diff === 1) score += 2;
+      else score -= 6;
     }
     return {
       name: e.tags.name,
       cuisine: tagCuisine.replace(/_/g, ' ').replace(/;/g, ', ') || null,
       lat: e.lat, lon: e.lon, distMi,
       amenity: e.tags.amenity,
-      priceTier: priceEst.tier,
-      priceConfident: priceEst.confident,
+      priceTier: priceEst.tier, priceConfident: priceEst.confident,
       score,
     };
   });
-
-  // Hard-filter mismatches when there are enough good options at ±1 tier
   if (targetTier) {
     const close = scored.filter((p) => Math.abs(p.priceTier - targetTier) <= 1);
     if (close.length >= 3) scored = close;
   }
-
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, 8);
 }
 
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 3958.8;
-  const toRad = (d) => d * Math.PI / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+  const R = 3958.8; const toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1); const dLon = toRad(lon2 - lon1);
   const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-/* ---------- Restaurant Results ---------- */
-function macroLineHtml(prof) {
-  if (!prof) return '';
-  return `<span class="kcal">${prof.kcal} kcal</span> · ${prof.p}p · ${prof.c}c · ${prof.f}f`;
+/* ============================================================
+   Delivery deep links
+============================================================ */
+function deliveryLinksFor(place) {
+  const q = encodeURIComponent(place.name);
+  return [
+    { label: 'DoorDash',  url: `https://www.doordash.com/search/store/${q}/` },
+    { label: 'Uber Eats', url: `https://www.ubereats.com/search?q=${q}` },
+    { label: 'Grubhub',   url: `https://www.grubhub.com/search?queryText=${q}` },
+  ];
 }
 
-function renderRestaurants() {
-  setProgress(-1, QUESTIONS.length);
-  const rec = state.recommendation;
-  const places = state.places;
+/* ============================================================
+   Hard-filter badge
+============================================================ */
+function filterBadgeHtml() {
+  const labels = [];
+  (state.answers.avoid || []).forEach((a) => { if (AVOID_LABELS[a]) labels.push(AVOID_LABELS[a]); });
+  const customs = String(state.answers.avoidCustom || '').split(/[,;\n]/).map((s) => s.trim()).filter((s) => s.length >= 2);
+  customs.forEach((c) => labels.push(c));
+  if (!labels.length) return '';
+  return `<div class="filter-badge"><span class="icon">✓</span>Filtered out: ${escapeHtml(labels.join(', '))}</div>`;
+}
+
+/* ============================================================
+   Hero card rendering (the big confident pick)
+============================================================ */
+function macroPillsHtml(prof) {
+  if (!prof) return '';
+  return `
+    <div class="hero-macros">
+      <span class="pill kcal"><span class="v">${prof.kcal}</span> kcal</span>
+      <span class="pill"><span class="v">${prof.p}</span>g protein</span>
+      <span class="pill"><span class="v">${prof.c}</span>g carbs</span>
+      <span class="pill"><span class="v">${prof.f}</span>g fat</span>
+    </div>
+  `;
+}
+
+function currentHero() {
+  return state.candidates[state.heroIndex] || null;
+}
+
+function renderRestaurantResults() {
+  state.flow = 'results';
+  setProgress(-1, 1);
   const el = document.createElement('div');
   el.className = 'screen';
+  el.id = 'resultsScreen';
+  main.appendChild(el);
+  paintRestaurantResults();
+}
 
+function paintRestaurantResults() {
+  const el = document.getElementById('resultsScreen');
+  if (!el) return;
+  const hero = currentHero();
+  const rec = state.recommendation;
+  const places = state.places;
+  const targetTier = budgetToTier(state.answers.budget);
+
+  let heroHtml = '';
+  if (hero) {
+    heroHtml = `
+      <div class="hero-card" id="heroCard">
+        <div class="hero-eyebrow">
+          <span>Try this</span>
+          <span class="pos">${state.heroIndex + 1} of ${state.candidates.length}</span>
+        </div>
+        <div class="hero-title">${escapeHtml(hero.name)}</div>
+        <div class="hero-brief">A ${escapeHtml(hero.cuisineLabel)} pick — order it at one of the spots below.</div>
+        <div class="hero-reasoning">${escapeHtml(buildReasoning(hero, state.answers))}</div>
+        ${macroPillsHtml(hero.profile)}
+        <div class="hero-actions">
+          <button id="loveBtn" class="btn">Let's do it →</button>
+          <button id="anotherBtn" class="btn btn-ghost">↻ Another one</button>
+          <button id="dislikeBtn" class="hero-dislike" title="Never show me this again" aria-label="Never show me this again">👎</button>
+        </div>
+        ${filterBadgeHtml()}
+      </div>
+    `;
+  }
+
+  // Alternatives — 3 other candidates the user can swap into the hero slot
+  const altCandidates = state.candidates
+    .map((c, i) => ({ c, i }))
+    .filter((x) => x.i !== state.heroIndex)
+    .slice(0, 4);
+  const altsHtml = altCandidates.map(({ c, i }) => `
+    <button class="alt-card" data-idx="${i}">
+      <span class="alt-name">${escapeHtml(c.name)}</span>
+      <span class="alt-macros">
+        <span class="kcal">${c.profile.kcal}</span> kcal · ${c.profile.p}p / ${c.profile.c}c / ${c.profile.f}f
+        <span class="swap-icon">↕</span>
+      </span>
+    </button>
+  `).join('');
+
+  // Places list
   let placesHtml = '';
   if (places.length === 0) {
-    const fallbackQuery = (rec.search_queries && rec.search_queries[0]) || (rec.cuisine_tags && rec.cuisine_tags[0]) || 'restaurants';
+    const fallbackQuery = (rec.queries && rec.queries[0]) || (rec.cuisine_tags && rec.cuisine_tags[0]) || 'restaurants';
     const url = state.coords
       ? `https://www.google.com/maps/search/${encodeURIComponent(fallbackQuery + ' near ' + state.coords.lat + ',' + state.coords.lon)}`
       : `https://www.google.com/maps/search/${encodeURIComponent(fallbackQuery)}`;
     placesHtml = `
-      <div class="notice">
-        Couldn't find specific matches in our nearby data — but here's a Google Maps search ready to go:
-      </div>
+      <div class="notice">Couldn't find specific matches in our nearby data — here's a Google Maps search ready to go:</div>
       <a class="place-card" href="${url}" target="_blank" rel="noopener">
         <div class="pin">🔎</div>
         <div class="place-body">
           <div class="place-name">Search "${escapeHtml(fallbackQuery)}" on Google Maps</div>
           <div class="place-meta">Opens in a new tab</div>
-          <div class="place-action">Open Maps →</div>
+          <div class="place-action">★ Open Maps →</div>
         </div>
       </a>
     `;
   } else {
-    const targetTier = budgetToTier(state.answers.budget);
     placesHtml = places.map((p, i) => {
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + p.lat + ',' + p.lon)}`;
       const distLabel = p.distMi < 0.1 ? 'right here' : p.distMi.toFixed(1) + ' mi';
-      const kindLabel = p.cuisine
-        ? capitalize(p.cuisine)
-        : (p.amenity === 'cafe' ? 'Café' : (p.amenity === 'fast_food' ? 'Fast casual' : 'Restaurant'));
+      const kindLabel = p.cuisine ? capitalize(p.cuisine) : (p.amenity === 'cafe' ? 'Café' : (p.amenity === 'fast_food' ? 'Fast casual' : 'Restaurant'));
       const dollars = tierToDollars(p.priceTier);
       const matches = targetTier && p.priceTier === targetTier;
       const guess = !p.priceConfident;
-      const priceHtml = dollars
-        ? `<span class="price${matches ? ' match' : ''}${guess ? ' guess' : ''}" title="${guess ? 'Estimated price tier' : 'Listed price tier'}">${dollars}${guess ? '*' : ''}</span>`
-        : '';
-      // Order: kind · price · distance
+      const priceHtml = dollars ? `<span class="price${matches ? ' match' : ''}${guess ? ' guess' : ''}" title="${guess ? 'Estimated price tier' : 'Listed price tier'}">${dollars}${guess ? '*' : ''}</span>` : '';
       const parts = [];
       parts.push(`<span>${escapeHtml(kindLabel)}</span>`);
       if (priceHtml) parts.push(priceHtml);
       parts.push(`<span>${escapeHtml(distLabel)}</span>`);
       const metaHtml = parts.map((m, idx) => idx < parts.length - 1 ? m + '<span class="dot">·</span>' : m).join('');
+
+      const showDelivery = state.answers.format === 'delivery' || state.answers.format === 'fast-casual';
+      const deliveryHtml = showDelivery
+        ? `<div class="delivery-pills">${deliveryLinksFor(p).map((d) =>
+            `<a class="delivery-pill" href="${d.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(d.label)}</a>`
+          ).join('')}</div>`
+        : '';
+
       return `
         <a class="place-card" href="${mapsUrl}" target="_blank" rel="noopener" style="animation-delay:${i*55}ms;">
           <div class="pin">🍴</div>
           <div class="place-body">
             <div class="place-name">${escapeHtml(p.name)}</div>
             <div class="place-meta">${metaHtml}</div>
+            ${deliveryHtml}
             <div class="place-action">★ Ratings & directions →</div>
           </div>
         </a>
@@ -2213,25 +2598,12 @@ function renderRestaurants() {
     }).join('');
   }
 
-  const dishesHtml = (rec.dishes || []).map((d) => `
-    <div class="dish-row">
-      <span class="name">${escapeHtml(d.name)}</span>
-      <span class="macros">${macroLineHtml(d.profile)}</span>
-    </div>
-  `).join('');
-
-  const targetsBanner = state.targets ? targetBannerHtml() : '';
-
   el.innerHTML = `
-    <div class="summary-card">
-      <div class="eyebrow">Your verdict</div>
-      <h2 class="serif">${escapeHtml(rec.summary || "Here's what I'd do.")}</h2>
-      ${targetsBanner}
-      ${dishesHtml ? `<div class="dish-list">${dishesHtml}</div>` : ''}
-    </div>
+    ${heroHtml}
+    ${altsHtml ? `<div class="section-title">Other ideas</div><div class="alt-list">${altsHtml}</div>` : ''}
 
     <div class="section-title">Nearby spots</div>
-    <p style="color:var(--text-dim); font-size:13px; margin: -4px 0 12px;">Tap any card to open Google Maps — that's where you'll see star ratings, reviews, photos, and hours.</p>
+    <p class="section-sub">Tap any card to open Google Maps — that's where you'll see star ratings, reviews, photos, and hours.</p>
     ${placesHtml}
 
     <div class="results-actions">
@@ -2240,66 +2612,98 @@ function renderRestaurants() {
       <button id="backToQ" class="btn btn-ghost">Tweak my answers</button>
     </div>
   `;
-  main.appendChild(el);
 
+  wireHeroAndAltHandlers();
   document.getElementById('shareBtn').addEventListener('click', () => shareResult('restaurants'));
   document.getElementById('restartBtn').addEventListener('click', restart);
-  document.getElementById('backToQ').addEventListener('click', () => {
-    state.step = lastVisibleQuestionIndex();
-    transitionTo(renderQuestion);
-  });
+  document.getElementById('backToQ').addEventListener('click', goBackToQuestions);
 }
 
-/* ---------- Recipes (cook at home) ---------- */
-function renderRecipes() {
-  setProgress(-1, QUESTIONS.length);
-  const rec = state.recommendation;
-  const recipes = rec.recipes || [];
-
+function renderRecipeResults() {
+  state.flow = 'results';
+  setProgress(-1, 1);
   const el = document.createElement('div');
   el.className = 'screen';
+  el.id = 'resultsScreen';
+  main.appendChild(el);
+  paintRecipeResults();
+}
 
-  const recipeHtml = recipes.map((r, i) => {
-    const ingredients = (r.ingredients || []).join(', ');
-    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(r.name + ' recipe')}`;
-    const prof = r.profile;
-    const macroPills = prof ? `
-      <div class="recipe-macros">
-        <span class="pill kcal"><span class="v">${prof.kcal}</span> kcal</span>
-        <span class="pill"><span class="v">${prof.p}</span>g protein</span>
-        <span class="pill"><span class="v">${prof.c}</span>g carbs</span>
-        <span class="pill"><span class="v">${prof.f}</span>g fat</span>
-      </div>
-    ` : '';
-    return `
-      <a class="recipe-card" href="${searchUrl}" target="_blank" rel="noopener" style="animation-delay:${i*70}ms;">
-        <div style="display:flex; gap:14px; align-items:flex-start;">
-          <div class="pin">🍳</div>
-          <div class="place-body">
-            <div class="place-name">${escapeHtml(r.name)}</div>
-            <div class="place-meta">${escapeHtml(r.brief || '')}</div>
-          </div>
+function paintRecipeResults() {
+  const el = document.getElementById('resultsScreen');
+  if (!el) return;
+  const hero = currentHero();
+
+  let heroHtml = '';
+  if (hero) {
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(hero.name + ' recipe')}`;
+    heroHtml = `
+      <div class="hero-card" id="heroCard">
+        <div class="hero-eyebrow">
+          <span>Cook this</span>
+          <span class="pos">${state.heroIndex + 1} of ${state.candidates.length}</span>
         </div>
-        ${macroPills}
-        <div class="recipe-ing"><strong>You'll need:</strong> ${escapeHtml(ingredients)}</div>
-        <div class="place-action" style="margin-top:6px;">Find a recipe →</div>
+        <div class="hero-title">${escapeHtml(hero.name)}</div>
+        <div class="hero-brief">${escapeHtml(hero.brief || '')}</div>
+        <div class="hero-reasoning">${escapeHtml(buildReasoning(hero, state.answers))}</div>
+        ${macroPillsHtml(hero.profile)}
+        <div class="recipe-ing"><strong>You'll need:</strong> ${escapeHtml((hero.ingredients || []).join(', '))}</div>
+        <div class="hero-actions" style="margin-top:14px;">
+          <a class="btn" href="${searchUrl}" target="_blank" rel="noopener" id="loveBtn">Find the recipe →</a>
+          <button id="anotherBtn" class="btn btn-ghost">↻ Another one</button>
+          <button id="dislikeBtn" class="hero-dislike" title="Never show me this again" aria-label="Never show me this again">👎</button>
+        </div>
+        ${filterBadgeHtml()}
+      </div>
+    `;
+  }
+
+  const altCandidates = state.candidates
+    .map((c, i) => ({ c, i }))
+    .filter((x) => x.i !== state.heroIndex)
+    .slice(0, 4);
+  const altsHtml = altCandidates.map(({ c, i }) => `
+    <button class="alt-card" data-idx="${i}">
+      <span class="alt-name">${escapeHtml(c.name)}</span>
+      <span class="alt-macros">
+        <span class="kcal">${c.profile.kcal}</span> kcal · ${c.profile.p}p / ${c.profile.c}c / ${c.profile.f}f
+        <span class="swap-icon">↕</span>
+      </span>
+    </button>
+  `).join('');
+
+  // Recipe search section
+  const searches = buildRecipeSearches(state.answers, { cuisineLabel: hero ? hero.cuisineLabel : '' });
+  const searchCards = searches.map((s, i) => {
+    const url = `https://www.google.com/search?q=${encodeURIComponent(s.query)}`;
+    return `
+      <a class="search-card" href="${url}" target="_blank" rel="noopener" style="animation-delay:${i*45}ms;">
+        <div class="s-icon">🔍</div>
+        <div class="s-body"><div class="s-label">${escapeHtml(s.label)}</div><div class="s-query">${escapeHtml(s.query)}</div></div>
+        <div class="s-arrow">→</div>
       </a>
     `;
   }).join('');
 
-  const targetsBanner = state.targets ? targetBannerHtml() : '';
+  const broadQuery = (searches[0] && searches[0].query) || (hero ? hero.cuisineLabel.toLowerCase() + ' recipes' : 'dinner recipes');
+  const enginesHtml = [
+    { label: '📺 YouTube',      url: `https://www.youtube.com/results?search_query=${encodeURIComponent(broadQuery)}` },
+    { label: '🥄 AllRecipes',   url: `https://www.allrecipes.com/search?q=${encodeURIComponent(broadQuery)}` },
+    { label: '📰 NYT Cooking',  url: `https://cooking.nytimes.com/search?q=${encodeURIComponent(broadQuery)}` },
+    { label: '📌 Pinterest',    url: `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(broadQuery + ' recipe')}` },
+  ].map((e) => `<a class="search-engine-pill" href="${e.url}" target="_blank" rel="noopener">${e.label}</a>`).join('');
 
   el.innerHTML = `
-    <div class="summary-card">
-      <div class="eyebrow">Cooking tonight</div>
-      <h2 class="serif">${escapeHtml(rec.summary || "Let's get cooking.")}</h2>
-      ${targetsBanner}
-    </div>
+    ${heroHtml}
+    ${altsHtml ? `<div class="section-title">Other recipes for you</div><div class="alt-list">${altsHtml}</div>` : ''}
 
-    <div class="section-title">Recipe ideas</div>
-    ${recipeHtml || '<div class="notice">No recipes matched — try changing your filters.</div>'}
-
-    ${buildRecipeSearchSectionHtml()}
+    ${searchCards ? `
+      <div class="section-title">More recipe searches</div>
+      <p class="section-sub">Built from your answers — tap to open in a new tab.</p>
+      ${searchCards}
+      <div class="section-title" style="margin: 18px 0 8px;">Or browse elsewhere</div>
+      <div class="search-engines">${enginesHtml}</div>
+    ` : ''}
 
     <div class="results-actions">
       <button id="shareBtn" class="btn">${shareIconSvg()} Share</button>
@@ -2307,94 +2711,410 @@ function renderRecipes() {
       <button id="backToQ" class="btn btn-ghost">Tweak my answers</button>
     </div>
   `;
-  main.appendChild(el);
+
+  wireHeroAndAltHandlers();
   document.getElementById('shareBtn').addEventListener('click', () => shareResult('recipes'));
   document.getElementById('restartBtn').addEventListener('click', restart);
-  document.getElementById('backToQ').addEventListener('click', () => {
-    state.step = lastVisibleQuestionIndex();
-    transitionTo(renderQuestion);
+  document.getElementById('backToQ').addEventListener('click', goBackToQuestions);
+}
+
+function wireHeroAndAltHandlers() {
+  const anotherBtn = document.getElementById('anotherBtn');
+  if (anotherBtn) anotherBtn.addEventListener('click', showAnotherHero);
+  const dislikeBtn = document.getElementById('dislikeBtn');
+  if (dislikeBtn) dislikeBtn.addEventListener('click', dislikeCurrentHero);
+  const loveBtn = document.getElementById('loveBtn');
+  if (loveBtn && loveBtn.tagName === 'BUTTON') loveBtn.addEventListener('click', loveCurrentHero);
+  else if (loveBtn && loveBtn.tagName === 'A') loveBtn.addEventListener('click', () => loveCurrentHero(true));
+
+  document.querySelectorAll('.alt-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.getAttribute('data-idx'), 10);
+      if (!isNaN(idx)) swapHeroTo(idx);
+    });
   });
 }
 
-/* ---------- Error ---------- */
+function showAnotherHero() {
+  if (state.candidates.length <= 1) {
+    showToast("That's the whole shortlist — try different answers.");
+    return;
+  }
+  state.heroIndex = (state.heroIndex + 1) % state.candidates.length;
+  repaintHeroOnly();
+}
+
+function dislikeCurrentHero() {
+  const hero = currentHero();
+  if (!hero) return;
+  addDislike(hero.name);
+  state.candidates.splice(state.heroIndex, 1);
+  if (state.candidates.length === 0) {
+    showToast("That was the last one — re-running.");
+    setTimeout(() => {
+      transitionTo(renderLoading);
+      runRecommendation();
+    }, 300);
+    return;
+  }
+  if (state.heroIndex >= state.candidates.length) state.heroIndex = 0;
+  showToast(`Got it. Won't show "${hero.name}" again.`);
+  repaintHeroOnly();
+}
+
+function loveCurrentHero(isLink) {
+  const hero = currentHero();
+  if (!hero) return;
+  addRecentPick(hero.name);
+  if (!isLink) showToast(`Saved — enjoy your ${hero.name}.`);
+}
+
+function swapHeroTo(idx) {
+  if (idx < 0 || idx >= state.candidates.length) return;
+  state.heroIndex = idx;
+  repaintHeroOnly();
+}
+
+function repaintHeroOnly() {
+  // Repaint the whole results screen — simpler and ensures alts also update
+  if (state.recommendation && state.recommendation.mode === 'cook') paintRecipeResults();
+  else paintRestaurantResults();
+}
+
+function goBackToQuestions() {
+  if (state.flow === 'quick' || state.shortcut) {
+    // Reroute through full mode so the user can adjust details
+    state.flow = 'full';
+    state.shortcut = null;
+    state.step = lastVisibleQuestionIndex();
+    transitionTo(renderQuestion);
+  } else if (state.flow === 'full' || state.flow === 'results') {
+    state.flow = 'full';
+    state.step = lastVisibleQuestionIndex();
+    transitionTo(renderQuestion);
+  } else {
+    transitionTo(renderWelcome);
+  }
+}
+
+/* ============================================================
+   Error screen
+============================================================ */
 function renderError(title, msg) {
-  setProgress(-1, QUESTIONS.length);
+  setProgress(-1, 1);
   const el = document.createElement('div');
   el.className = 'screen';
   el.innerHTML = `
-    <div class="summary-card">
-      <div class="eyebrow" style="color: var(--terracotta);">Hmm</div>
-      <h2 class="serif">${escapeHtml(title)}</h2>
-      <p style="margin-top:8px;">${escapeHtml(msg)}</p>
-    </div>
-    <div class="results-actions">
-      <button id="retryBtn" class="btn">Try again</button>
-      <button id="restartBtn" class="btn btn-ghost">Start over</button>
+    <div class="hero-card">
+      <div class="hero-eyebrow" style="color: var(--terracotta);"><span>Hmm</span></div>
+      <h2 class="hero-title">${escapeHtml(title)}</h2>
+      <p class="hero-brief">${escapeHtml(msg)}</p>
+      <div class="hero-actions">
+        <button id="retryBtn" class="btn">Try again</button>
+        <button id="restartBtn" class="btn btn-ghost">Start over</button>
+      </div>
     </div>
   `;
   main.appendChild(el);
   document.getElementById('retryBtn').addEventListener('click', () => {
-    transitionTo(renderLoading);
-    runRecommendation();
+    transitionTo(renderLoading); runRecommendation();
   });
   document.getElementById('restartBtn').addEventListener('click', restart);
 }
 
-/* ---------- Restart ---------- */
+/* ============================================================
+   COUPLE / GROUP MODE — both swipe yes/no, first mutual yes wins
+============================================================ */
+function startCoupleMode() {
+  state.flow = 'couple';
+  state.shortcut = null;
+  state.answers = {};
+  state.couple = { phase: 'setup', candidates: [], p1Yes: [], p2Yes: [], turnIndex: 0, currentPlayer: 1 };
+  transitionTo(renderCoupleIntro);
+}
+
+function renderCoupleIntro() {
+  setProgress(-1, 1);
+  const el = document.createElement('div');
+  el.className = 'screen';
+  el.innerHTML = `
+    <div class="couple-intro">
+      <div class="icon">💞</div>
+      <h2 class="serif">Couple mode</h2>
+      <p>Pass the phone back and forth. You'll each swipe through 6 dishes — first mutual yes wins.</p>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:14px;">Pick a few preferences to narrow the list first.</p>
+    </div>
+
+    <div style="max-width:420px; margin: 24px auto 0;">
+      <div class="custom-avoid-label" style="margin-top:0">Are we cooking or eating out?</div>
+      <div class="options" id="cFormat" style="margin-top:8px;"></div>
+
+      <div class="custom-avoid-label">Vibe?</div>
+      <div class="options cols-2" id="cVibe" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="nav-row">
+      <button id="backBtn" class="btn btn-ghost">← Back</button>
+      <button id="startBtn" class="btn" disabled>Start swiping →</button>
+    </div>
+  `;
+  main.appendChild(el);
+
+  const formatOpts = [
+    { value: 'sit-down', emoji: '🍽️', label: 'Eat out' },
+    { value: 'delivery', emoji: '🛵', label: 'Delivery' },
+    { value: 'cook', emoji: '👨‍🍳', label: 'Cook at home' },
+  ];
+  const vibeOpts = [
+    { value: 'date', emoji: '🌹', label: 'Date night' },
+    { value: 'family', emoji: '👨‍👩‍👧', label: 'Family' },
+    { value: 'group', emoji: '🥂', label: 'Friends' },
+    { value: 'solo', emoji: '🧘', label: 'Just us' },
+  ];
+
+  function renderOptGroup(containerId, opts, key) {
+    const c = document.getElementById(containerId);
+    opts.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      if (state.answers[key] === opt.value) btn.classList.add('selected');
+      btn.innerHTML = `<span class="opt-emoji">${opt.emoji}</span><span class="opt-content"><span class="opt-label">${opt.label}</span></span>`;
+      btn.addEventListener('click', () => {
+        state.answers[key] = opt.value;
+        c.querySelectorAll('.opt').forEach((b) => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        document.getElementById('startBtn').disabled = !(state.answers.format && state.answers.vibe);
+      });
+      c.appendChild(btn);
+    });
+  }
+  renderOptGroup('cFormat', formatOpts, 'format');
+  renderOptGroup('cVibe', vibeOpts, 'vibe');
+
+  document.getElementById('backBtn').addEventListener('click', () => transitionTo(renderWelcome));
+  document.getElementById('startBtn').addEventListener('click', startCoupleSwiping);
+}
+
+async function startCoupleSwiping() {
+  // Fill in defaults
+  const tod = timeOfDayDefaults();
+  if (!state.answers.mood) state.answers.mood = tod.moodHint;
+  if (!state.answers.health) state.answers.health = 'balanced';
+  if (!state.answers.cuisine) state.answers.cuisine = 'surprise';
+  if (!state.answers.budget) state.answers.budget = '$$';
+  if (!state.answers.avoid) state.answers.avoid = [];
+  if (!state.answers.distance) state.answers.distance = '3';
+
+  // Build candidates (dishes if eating out, recipes if cooking)
+  const isCook = state.answers.format === 'cook';
+  const { candidates } = isCook ? buildRecipeCandidates(state.answers) : buildDishCandidates(state.answers);
+  const swipeable = candidates.slice(0, 6);
+  if (swipeable.length < 2) {
+    showToast("Not enough options — try different settings.");
+    return;
+  }
+  state.couple.candidates = swipeable;
+  state.couple.p1Yes = [];
+  state.couple.p2Yes = [];
+  state.couple.turnIndex = 0;
+  state.couple.currentPlayer = 1;
+  state.couple.phase = 'p1';
+  transitionTo(renderCoupleHandoff);
+}
+
+function renderCoupleHandoff() {
+  setProgress(-1, 1);
+  const player = state.couple.currentPlayer;
+  const el = document.createElement('div');
+  el.className = 'screen';
+  el.innerHTML = `
+    <div class="couple-intro">
+      <div class="icon">${player === 1 ? '👤' : '👥'}</div>
+      <h2 class="serif">${player === 1 ? "Player 1's turn" : "Player 2's turn"}</h2>
+      <p>${player === 1
+        ? 'You go first. Swipe through 6 dishes — yes or no on each.'
+        : 'Player 1 is done. Now you swipe the same 6. First mutual yes wins.'}</p>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:14px;">Pass the phone when ready.</p>
+    </div>
+    <div class="results-actions">
+      <button id="goBtn" class="btn">I'm ready →</button>
+      <button id="cancelBtn" class="btn btn-ghost">Cancel</button>
+    </div>
+  `;
+  main.appendChild(el);
+  document.getElementById('goBtn').addEventListener('click', () => transitionTo(renderCoupleSwipe));
+  document.getElementById('cancelBtn').addEventListener('click', () => transitionTo(renderWelcome));
+}
+
+function renderCoupleSwipe() {
+  setProgress(-1, 1);
+  const c = state.couple;
+  const candidate = c.candidates[c.turnIndex];
+  if (!candidate) { finishCoupleTurn(); return; }
+
+  const el = document.createElement('div');
+  el.className = 'screen swipe-shell';
+  el.innerHTML = `
+    <div class="swipe-turn">${c.currentPlayer === 1 ? "Player 1" : "Player 2"}'s turn</div>
+    <div class="swipe-counter">${c.turnIndex + 1} of ${c.candidates.length}</div>
+    <div class="swipe-card" id="swipeCard">
+      <h3>${escapeHtml(candidate.name)}</h3>
+      <p class="brief">${escapeHtml(candidate.brief || `A ${candidate.cuisineLabel} dish — could be a winner.`)}</p>
+    </div>
+    <div class="swipe-actions">
+      <button class="swipe-btn no" id="swipeNo" aria-label="No">✕</button>
+      <button class="swipe-btn yes" id="swipeYes" aria-label="Yes">♥</button>
+    </div>
+    <p style="color:var(--text-muted); font-size:12px;">No = skip · Yes = I'd happily eat this</p>
+  `;
+  main.appendChild(el);
+
+  document.getElementById('swipeNo').addEventListener('click', () => coupleVote(false));
+  document.getElementById('swipeYes').addEventListener('click', () => coupleVote(true));
+}
+
+function coupleVote(yes) {
+  const c = state.couple;
+  if (yes) {
+    if (c.currentPlayer === 1) c.p1Yes.push(c.turnIndex);
+    else c.p2Yes.push(c.turnIndex);
+  }
+  c.turnIndex++;
+  if (c.turnIndex >= c.candidates.length) { finishCoupleTurn(); }
+  else { transitionTo(renderCoupleSwipe); }
+}
+
+function finishCoupleTurn() {
+  const c = state.couple;
+  if (c.currentPlayer === 1) {
+    if (c.p1Yes.length === 0) {
+      // P1 said no to everything — no point continuing
+      transitionTo(() => renderCoupleResult(null, 'p1-nothing'));
+      return;
+    }
+    c.currentPlayer = 2;
+    c.turnIndex = 0;
+    transitionTo(renderCoupleHandoff);
+  } else {
+    // Both turns done — find mutual yeses
+    const mutual = c.p2Yes.filter((i) => c.p1Yes.includes(i));
+    if (mutual.length === 0) {
+      transitionTo(() => renderCoupleResult(null, 'no-match'));
+    } else {
+      const winnerIdx = mutual[0];
+      transitionTo(() => renderCoupleResult(c.candidates[winnerIdx], 'matched'));
+    }
+  }
+}
+
+function renderCoupleResult(winner, status) {
+  setProgress(-1, 1);
+  const el = document.createElement('div');
+  el.className = 'screen';
+
+  if (status === 'matched' && winner) {
+    state.candidates = [winner].concat(state.couple.candidates.filter((c) => c.name !== winner.name));
+    state.heroIndex = 0;
+    state.recommendation = {
+      mode: state.answers.format === 'cook' ? 'cook' : 'eat-out',
+      cuisineKey: winner.cuisineKey,
+      cuisineLabel: winner.cuisineLabel,
+      queries: (FOOD_DATA[winner.cuisineKey] || { queries: [] }).queries,
+      cuisine_tags: (FOOD_DATA[winner.cuisineKey] || { osm: [] }).osm,
+    };
+    el.innerHTML = `
+      <div class="hero-card">
+        <div class="hero-eyebrow"><span>It's a match!</span></div>
+        <div class="hero-title">${escapeHtml(winner.name)}</div>
+        <div class="hero-brief">${escapeHtml(winner.brief || `A ${winner.cuisineLabel} dish you both said yes to.`)}</div>
+        ${macroPillsHtml(winner.profile)}
+        <div class="hero-actions">
+          <button id="continueBtn" class="btn">${state.answers.format === 'cook' ? 'See the recipe →' : 'Find nearby spots →'}</button>
+          <button id="restartBtn" class="btn btn-ghost">Start over</button>
+        </div>
+      </div>
+    `;
+  } else if (status === 'no-match') {
+    el.innerHTML = `
+      <div class="hero-card">
+        <div class="hero-eyebrow"><span>No matches</span></div>
+        <div class="hero-title">Nothing landed for both of you.</div>
+        <div class="hero-brief">Want to try a different round, or just have one of you pick?</div>
+        <div class="hero-actions">
+          <button id="retryBtn" class="btn">Try again</button>
+          <button id="soloBtn" class="btn btn-ghost">Let one person decide</button>
+          <button id="restartBtn" class="btn btn-ghost">Start over</button>
+        </div>
+      </div>
+    `;
+  } else {
+    el.innerHTML = `
+      <div class="hero-card">
+        <div class="hero-eyebrow"><span>Player 1 vetoed everything</span></div>
+        <div class="hero-title">Tough crowd.</div>
+        <div class="hero-brief">Let's try a different round with more options.</div>
+        <div class="hero-actions">
+          <button id="retryBtn" class="btn">Try again</button>
+          <button id="restartBtn" class="btn btn-ghost">Start over</button>
+        </div>
+      </div>
+    `;
+  }
+  main.appendChild(el);
+
+  const continueBtn = document.getElementById('continueBtn');
+  if (continueBtn) {
+    continueBtn.addEventListener('click', () => {
+      if (state.answers.format === 'cook') {
+        transitionTo(renderRecipeResults);
+      } else {
+        transitionTo(renderLocation);
+      }
+    });
+  }
+  const retryBtn = document.getElementById('retryBtn');
+  if (retryBtn) retryBtn.addEventListener('click', startCoupleSwiping);
+  const soloBtn = document.getElementById('soloBtn');
+  if (soloBtn) soloBtn.addEventListener('click', () => {
+    // Fall back to single-player decide-for-me
+    transitionTo(renderLoading);
+    runRecommendation();
+  });
+  const restartBtn = document.getElementById('restartBtn');
+  if (restartBtn) restartBtn.addEventListener('click', restart);
+}
+
+/* ============================================================
+   Restart / share
+============================================================ */
 function restart() {
-  state.step = -1;
+  state.flow = 'welcome';
+  state.shortcut = null;
+  state.step = 0;
   state.answers = {};
   state.targets = null;
   state.coords = null;
   state.recommendation = null;
+  state.candidates = [];
+  state.heroIndex = 0;
   state.places = [];
+  state.couple = null;
   transitionTo(renderWelcome);
 }
 
-/* ---------- Share ---------- */
 function shareIconSvg() {
   return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>`;
 }
 
-function targetsLine() {
-  const t = state.targets; if (!t) return '';
-  const parts = [];
-  if (t.kcal) parts.push(`${t.kcal} kcal`);
-  if (t.p)    parts.push(`${t.p}g protein`);
-  if (t.c)    parts.push(`${t.c}g carbs`);
-  if (t.f)    parts.push(`${t.f}g fat`);
-  return parts.length ? `Targeting ${parts.join(' / ')}` : '';
-}
-
 function buildShareText(mode) {
-  const rec = state.recommendation || {};
-  const summary = (rec.summary || '').trim();
+  const hero = currentHero();
   const lines = ['🍴 What should I eat?'];
-  if (summary) lines.push('', summary);
-  const tl = targetsLine();
-  if (tl) lines.push('', tl);
-
-  if (mode === 'recipes') {
-    const recipes = rec.recipes || [];
-    if (recipes.length) {
-      lines.push('', 'Cooking ideas:');
-      recipes.forEach((r) => {
-        if (!r || !r.name) return;
-        const m = r.profile;
-        const macros = m ? ` (~${m.kcal} kcal · ${m.p}p/${m.c}c/${m.f}f)` : '';
-        lines.push(`• ${r.name}${macros}${r.brief ? ' — ' + r.brief : ''}`);
-      });
-    }
-  } else {
-    const dishes = rec.dishes || [];
-    if (dishes.length) {
-      lines.push('', 'Trying:');
-      dishes.forEach((d) => {
-        const m = d.profile;
-        const macros = m ? ` (~${m.kcal} kcal · ${m.p}p/${m.c}c/${m.f}f)` : '';
-        lines.push(`• ${d.name}${macros}`);
-      });
-    }
+  if (hero) {
+    lines.push('', `Tonight's pick: ${hero.name}`);
+    if (hero.brief) lines.push(hero.brief);
+    if (hero.profile) lines.push(`(~${hero.profile.kcal} kcal · ${hero.profile.p}p/${hero.profile.c}c/${hero.profile.f}f)`);
+  }
+  if (mode === 'restaurants') {
     const top = (state.places || []).slice(0, 3);
     if (top.length) {
       lines.push('', 'Top picks nearby:');
@@ -2415,32 +3135,22 @@ async function shareResult(mode) {
   const shareData = { title: 'What Should I Eat?', text };
   try {
     if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
-      await navigator.share(shareData);
-      return;
+      await navigator.share(shareData); return;
     }
-  } catch (err) {
-    if (err && err.name === 'AbortError') return;
-  }
+  } catch (err) { if (err && err.name === 'AbortError') return; }
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text);
-      showToast('Copied — paste it to a friend');
-      return;
+      showToast('Copied — paste it to a friend'); return;
     }
   } catch {}
   try {
     const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
     showToast('Copied — paste it to a friend');
-  } catch {
-    showToast("Couldn't copy — long-press to select");
-  }
+  } catch { showToast("Couldn't copy — long-press to select"); }
 }
 
 let toastTimer = null;
@@ -2454,7 +3164,9 @@ function showToast(msg) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
 }
 
-/* ---------- Helpers ---------- */
+/* ============================================================
+   Helpers
+============================================================ */
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -2468,6 +3180,8 @@ function shuffle(arr) {
   }
   return arr;
 }
+
+document.getElementById('brand').addEventListener('click', restart);
 
 /* ---------- Boot ---------- */
 renderWelcome();

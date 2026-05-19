@@ -2044,6 +2044,7 @@ async function findPlaces(rec) {
   if (!state.coords) return [];
   const distChoice = state.answers.distance;
   const radiusMeters = distChoice === '1' ? 1600 : distChoice === '3' ? 4800 : 12000;
+  const radiusMi = radiusMeters / 1609.34;
 
   const cuisineTags = (rec.cuisine_tags || []).map((t) => String(t).toLowerCase().trim()).filter(Boolean);
   const { lat, lon } = state.coords;
@@ -2101,16 +2102,19 @@ async function findPlaces(rec) {
     const tagCuisine = (e.tags.cuisine || '').toLowerCase();
     const priceEst = estimatePriceTier(e.tags);
 
-    let score = 0;
+    // Quadratic distance penalty, normalized to the user's chosen radius.
+    // "Under 1 mile" cares more about every 0.1mi than "Anywhere" does.
+    // At edge of radius: -14. At 50% of radius: -3.5. At 10%: -0.14.
+    const distRatio = distMi / radiusMi;
+    let score = -14 * distRatio * distRatio;
     if (cuisineTags.length) {
-      for (const t of cuisineTags) if (tagCuisine.includes(t)) { score += 8; break; }
+      for (const t of cuisineTags) if (tagCuisine.includes(t)) { score += 6; break; }
     }
-    score -= distMi * 0.6;
     if (targetTier) {
       const diff = Math.abs(priceEst.tier - targetTier);
-      if (diff === 0)      score += 20;  // matches budget — strongly prefer
-      else if (diff === 1) score += 4;   // adjacent — acceptable
-      else                 score -= 15;  // off by 2 tiers — heavily penalize
+      if (diff === 0)      score += 8;   // matches budget — preferred
+      else if (diff === 1) score += 2;   // adjacent — acceptable
+      else                 score -= 6;   // off by 2 tiers — penalized
     }
     return {
       name: e.tags.name,
@@ -2202,7 +2206,7 @@ function renderRestaurants() {
           <div class="place-body">
             <div class="place-name">${escapeHtml(p.name)}</div>
             <div class="place-meta">${metaHtml}</div>
-            <div class="place-action">Get directions →</div>
+            <div class="place-action">★ Ratings & directions →</div>
           </div>
         </a>
       `;
@@ -2227,6 +2231,7 @@ function renderRestaurants() {
     </div>
 
     <div class="section-title">Nearby spots</div>
+    <p style="color:var(--text-dim); font-size:13px; margin: -4px 0 12px;">Tap any card to open Google Maps — that's where you'll see star ratings, reviews, photos, and hours.</p>
     ${placesHtml}
 
     <div class="results-actions">

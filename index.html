@@ -540,6 +540,9 @@
     gap: 10px;
   }
   .place-meta .dot { color: var(--border-strong); }
+  .place-meta .price { font-weight: 600; letter-spacing: 0.04em; color: var(--text-dim); }
+  .place-meta .price.match { color: var(--forest); }
+  .place-meta .price.guess { opacity: 0.7; }
   .place-action {
     color: var(--terracotta);
     font-size: 14px;
@@ -576,6 +579,85 @@
     line-height: 1.55;
   }
   .recipe-ing strong { color: var(--cream); font-weight: 600; }
+
+  /* Recipe search cards (Google search shortcuts) */
+  .search-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 8px;
+    transition: all 0.18s ease;
+    animation: revealUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .search-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-strong);
+    transform: translateX(2px);
+  }
+  .search-card .s-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(217,119,87,0.12);
+    border: 1px solid rgba(217,119,87,0.22);
+    color: var(--terracotta);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .search-card .s-body { flex: 1; min-width: 0; }
+  .search-card .s-label {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cream);
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .search-card .s-query {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .search-card .s-arrow {
+    color: var(--terracotta);
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .search-engines {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .search-engine-pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .search-engine-pill:hover {
+    border-color: var(--terracotta);
+    color: var(--cream);
+  }
+  .search-engine-pill .icon { font-size: 13px; }
 
   .results-actions {
     margin-top: 28px;
@@ -660,7 +742,7 @@
 
   <main id="main"></main>
 
-  <footer>Crafted with ❤ &middot; Macros are rough estimates &middot; Nearby data via OpenStreetMap</footer>
+  <footer>Crafted with ❤ &middot; Macros & price tiers are estimates (marked *) &middot; Data via OpenStreetMap</footer>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span class="check">✓</span><span id="toastMsg">Copied to clipboard</span></div>
@@ -1733,6 +1815,230 @@ function holdAtLeast(startedAt, ms) {
   return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms - elapsed)));
 }
 
+/* ---------- Recipe search section HTML ---------- */
+function buildRecipeSearchSectionHtml() {
+  const rec = state.recommendation;
+  if (!rec) return '';
+  const searches = buildRecipeSearches(state.answers, rec);
+  if (!searches.length) return '';
+
+  const cards = searches.map((s, i) => {
+    const url = `https://www.google.com/search?q=${encodeURIComponent(s.query)}`;
+    return `
+      <a class="search-card" href="${url}" target="_blank" rel="noopener" style="animation-delay:${i*45}ms;">
+        <div class="s-icon">🔍</div>
+        <div class="s-body">
+          <div class="s-label">${escapeHtml(s.label)}</div>
+          <div class="s-query">${escapeHtml(s.query)}</div>
+        </div>
+        <div class="s-arrow">→</div>
+      </a>
+    `;
+  }).join('');
+
+  // Quick links to other recipe destinations using the broadest search query we built
+  const broadQuery = searches[0]?.query || (rec.cuisineLabel || '').toLowerCase() + ' recipes';
+  const otherEngines = [
+    { label: '📺 YouTube',         url: `https://www.youtube.com/results?search_query=${encodeURIComponent(broadQuery)}` },
+    { label: '🥄 AllRecipes',      url: `https://www.allrecipes.com/search?q=${encodeURIComponent(broadQuery)}` },
+    { label: '📰 NYT Cooking',     url: `https://cooking.nytimes.com/search?q=${encodeURIComponent(broadQuery)}` },
+    { label: '📌 Pinterest',       url: `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(broadQuery + ' recipe')}` },
+  ];
+  const enginePills = otherEngines.map((e) =>
+    `<a class="search-engine-pill" href="${e.url}" target="_blank" rel="noopener">${e.label}</a>`
+  ).join('');
+
+  return `
+    <div class="section-title">More recipe searches</div>
+    <p style="color:var(--text-dim); font-size:13px; margin: -4px 0 12px;">Built from your answers — tap to open in a new tab.</p>
+    ${cards}
+    <div style="margin-top:14px;">
+      <div class="section-title" style="margin: 12px 0 8px;">Or browse elsewhere</div>
+      <div class="search-engines">${enginePills}</div>
+    </div>
+  `;
+}
+
+/* ---------- Recipe search builder (Google searches from answers) ---------- */
+function buildRecipeSearches(answers, rec) {
+  const cuisineLabel = rec.cuisineLabel || '';
+  const cuisineLower = cuisineLabel.toLowerCase();
+  const searches = [];
+
+  const moodWord = ({
+    comfort: 'comfort food',
+    light: 'light',
+    adventurous: 'adventurous',
+    classic: 'classic weeknight',
+  })[answers.mood] || '';
+
+  // 1) Cuisine + mood
+  if (cuisineLower) {
+    searches.push({
+      label: `${capitalize(moodWord || 'easy')} ${cuisineLabel} recipes`,
+      query: `easy ${moodWord} ${cuisineLower} recipes`.replace(/\s+/g, ' ').trim(),
+    });
+  }
+
+  // 2) Quick / time-saving
+  searches.push({
+    label: `30-minute ${cuisineLabel || 'weeknight'} recipes`,
+    query: `30 minute ${cuisineLower} recipes`.trim(),
+  });
+
+  // 3) Health-aligned
+  if (answers.health === 'healthy') {
+    searches.push({
+      label: `Healthy ${cuisineLabel} recipes`,
+      query: `healthy ${cuisineLower} dinner recipes`.trim(),
+    });
+  } else if (answers.health === 'indulgent') {
+    searches.push({
+      label: `Best indulgent ${cuisineLabel} dishes`,
+      query: `best indulgent ${cuisineLower} comfort food recipes`.trim(),
+    });
+  }
+
+  // 4) Vibe-aligned
+  if (answers.vibe === 'date') {
+    searches.push({
+      label: `${cuisineLabel} date night recipes`,
+      query: `${cuisineLower} date night dinner recipes impressive`.trim(),
+    });
+  } else if (answers.vibe === 'family') {
+    searches.push({
+      label: `Kid-friendly ${cuisineLabel} recipes`,
+      query: `kid friendly family ${cuisineLower} dinner recipes`.trim(),
+    });
+  } else if (answers.vibe === 'group') {
+    searches.push({
+      label: `${cuisineLabel} recipes for a crowd`,
+      query: `${cuisineLower} recipes for a crowd party feeding many`.trim(),
+    });
+  } else if (answers.vibe === 'solo') {
+    searches.push({
+      label: `${cuisineLabel} recipes for one`,
+      query: `${cuisineLower} recipes for one solo cooking small batch`.trim(),
+    });
+  }
+
+  // 5) Diet constraints from avoid chips
+  const avoid = Array.isArray(answers.avoid) ? answers.avoid : [];
+  const dietParts = [];
+  if (avoid.includes('gluten')) dietParts.push('gluten-free');
+  if (avoid.includes('dairy'))  dietParts.push('dairy-free');
+  if (avoid.includes('nuts'))   dietParts.push('nut-free');
+  if (avoid.includes('eggs'))   dietParts.push('egg-free');
+  const noProtein = avoid.includes('red-meat') && avoid.includes('pork');
+  const noSea = avoid.includes('seafood') && avoid.includes('shellfish');
+  if (noProtein && noSea) dietParts.push('vegetarian');
+  else if (noProtein) dietParts.push('pescatarian');
+  if (dietParts.length) {
+    searches.push({
+      label: `${capitalize(dietParts.join(' '))} ${cuisineLabel} recipes`,
+      query: `${dietParts.join(' ')} ${cuisineLower} recipes`.trim(),
+    });
+  }
+
+  // 6) Macro targets
+  if (state.targets) {
+    if (state.targets.kcal) {
+      searches.push({
+        label: `${cuisineLabel} recipes under ${state.targets.kcal} calories`,
+        query: `${cuisineLower} recipes under ${state.targets.kcal} calories per serving`.trim(),
+      });
+    }
+    if (state.targets.p && state.targets.p >= 30) {
+      searches.push({
+        label: `High-protein ${cuisineLabel} recipes`,
+        query: `high protein ${cuisineLower} recipes ${state.targets.p}g protein`.trim(),
+      });
+    }
+    if (state.targets.c && state.targets.c <= 40) {
+      searches.push({
+        label: `Low-carb ${cuisineLabel} recipes`,
+        query: `low carb ${cuisineLower} recipes`.trim(),
+      });
+    }
+  }
+
+  // 7) Custom avoidances → exclude terms via Google `-"term"` operators
+  const customs = String(answers.avoidCustom || '')
+    .split(/[,;\n]/).map(s => s.trim()).filter(s => s.length >= 2);
+  if (customs.length) {
+    const noStr = customs.slice(0, 4).map(c => `-"${c}"`).join(' ');
+    searches.push({
+      label: `${cuisineLabel} recipes without ${customs.slice(0, 3).join(', ')}`,
+      query: `${cuisineLower} recipes ${noStr}`.replace(/\s+/g, ' ').trim(),
+    });
+  }
+
+  // De-dupe by query
+  const seen = new Set();
+  return searches.filter((s) => {
+    if (!s.query) return false;
+    if (seen.has(s.query)) return false;
+    seen.add(s.query);
+    return true;
+  }).slice(0, 7);
+}
+
+/* ---------- Price tier estimation (Google-style $ / $$ / $$$) ---------- */
+function budgetToTier(budget) {
+  return budget === '$' ? 1 : budget === '$$' ? 2 : budget === '$$$' ? 3 : null;
+}
+function tierToDollars(tier) {
+  if (!tier || tier < 1) return '';
+  return '$'.repeat(Math.max(1, Math.min(3, Math.round(tier))));
+}
+
+// Returns { tier: 1|2|3, confident: bool }
+function estimatePriceTier(tags) {
+  // 1) Explicit OSM tags (rare but authoritative)
+  const explicitKeys = ['price:level', 'price_range', 'price', 'fee:level'];
+  for (const k of explicitKeys) {
+    const v = tags[k];
+    if (!v) continue;
+    const s = String(v).toLowerCase().trim();
+    if (s === '$' || s === '1' || /\b(low|cheap|budget|inexpensive)\b/.test(s)) return { tier: 1, confident: true };
+    if (s === '$$$' || s === '3' || /\b(high|expensive|fine[\s_-]?dining|upscale|premium)\b/.test(s)) return { tier: 3, confident: true };
+    if (s === '$$' || s === '2' || /\b(mid|medium|moderate|average)\b/.test(s)) return { tier: 2, confident: true };
+    // Dollar-sign count
+    const dollarMatch = s.match(/^\$+$/);
+    if (dollarMatch) {
+      const n = Math.max(1, Math.min(3, dollarMatch[0].length));
+      return { tier: n, confident: true };
+    }
+  }
+
+  // 2) Heuristic: amenity + cuisine + name signals
+  const amenity = String(tags.amenity || '').toLowerCase();
+  const cuisine = String(tags.cuisine || '').toLowerCase();
+  const name    = String(tags.name || '').toLowerCase();
+
+  // Strong $$$ signals
+  const highEndCuisines = ['fine_dining','french','molecular','tasting_menu','sushi','steak_house','steakhouse'];
+  const highEndKeywords = ['steakhouse','steak house','fine dining','tasting menu',"chef's table",'omakase','michelin','prime','reserve','wine room'];
+  if (highEndCuisines.some(t => cuisine.includes(t))) {
+    // sushi alone isn't necessarily fancy, but as a cuisine tag it skews mid; only count if also "omakase" etc.
+    if (cuisine.includes('omakase') || cuisine.includes('fine_dining') || cuisine.includes('french') || cuisine.includes('molecular') || cuisine.includes('tasting')) {
+      return { tier: 3, confident: false };
+    }
+  }
+  if (highEndKeywords.some(k => name.includes(k))) return { tier: 3, confident: false };
+
+  // Strong $ signals
+  if (amenity === 'fast_food') return { tier: 1, confident: true };
+  const cheapKeywords = ['express','truck','diner','taqueria','dollar','value','snack','quick','cantina','drive-thru','drive thru'];
+  if (cheapKeywords.some(k => name.includes(k))) return { tier: 1, confident: false };
+  const cheapCuisines = ['burger','pizza','sandwich','kebab','doughnut','fish_and_chips','breakfast','noodle','ice_cream'];
+  if (amenity === 'cafe') return { tier: 1, confident: false };
+  if (cheapCuisines.some(t => cuisine.includes(t)) && amenity !== 'restaurant') return { tier: 1, confident: false };
+
+  // Default: $$ (most sit-down restaurants)
+  return { tier: 2, confident: false };
+}
+
 /* ---------- Overpass restaurant search ---------- */
 async function findPlaces(rec) {
   if (!state.coords) return [];
@@ -1788,21 +2094,40 @@ async function findPlaces(rec) {
     } catch {}
   }
 
-  const scored = elements.map((e) => {
+  const targetTier = budgetToTier(state.answers.budget);
+
+  let scored = elements.map((e) => {
     const distMi = haversine(lat, lon, e.lat, e.lon);
     const tagCuisine = (e.tags.cuisine || '').toLowerCase();
+    const priceEst = estimatePriceTier(e.tags);
+
     let score = 0;
     if (cuisineTags.length) {
-      for (const t of cuisineTags) if (tagCuisine.includes(t)) { score += 10; break; }
+      for (const t of cuisineTags) if (tagCuisine.includes(t)) { score += 8; break; }
     }
-    score -= distMi;
+    score -= distMi * 0.6;
+    if (targetTier) {
+      const diff = Math.abs(priceEst.tier - targetTier);
+      if (diff === 0)      score += 20;  // matches budget — strongly prefer
+      else if (diff === 1) score += 4;   // adjacent — acceptable
+      else                 score -= 15;  // off by 2 tiers — heavily penalize
+    }
     return {
       name: e.tags.name,
       cuisine: tagCuisine.replace(/_/g, ' ').replace(/;/g, ', ') || null,
       lat: e.lat, lon: e.lon, distMi,
-      amenity: e.tags.amenity, score,
+      amenity: e.tags.amenity,
+      priceTier: priceEst.tier,
+      priceConfident: priceEst.confident,
+      score,
     };
   });
+
+  // Hard-filter mismatches when there are enough good options at ±1 tier
+  if (targetTier) {
+    const close = scored.filter((p) => Math.abs(p.priceTier - targetTier) <= 1);
+    if (close.length >= 3) scored = close;
+  }
 
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, 8);
@@ -1852,19 +2177,31 @@ function renderRestaurants() {
       </a>
     `;
   } else {
+    const targetTier = budgetToTier(state.answers.budget);
     placesHtml = places.map((p, i) => {
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + p.lat + ',' + p.lon)}`;
       const distLabel = p.distMi < 0.1 ? 'right here' : p.distMi.toFixed(1) + ' mi';
-      const meta = [
-        p.cuisine ? capitalize(p.cuisine) : (p.amenity === 'cafe' ? 'Café' : (p.amenity === 'fast_food' ? 'Fast casual' : 'Restaurant')),
-        distLabel,
-      ].filter(Boolean);
+      const kindLabel = p.cuisine
+        ? capitalize(p.cuisine)
+        : (p.amenity === 'cafe' ? 'Café' : (p.amenity === 'fast_food' ? 'Fast casual' : 'Restaurant'));
+      const dollars = tierToDollars(p.priceTier);
+      const matches = targetTier && p.priceTier === targetTier;
+      const guess = !p.priceConfident;
+      const priceHtml = dollars
+        ? `<span class="price${matches ? ' match' : ''}${guess ? ' guess' : ''}" title="${guess ? 'Estimated price tier' : 'Listed price tier'}">${dollars}${guess ? '*' : ''}</span>`
+        : '';
+      // Order: kind · price · distance
+      const parts = [];
+      parts.push(`<span>${escapeHtml(kindLabel)}</span>`);
+      if (priceHtml) parts.push(priceHtml);
+      parts.push(`<span>${escapeHtml(distLabel)}</span>`);
+      const metaHtml = parts.map((m, idx) => idx < parts.length - 1 ? m + '<span class="dot">·</span>' : m).join('');
       return `
         <a class="place-card" href="${mapsUrl}" target="_blank" rel="noopener" style="animation-delay:${i*55}ms;">
           <div class="pin">🍴</div>
           <div class="place-body">
             <div class="place-name">${escapeHtml(p.name)}</div>
-            <div class="place-meta">${meta.map((m, idx) => `<span>${escapeHtml(m)}</span>${idx < meta.length-1 ? '<span class="dot">·</span>' : ''}`).join('')}</div>
+            <div class="place-meta">${metaHtml}</div>
             <div class="place-action">Get directions →</div>
           </div>
         </a>
@@ -1956,6 +2293,8 @@ function renderRecipes() {
 
     <div class="section-title">Recipe ideas</div>
     ${recipeHtml || '<div class="notice">No recipes matched — try changing your filters.</div>'}
+
+    ${buildRecipeSearchSectionHtml()}
 
     <div class="results-actions">
       <button id="shareBtn" class="btn">${shareIconSvg()} Share</button>
@@ -2056,8 +2395,10 @@ function buildShareText(mode) {
       lines.push('', 'Top picks nearby:');
       top.forEach((p) => {
         const dist = p.distMi < 0.1 ? 'right here' : p.distMi.toFixed(1) + ' mi';
+        const dollars = tierToDollars(p.priceTier);
+        const price = dollars ? ` · ${dollars}${p.priceConfident ? '' : '*'}` : '';
         const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + p.lat + ',' + p.lon)}`;
-        lines.push(`• ${p.name} (${dist}) ${url}`);
+        lines.push(`• ${p.name} (${dist}${price}) ${url}`);
       });
     }
   }

@@ -2131,6 +2131,9 @@ function renderQuestion() {
   const q = QUESTIONS[state.step];
   setProgress(getVisibleStep(state.step), getVisibleTotal());
 
+  // Defensively clear — chip toggles re-render in place without going through transitionTo
+  main.innerHTML = '';
+
   const el = document.createElement('div');
   el.className = 'screen';
   const optionsClass = q.layout === 'chips' ? 'options chips' : (q.layout === 'cols' ? 'options cols-2' : 'options');

@@ -49,5 +49,6 @@ army caps, and the victory conditions.
 
 ## Status
 
-Milestone **M0 (scaffold)** is done. **M1–M5** are mostly done: pathfinding, move orders, fog of war, deployment, reinforcements, auto-resolve, and the city economy (growth, production, buildings, gold, happiness, borders, research, settlers) sieges (walls, engines, militia, sorties), and resources, workers and social policies. See GDD §8 for the milestone plan. The AI player is passive
-for now: it defends with the tactical AI but does not start wars until M6.
+Milestone **M0 (scaffold)** is done. **M1–M6** are mostly done: pathfinding, move orders, fog of war, deployment, reinforcements, auto-resolve, and the city economy (growth, production, buildings, gold, happiness, borders, research, settlers) sieges (walls, engines, militia, sorties), and resources, workers and social policies. See GDD §8 for the milestone plan. The AI opponent now
+expands, builds armies, besieges and assaults your cities (`StrategicAI`). The tests include
+AI-vs-AI skirmishes that end in domination.

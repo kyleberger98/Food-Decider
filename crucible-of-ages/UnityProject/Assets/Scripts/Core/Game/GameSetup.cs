@@ -8,13 +8,14 @@ namespace Crucible.Core.Game
     /// <summary>Creates new games. Today: a two-faction skirmish on a generated continent.</summary>
     public static class GameSetup
     {
-        public static GameState NewSkirmish(ulong seed, int width = 48, int height = 32)
+        /// <param name="allAI">True for AI-vs-AI games (autoplay, balance testing).</param>
+        public static GameState NewSkirmish(ulong seed, int width = 48, int height = 32, bool allAI = false)
         {
             var content = DefaultContent.Create();
             var map = MapGenerator.Generate(new MapGeneratorSettings { Seed = seed, Width = width, Height = height });
             var game = new GameState(content, map, seed ^ 0x5EED5EEDUL);
 
-            var human = game.AddPlayer("You", DefaultContent.Aurel, isAI: false);
+            var human = game.AddPlayer(allAI ? "The Consul" : "You", DefaultContent.Aurel, isAI: allAI);
             var ai = game.AddPlayer("The Khagan", DefaultContent.Khaganate, isAI: true);
 
             var starts = PickStarts(map);

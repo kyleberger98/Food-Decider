@@ -57,10 +57,18 @@ namespace Crucible.Core.Economy
                                                       Improvements.Best(owner, t) != World.ImprovementType.None);
             if (workers < cities && improvable) return ProductionItem.Unit(DefaultContent.WorkerUnit);
 
+            // Strategic AI plan: expand, then arm up to its military target while it can pay upkeep.
+            int netGold = EconomyRules.EmpireIncome(game, owner).Gold;
+            if (owner.AIWantsSettlers && city.Population >= 2 && owner.Happiness >= 1 &&
+                EconomyRules.CanBuild(game, city, ProductionItem.Unit(DefaultContent.SettlerUnit)) &&
+                !SettlerPending(game, owner.Id))
+                return ProductionItem.Unit(DefaultContent.SettlerUnit);
+            if (units < owner.AIMilitaryTarget && netGold >= 1 && BestUnit(game, city) is ProductionItem soldier)
+                return soldier;
+
             if (owner.Happiness < 2 && EconomyRules.CanBuild(game, city, ProductionItem.Building("colosseum")))
                 return ProductionItem.Building("colosseum");
 
-            int netGold = EconomyRules.EmpireIncome(game, owner).Gold;
             foreach (var id in BuildingPriority)
             {
                 var item = ProductionItem.Building(id);
@@ -75,6 +83,11 @@ namespace Crucible.Core.Economy
             int free = EconomyRules.FreeUnitsBase + EconomyRules.FreeUnitsPerCity * cities;
             return units < free ? BestUnit(game, city) : null;
         }
+
+        /// <summary>A settler already exists or is being built somewhere in the empire.</summary>
+        static bool SettlerPending(GameState game, int playerId) =>
+            game.Armies.Any(a => a.OwnerId == playerId && a.Units.Any(u => u.Def.Id == DefaultContent.SettlerUnit)) ||
+            game.Cities.Any(c => c.OwnerId == playerId && c.CurrentProduction.HasValue && c.CurrentProduction.Value.Equals(ProductionItem.Unit(DefaultContent.SettlerUnit)));
 
         /// <summary>The strongest land unit this city can build.</summary>
         static ProductionItem? BestUnit(GameState game, City city)

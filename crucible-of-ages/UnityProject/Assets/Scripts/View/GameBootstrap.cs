@@ -34,7 +34,7 @@ namespace Crucible.View
             var home = game.Armies.First(a => !game.Player(a.OwnerId).IsAI);
             var rig = CameraRig.Create(mapRenderer.HexToWorld(home.Position));
 
-            var turns = new TurnManager(game);
+            var turns = new TurnManager(game, new Crucible.Core.AI.StrategicAI());
             var controller = gameObject.AddComponent<GameController>();
             controller.Init(game, turns, mapRenderer, rig);
             turns.Start();

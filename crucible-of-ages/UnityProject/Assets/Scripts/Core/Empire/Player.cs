@@ -22,6 +22,14 @@ namespace Crucible.Core.Empire
         /// <summary>Extra army cap from policies, great generals held in reserve, etc.</summary>
         public int PolicyArmyCapBonus { get; set; }
 
+        // --- Strategic AI plan, read by the city governor (GDD §6) ---
+
+        /// <summary>The AI wants more cities: governors may build settlers.</summary>
+        public bool AIWantsSettlers { get; set; }
+
+        /// <summary>Military units the AI wants in play; governors build toward it while gold allows.</summary>
+        public int AIMilitaryTarget { get; set; }
+
         /// <summary>Adopted social policies, and culture banked toward the next one.</summary>
         public HashSet<string> Policies { get; } = new HashSet<string>();
         public int PolicyCulture { get; set; }

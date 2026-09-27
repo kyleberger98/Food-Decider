@@ -3,7 +3,7 @@ using Crucible.Core.Empire;
 
 namespace Crucible.Core.Game
 {
-    /// <summary>Strategic AI hook for a whole player turn (GDD §6.1–6.3). Lands in M6.</summary>
+    /// <summary>Strategic AI hook for a whole player turn (GDD §6.1–6.3). See <see cref="AI.StrategicAI"/>.</summary>
     public interface IPlayerAI
     {
         void TakeTurn(GameState game, Player player);
@@ -42,17 +42,20 @@ namespace Crucible.Core.Game
             RunAIPlayers();
         }
 
-        /// <summary>The active (human) player ends their turn.</summary>
+        /// <summary>
+        /// The active (human) player ends their turn and the AI players take theirs. In an all-AI game
+        /// each call plays exactly one round, and the active AI always gets its turn (never skipped).
+        /// </summary>
         public void EndTurn()
         {
-            Advance();
+            if (!ActivePlayer.IsAI) Advance();
             RunAIPlayers();
         }
 
         void RunAIPlayers()
         {
             int guard = 0;
-            while (!IsGameOver && ActivePlayer.IsAI && guard++ < _game.Players.Count * 4)
+            while (!IsGameOver && ActivePlayer.IsAI && guard++ < _game.Players.Count)
             {
                 _ai.TakeTurn(_game, ActivePlayer);
                 Advance();

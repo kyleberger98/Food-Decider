@@ -40,8 +40,10 @@ namespace Crucible.Core.AI
                 return;
             }
 
+            // Ranged soften targets first, then siege engines close in (towers must be in place
+            // before the infantry climbs), then melee.
             var units = battle.DeployedUnits(side)
-                .OrderBy(u => u.Def.IsRanged ? 0 : 1)
+                .OrderBy(u => u.Def.IsRanged ? 0 : u.Def.SiegeOnly ? 1 : 2)
                 .ThenBy(u => u.Id)
                 .ToList();
 
@@ -106,6 +108,7 @@ namespace Crucible.Core.AI
             double bestScore = double.NegativeInfinity;
             HexCoord bestHex = start;
             HexCoord? bestTarget = null;
+            bool bestIsWallAttack = false;
 
             foreach (var (hex, mpLeft) in options)
             {
@@ -115,9 +118,24 @@ namespace Crucible.Core.AI
                     bestScore = position;
                     bestHex = hex;
                     bestTarget = null;
+                    bestIsWallAttack = false;
                 }
 
                 if (!unit.Def.IsRanged && mpLeft <= 0) continue;
+
+                // Battering the walls: rams live for it; others do it when nothing better is in reach.
+                if (battle.CanAttackWallsFrom(unit, hex))
+                {
+                    double wallScore = 90 + battle.ExpectedWallDamage(unit) * (unit.Def.AttacksWallsOnly ? 1.5 : 0.6) + position * 0.1;
+                    if (wallScore > bestScore)
+                    {
+                        bestScore = wallScore;
+                        bestHex = hex;
+                        bestTarget = null;
+                        bestIsWallAttack = true;
+                    }
+                }
+
                 foreach (var enemy in enemies)
                 {
                     var target = battle.PositionOf(enemy).Value;
@@ -134,12 +152,14 @@ namespace Crucible.Core.AI
                         bestScore = score;
                         bestHex = hex;
                         bestTarget = target;
+                        bestIsWallAttack = false;
                     }
                 }
             }
 
             if (bestHex != start && !battle.TryMove(unit, bestHex)) return;
-            if (bestTarget.HasValue) battle.TryAttack(unit, bestTarget.Value);
+            if (bestIsWallAttack) battle.TryAttackWalls(unit);
+            else if (bestTarget.HasValue) battle.TryAttack(unit, bestTarget.Value);
         }
 
         double PositionScore(Battle battle, Unit unit, HexCoord hex, List<Unit> enemies)
@@ -159,7 +179,12 @@ namespace Crucible.Core.AI
             }
 
             if (battle.Objective.HasValue && battle.SideOf(unit) == BattleSideId.Attacker)
-                score -= hex.DistanceTo(battle.Objective.Value);
+            {
+                int toObjective = hex.DistanceTo(battle.Objective.Value);
+                // Engines belong at the walls; towers must be adjacent for the infantry to climb.
+                score -= toObjective * (unit.Def.CarriesOverWalls ? 8 : unit.Def.AttacksWallsOnly ? 5 : 1);
+                if (hex == battle.Objective.Value) score += 30; // standing on the centre wins the assault
+            }
             return score;
         }
 

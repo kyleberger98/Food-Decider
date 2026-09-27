@@ -97,7 +97,7 @@ namespace Crucible.Core.Combat
         public List<string> Log { get; } = new List<string>();
 
         public Battle(int id, WorldMap map, HashSet<HexCoord> tiles, BattleSide attacker, BattleSide defender,
-            DeterministicRng rng, HexCoord? objective = null)
+            DeterministicRng rng, HexCoord? objective = null, int objectiveCityId = -1)
         {
             Id = id;
             Map = map ?? throw new ArgumentNullException(nameof(map));
@@ -106,6 +106,81 @@ namespace Crucible.Core.Combat
             Defender = defender ?? throw new ArgumentNullException(nameof(defender));
             _rng = rng ?? throw new ArgumentNullException(nameof(rng));
             Objective = objective;
+            ObjectiveCityId = objectiveCityId;
+
+            if (objective.HasValue && Map.Get(objective.Value)?.WallTier is int tier && tier > 0)
+            {
+                WallTier = tier;
+                MaxWallHp = WallHpPerTier * tier;
+                WallHp = MaxWallHp;
+            }
+        }
+
+        // ------------------------------------------------------------------ walls (GDD §4.6)
+
+        public const int WallHpPerTier = 50;
+
+        /// <summary>City whose centre is <see cref="Objective"/>; its militia fight only here.</summary>
+        public int ObjectiveCityId { get; }
+
+        public int WallTier { get; }
+        public int MaxWallHp { get; }
+        public int WallHp { get; private set; }
+        public bool HasWalls => MaxWallHp > 0;
+        public bool WallsIntact => WallHp > 0;
+
+        /// <summary>Defensive strength the walls oppose to battering: 10 + 8 per tier.</summary>
+        public int WallStrength => 10 + 8 * WallTier;
+
+        /// <summary>
+        /// Intact walls stop attacking melee units from entering or striking the city centre, unless
+        /// they step off a hex next to a friendly siege tower (or are the tower).
+        /// </summary>
+        public bool BlockedByWalls(Unit unit, HexCoord from, HexCoord to)
+        {
+            if (!WallsIntact || !Objective.HasValue || to != Objective.Value) return false;
+            if (SideOf(unit) != BattleSideId.Attacker || unit.Def.IsRanged || unit.Def.CarriesOverWalls) return false;
+            return !from.Neighbors().Any(n => _occupants.TryGetValue(n, out var o) && o != unit &&
+                                              o.Def.CarriesOverWalls && _sideOf[o.Id] == BattleSideId.Attacker);
+        }
+
+        /// <summary>Whether the unit could batter or bombard the walls from <paramref name="from"/>.</summary>
+        public bool CanAttackWallsFrom(Unit unit, HexCoord from)
+        {
+            if (!WallsIntact || !Objective.HasValue || unit.HasAttacked || !unit.Def.CanAttack) return false;
+            if (SideOf(unit) != BattleSideId.Attacker) return false;
+            int dist = from.DistanceTo(Objective.Value);
+            if (unit.Def.IsRanged)
+            {
+                int range = unit.Def.Range + (Map.Get(from).Elevation > Map.Get(Objective.Value).Elevation ? 1 : 0);
+                return dist >= 1 && dist <= range && (unit.Def.IndirectFire || TerrainRules.HasLineOfSight(Map, from, Objective.Value));
+            }
+            return dist == 1;
+        }
+
+        public double ExpectedWallDamage(Unit unit)
+        {
+            int strength = (unit.Def.IsRanged ? unit.Def.RangedStrength : unit.Def.CombatStrength) - CombatResolver.WoundPenalty(unit);
+            return Math.Min(MaxWallHp, CombatResolver.ExpectedDamage(strength - WallStrength) * unit.Def.WallDamageMultiplier);
+        }
+
+        /// <summary>Attacks the walls. Returns the damage dealt, or -1 if the attack is not allowed.</summary>
+        public int TryAttackWalls(Unit unit)
+        {
+            if (!CanCommand(unit)) return -1;
+            var from = PositionOf(unit).Value;
+            if (!CanAttackWallsFrom(unit, from)) return -1;
+            if (!unit.Def.IsRanged && unit.BattleMovesLeft <= 0) return -1;
+
+            int strength = (unit.Def.IsRanged ? unit.Def.RangedStrength : unit.Def.CombatStrength) - CombatResolver.WoundPenalty(unit);
+            int dmg = (int)Math.Round(CombatResolver.RollDamage(strength - WallStrength, _rng) * unit.Def.WallDamageMultiplier);
+            WallHp = Math.Max(0, WallHp - dmg);
+            unit.HasAttacked = true;
+            unit.ActedThisTurn = true;
+            unit.Fortified = false;
+            unit.BattleMovesLeft = 0;
+            Log.Add($"{unit} batters the walls for {dmg} ({WallHp}/{MaxWallHp})." + (WallsIntact ? "" : " The walls are breached!"));
+            return dmg;
         }
 
         public bool IsFinished =>
@@ -149,7 +224,9 @@ namespace Crucible.Core.Combat
             side.Armies.Add(army);
             army.BattleId = Id;
             // Civilians (settlers, workers) never take the field; they share their army's fate.
-            foreach (var u in army.Units.Where(u => u.IsAlive && u.Def.IsMilitary))
+            // Militia only fight for their own city.
+            foreach (var u in army.Units.Where(u => u.IsAlive && u.Def.IsMilitary &&
+                                                     (u.BoundToCityId < 0 || u.BoundToCityId == ObjectiveCityId)))
             {
                 _sideOf[u.Id] = sideId;
                 side.Reserve.Add(u);
@@ -242,6 +319,21 @@ namespace Crucible.Core.Combat
                 slots--;
             }
 
+            // In an assault the garrison's best non-ranged unit holds the city centre behind the walls.
+            if (side.Id == BattleSideId.Defender && Objective.HasValue && slots > 0 && !_occupants.ContainsKey(Objective.Value))
+            {
+                var holder = side.Reserve.Where(u => u.IsAlive && !_entryPoints.ContainsKey(u.Id))
+                    .OrderBy(u => u.Def.IsRanged ? 1 : 0).ThenByDescending(u => u.Def.CombatStrength).ThenBy(u => u.Id)
+                    .FirstOrDefault();
+                if (holder != null)
+                {
+                    Place(holder, Objective.Value);
+                    side.Reserve.Remove(holder);
+                    holder.Fortified = false;
+                    slots--;
+                }
+            }
+
             var enemyOrigin = Opponent(side.Id).Origin;
             var freeTiles = side.DeploymentZone
                 .Where(t => !_occupants.ContainsKey(t))
@@ -321,7 +413,7 @@ namespace Crucible.Core.Combat
                     if (_occupants.TryGetValue(next, out var occ) && _sideOf[occ.Id] != side) continue;
 
                     int cost = TerrainRules.LandStepCost(Map.Get(current), Map.Get(next));
-                    if (cost == TerrainRules.Impassable) continue;
+                    if (cost == TerrainRules.Impassable || BlockedByWalls(unit, current, next)) continue;
                     // A unit with any MP left may always take one step (Civ V rule).
                     if (cost > mpHere && mpHere < unit.Def.BattleMovement) continue;
 
@@ -349,7 +441,8 @@ namespace Crucible.Core.Combat
         {
             var defender = UnitAt(target);
             if (defender == null || _sideOf[defender.Id] == SideOf(unit)) return false;
-            if (unit.HasAttacked) return false;
+            if (unit.HasAttacked || !unit.Def.CanAttack || unit.Def.AttacksWallsOnly) return false;
+            if (BlockedByWalls(unit, from, target)) return false;
             int dist = from.DistanceTo(target);
             var fromTile = Map.Get(from);
             var targetTile = Map.Get(target);
@@ -381,6 +474,7 @@ namespace Crucible.Core.Combat
                 CrossesRiver = !ranged && Map.HasRiverBetween(from, target),
                 Flankers = ranged ? 0 : target.Neighbors().Count(n =>
                     n != from && _occupants.TryGetValue(n, out var o) && o != attacker && _sideOf[o.Id] == side),
+                WallsBreached = HasWalls && !WallsIntact && Objective == target,
             };
             if (Side(side).Player.IsVeryUnhappy) s.AttackerExtras.Add(new CombatModifier("Unhappiness", UnhappinessPenalty));
             if (Opponent(side).Player.IsVeryUnhappy) s.DefenderExtras.Add(new CombatModifier("Unhappiness", UnhappinessPenalty));

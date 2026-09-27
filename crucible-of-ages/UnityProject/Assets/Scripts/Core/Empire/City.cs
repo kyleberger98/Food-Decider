@@ -67,6 +67,14 @@ namespace Crucible.Core.Empire
         /// <summary>Siege progress banked by the besiegers, spent on rams/towers/catapults.</summary>
         public int SiegeProgress { get; set; }
 
+        /// <summary>Player besieging the city, or -1.</summary>
+        public int BesiegerId { get; set; } = -1;
+
+        /// <summary>Engines built during the current siege (max <see cref="MaxSiegeEngines"/>).</summary>
+        public int SiegeEnginesBuilt { get; set; }
+
+        public const int MaxSiegeEngines = 3;
+
         public City(int id, string name, int ownerId, HexCoord position)
         {
             Id = id;

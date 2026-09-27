@@ -97,6 +97,7 @@ namespace Crucible.Core.Content
                     Id = id, Name = name, Class = cls, Era = era, CombatStrength = cs, RangedStrength = rs,
                     Range = range, BattleMovement = battleMp, WorldMovement = worldMp, ProductionCost = cost,
                     RequiredTech = tech, IndirectFire = indirect, RequiredResource = resource,
+                    WallDamageMultiplier = cls == UnitClass.Siege ? 2.0 : 1.0,
                 };
                 db.Add(def);
                 return def;
@@ -136,6 +137,22 @@ namespace Crucible.Core.Content
 
             // Not buildable: spawned by besieged cities (GDD §4.6).
             U(MilitiaUnit, "Militia", UnitClass.Melee, Era.Ancient, 6, 0, null);
+
+            // Siege engines, built from siege progress while besieging.
+            var ram = U("battering_ram", "Battering Ram", UnitClass.Siege, Era.Ancient, 10, 0, null);
+            ram.SiegeOnly = true;
+            ram.SiegeProgressCost = 30;
+            ram.AttacksWallsOnly = true;
+            ram.WallDamageMultiplier = 3.0;
+
+            var tower = U("siege_tower", "Siege Tower", UnitClass.Siege, Era.Ancient, 6, 0, null);
+            tower.SiegeOnly = true;
+            tower.SiegeProgressCost = 40;
+            tower.CanAttack = false;
+            tower.CarriesOverWalls = true;
+
+            db.Unit("catapult").SiegeProgressCost = 45;
+            db.Unit("trebuchet").SiegeProgressCost = 60;
 
             // Faction uniques
             var legionary = U("aurel_legionary", "Aurel Legionary", UnitClass.Melee, Era.Classical, 17, 75, "iron_working", resource: "iron");

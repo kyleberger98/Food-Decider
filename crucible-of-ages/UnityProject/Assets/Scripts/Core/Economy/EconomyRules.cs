@@ -141,7 +141,7 @@ namespace Crucible.Core.Economy
             }
 
             var u = game.Content.Unit(item.Id);
-            if (u.Id == DefaultContent.MilitiaUnit || !player.Tech.Has(u.RequiredTech)) return false;
+            if (u.Id == DefaultContent.MilitiaUnit || u.SiegeOnly || !player.Tech.Has(u.RequiredTech)) return false;
             if (u.FactionId != null && u.FactionId != player.Faction.Id) return false;
             // A faction's unique unit replaces the generic one.
             if (game.Content.Units.Any(x => x.FactionId == player.Faction.Id && x.Replaces == u.Id)) return false;

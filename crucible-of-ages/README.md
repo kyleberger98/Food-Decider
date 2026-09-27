@@ -41,11 +41,12 @@ army caps, and the victory conditions.
 | World | Click your army (blue), hover a hex to see the route and turns, and click to march there (multi-turn orders continue automatically). Click an adjacent enemy or city to attack. **Enter** ends the turn. |
 | Cities | Click your city for its panel (growth, borders, production); pick what to build from the list. **F** founds a city with a selected settler. **T** cycles research. |
 | Deployment | Click a unit, then a blue hex of your zone (swaps with friends). **Space** confirms. |
-| Battle | Click a unit, then a green hex to move or a red enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats, **A** auto-resolves the round. |
+| Battle | Click a unit, then a green hex to move or a red enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats, **X** auto-resolves the round, **B** batters the walls with the selected unit. |
 | Reinforce | With an army next to an ongoing battle selected, click a battlefield hex to join it. |
+| Siege | Next to an enemy city, **G** declares a siege (militia rise, the city stops growing). The siege panel spends siege progress on rams, siege towers and catapults. Click the city to assault it. |
 | Camera | WASD/arrows pan, Q/E rotate, mouse wheel zooms |
 
 ## Status
 
-Milestone **M0 (scaffold)** is done. **M1–M3** are mostly done: pathfinding, move orders, fog of war, deployment, reinforcements, auto-resolve, and the city economy (growth, production, buildings, gold, happiness, borders, research, settlers). See GDD §8 for the milestone plan. The AI player is passive
+Milestone **M0 (scaffold)** is done. **M1–M4** are mostly done: pathfinding, move orders, fog of war, deployment, reinforcements, auto-resolve, and the city economy (growth, production, buildings, gold, happiness, borders, research, settlers) and sieges (walls, engines, militia, sorties). See GDD §8 for the milestone plan. The AI player is passive
 for now: it defends with the tactical AI but does not start wars until M6.

@@ -51,6 +51,9 @@ namespace Crucible.Core.Combat
         /// <summary>Other attacking-side units adjacent to the defender (melee only).</summary>
         public int Flankers;
 
+        /// <summary>The walls on the defender's hex have been breached: no wall bonus.</summary>
+        public bool WallsBreached;
+
         public readonly List<CombatModifier> AttackerExtras = new List<CombatModifier>();
         public readonly List<CombatModifier> DefenderExtras = new List<CombatModifier>();
     }
@@ -117,7 +120,7 @@ namespace Crucible.Core.Combat
             if (!s.IsRanged && s.CrossesRiver) atk.Add("Across river", RiverCrossingPenalty);
             if (!s.IsRanged && s.Flankers > 0) atk.Add("Flanking", Math.Min(FlankingMax, s.Flankers * FlankingPerUnit));
             if (s.Defender.Fortified) def.Add("Fortified", FortifiedBonus);
-            if (s.DefenderTile.WallTier > 0) def.Add("Walls", s.DefenderTile.WallTier * WallBonusPerTier);
+            if (s.DefenderTile.WallTier > 0 && !s.WallsBreached) def.Add("Walls", s.DefenderTile.WallTier * WallBonusPerTier);
 
             // Class counters
             atk.Add("Class bonus", ClassBonus(s.Attacker.Def.Class, s.Defender.Def.Class, attacking: true, targetOnCity: s.DefenderTile.HasCity));

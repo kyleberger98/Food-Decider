@@ -61,6 +61,26 @@ namespace Crucible.Core.Content
         /// <summary>Unit that this replaces for <see cref="FactionId"/>.</summary>
         public string Replaces;
 
+        // --- Siege warfare (GDD §4.6) ---
+
+        /// <summary>Siege progress needed to build this on the spot while besieging (0 = not possible).</summary>
+        public int SiegeProgressCost;
+
+        /// <summary>Only built during sieges (rams, towers), never in cities.</summary>
+        public bool SiegeOnly;
+
+        /// <summary>False for units that never attack (siege towers).</summary>
+        public bool CanAttack = true;
+
+        /// <summary>Can batter walls but never attacks units (rams).</summary>
+        public bool AttacksWallsOnly;
+
+        /// <summary>Adjacent friendly melee units may cross intact walls (siege towers).</summary>
+        public bool CarriesOverWalls;
+
+        /// <summary>Multiplier on damage dealt to walls: siege weapons ×2, rams ×3.</summary>
+        public double WallDamageMultiplier = 1.0;
+
         public bool IsRanged => RangedStrength > 0 && Range > 0;
         public bool IsMilitary => Class != UnitClass.Civilian;
     }

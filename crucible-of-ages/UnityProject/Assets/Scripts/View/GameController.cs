@@ -16,7 +16,8 @@ namespace Crucible.View
     /// your zone. Battle: click a unit, then a green hex to move or a red enemy to attack; hover an
     /// enemy for the combat breakdown.
     /// Keys: Enter = end world turn, Space = confirm deployment / end battle turn, R = retreat,
-    /// A = auto-resolve the current round.
+    /// X = auto-resolve the current round, B = batter walls, G = besiege, F = found city, T = research.
+    /// (WASD/QE belong to the camera.)
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
@@ -94,7 +95,14 @@ namespace Crucible.View
                         AfterBattleAction(battle);
                     }
                     else if (Input.GetKeyDown(KeyCode.R) && !deploying) { battle.Retreat(); AfterBattleAction(battle); }
-                    else if (Input.GetKeyDown(KeyCode.A))
+                    else if (Input.GetKeyDown(KeyCode.B) && !deploying && _selectedUnit != null)
+                    {
+                        int dmg = battle.TryAttackWalls(_selectedUnit);
+                        _message = dmg < 0 ? "Can't reach the walls (range, line of sight, or no moves)."
+                            : battle.WallsIntact ? $"Walls hit for {dmg}." : "The walls are breached!";
+                        AfterBattleAction(battle);
+                    }
+                    else if (Input.GetKeyDown(KeyCode.X))
                     {
                         _game.AutoResolveRound(battle);
                         _selectedUnit = null;
@@ -112,6 +120,13 @@ namespace Crucible.View
                 else if (Input.GetKeyDown(KeyCode.T))
                 {
                     CycleResearch();
+                }
+                else if (Input.GetKeyDown(KeyCode.G) && _selectedArmy != null)
+                {
+                    var target = AdjacentEnemyCity(_selectedArmy);
+                    _message = target != null && _game.DeclareSiege(_selectedArmy, target)
+                        ? $"{target.Name} is under siege. Siege progress builds engines each turn."
+                        : "Stand next to an enemy city (not already besieged) to declare a siege.";
                 }
                 else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
                 {
@@ -158,6 +173,8 @@ namespace Crucible.View
                 foreach (var h in battle.Active.DeploymentZone) yield return (h, new Color(0.3f, 0.6f, 1f, 0.35f));
                 yield break;
             }
+            if (battle.Objective.HasValue)
+                yield return (battle.Objective.Value, battle.WallsIntact ? new Color(1f, 0.85f, 0.2f, 0.45f) : new Color(1f, 0.85f, 0.2f, 0.2f));
             if (_selectedUnit == null || battle.PositionOf(_selectedUnit) == null) yield break;
 
             var from = battle.PositionOf(_selectedUnit).Value;
@@ -187,6 +204,16 @@ namespace Crucible.View
         }
 
         // ------------------------------------------------------------------ world map
+
+        City AdjacentEnemyCity(Army army) =>
+            army.Position.Neighbors().Select(_game.CityAt)
+                .FirstOrDefault(c => c != null && _game.AtWar(c.OwnerId, army.OwnerId));
+
+        /// <summary>The city the selected army is currently besieging, if any.</summary>
+        City BesiegedBySelection() =>
+            _selectedArmy == null ? null :
+            _selectedArmy.Position.Neighbors().Select(_game.CityAt)
+                .FirstOrDefault(c => c != null && c.IsBesieged && c.BesiegerId == _selectedArmy.OwnerId);
 
         void CycleResearch()
         {
@@ -308,7 +335,11 @@ namespace Crucible.View
                 else
                 {
                     sb.AppendLine($"BATTLE  round {battle.Round}/{Battle.MaxRounds}, turn {battle.TurnInRound}/{Battle.TurnsPerRound}, {battle.ActiveSide} to act");
-                    sb.AppendLine("Space: end battle turn   R: retreat   A: auto-resolve round");
+                    sb.AppendLine("Space: end battle turn   R: retreat   X: auto-resolve round");
+                    if (battle.HasWalls)
+                        sb.AppendLine(battle.WallsIntact
+                            ? $"Walls {battle.WallHp}/{battle.MaxWallHp} — melee can't enter the centre (yellow) without a siege tower. B: batter walls"
+                            : "Walls breached!");
                 }
                 sb.AppendLine($"Reserves: you {battle.Active.Reserve.Count} / enemy {battle.Opponent(battle.ActiveSide).Reserve.Count}");
                 AppendPreview(sb, battle);
@@ -323,6 +354,8 @@ namespace Crucible.View
                     if (_hoverPath != null) sb.AppendLine($"Route: {_hoverPath.Steps.Count} hexes, {_hoverPath.Turns} turn(s)");
                     if (_selectedArmy.Units.Any(u => u.Def.Id == Crucible.Core.Content.DefaultContent.SettlerUnit))
                         sb.AppendLine("F: found a city here");
+                    if (AdjacentEnemyCity(_selectedArmy) is City enemyCity && !enemyCity.IsBesieged)
+                        sb.AppendLine($"G: besiege {enemyCity.Name}   (click it to assault)");
                 }
             }
 
@@ -336,6 +369,31 @@ namespace Crucible.View
             GUI.Label(new Rect(20, 16, 500, 800), sb.ToString());
 
             if (_selectedCity != null && battle == null) DrawCityPanel(_selectedCity);
+            else if (battle == null && BesiegedBySelection() is City siege) DrawSiegePanel(siege);
+        }
+
+        /// <summary>Siege camp: progress, starvation clock and engine purchases (GDD §4.6).</summary>
+        void DrawSiegePanel(City city)
+        {
+            const float width = 300f;
+            var area = new Rect(Screen.width - width - 10, 10, width, 260);
+            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
+            GUI.Box(area, GUIContent.none);
+            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
+            GUILayout.Label($"<b>Siege of {city.Name}</b>", Rich());
+            GUILayout.Label($"Turn {_game.Turn - city.BesiegedSinceTurn + 1} of the siege; starvation from turn {Crucible.Core.Economy.EconomyProcessor.SiegeStarvationDelay}.");
+            GUILayout.Label($"Siege progress: {city.SiegeProgress}   Engines: {city.SiegeEnginesBuilt}/{City.MaxSiegeEngines}");
+            GUILayout.Label($"Walls: tier {_game.Map.Get(city.Position).WallTier}   Militia: {city.MilitiaCount}");
+            foreach (var engine in _game.AvailableSiegeEngines(city))
+            {
+                GUI.enabled = city.SiegeProgress >= engine.SiegeProgressCost;
+                if (GUILayout.Button($"Build {engine.Name} ({engine.SiegeProgressCost})"))
+                    _message = _game.BuildSiegeEngine(city, _selectedArmy, engine.Id) != null
+                        ? $"{engine.Name} joins the army."
+                        : "No room in this army (army cap).";
+                GUI.enabled = true;
+            }
+            GUILayout.EndArea();
         }
 
         /// <summary>City screen: growth, production and a clickable build list.</summary>

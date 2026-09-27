@@ -129,6 +129,20 @@ namespace Crucible.Core.Game
             int cost = TerrainRules.LandStepCost(Map.Get(army.Position), Map.Get(dest));
             if (cost == TerrainRules.Impassable) return false;
 
+            // Militia never leave their city: they stay behind as its garrison.
+            var bound = army.Units.Where(u => u.BoundToCityId >= 0).ToList();
+            if (bound.Count == army.Count) return false;
+            if (bound.Count > 0)
+            {
+                var stay = new Army(_nextArmyId++, army.OwnerId, army.Position);
+                foreach (var u in bound)
+                {
+                    army.Remove(u);
+                    stay.TryAdd(u, int.MaxValue);
+                }
+                _armies[stay.Id] = stay;
+            }
+
             bool crossesRiver = Map.HasRiverBetween(army.Position, dest);
             army.Position = dest;
             army.WorldMovesLeft = Math.Max(0, army.WorldMovesLeft - cost);
@@ -264,7 +278,7 @@ namespace Crucible.Core.Game
             var battle = new Battle(_nextBattleId++, Map, tiles,
                 new BattleSide(BattleSideId.Attacker, Player(attacker.OwnerId), attacker.Position),
                 new BattleSide(BattleSideId.Defender, Player(defenderId), target),
-                Rng, isSiege ? target : (HexCoord?)null);
+                Rng, isSiege ? target : (HexCoord?)null, isSiege ? city.Id : -1);
 
             battle.AddArmy(BattleSideId.Attacker, attacker);
             if (defenderArmy != null) battle.AddArmy(BattleSideId.Defender, defenderArmy);
@@ -330,6 +344,8 @@ namespace Crucible.Core.Game
 
             city.BesiegedSinceTurn = Turn;
             city.SiegeProgress = 0;
+            city.BesiegerId = besieger.OwnerId;
+            city.SiegeEnginesBuilt = 0;
 
             var owner = Player(city.OwnerId);
             var garrison = ArmyAt(city.Position);
@@ -344,6 +360,36 @@ namespace Crucible.Core.Game
                 militia.BoundToCityId = city.Id;
                 if (!garrison.TryAdd(militia, owner.ArmyCap)) break;
             }
+        }
+
+        /// <summary>Declares a siege with an army adjacent to a hostile city (without assaulting yet).</summary>
+        public bool DeclareSiege(Army army, City city)
+        {
+            if (city == null || city.IsBesieged || army.InBattle) return false;
+            if (army.Position.DistanceTo(city.Position) != 1 || !AtWar(city.OwnerId, army.OwnerId) || !HasMilitary(army)) return false;
+            BeginSiege(city, army);
+            return true;
+        }
+
+        /// <summary>Siege engines the besieging player could build right now for this city.</summary>
+        public IEnumerable<UnitDef> AvailableSiegeEngines(City city) =>
+            !city.IsBesieged || city.SiegeEnginesBuilt >= Empire.City.MaxSiegeEngines
+                ? Enumerable.Empty<UnitDef>()
+                : Content.Units.Where(u => u.SiegeProgressCost > 0 && Player(city.BesiegerId).Tech.Has(u.RequiredTech));
+
+        /// <summary>Spends siege progress on an engine that joins the besieging army (GDD §4.6 step 4).</summary>
+        public Unit BuildSiegeEngine(City city, Army army, string unitDefId)
+        {
+            var def = Content.Unit(unitDefId);
+            if (!AvailableSiegeEngines(city).Contains(def)) return null;
+            if (army.OwnerId != city.BesiegerId || army.InBattle || army.Position.DistanceTo(city.Position) != 1) return null;
+            if (city.SiegeProgress < def.SiegeProgressCost) return null;
+
+            var unit = CreateUnit(unitDefId, army.OwnerId);
+            if (!army.TryAdd(unit, Player(army.OwnerId).ArmyCap)) return null;
+            city.SiegeProgress -= def.SiegeProgressCost;
+            city.SiegeEnginesBuilt++;
+            return unit;
         }
 
         /// <summary>Lets AI-controlled sides act until a human side must move, the round ends, or the battle ends.</summary>
@@ -418,6 +464,8 @@ namespace Crucible.Core.Game
             city.OwnerId = newOwnerId;
             city.BesiegedSinceTurn = -1;
             city.SiegeProgress = 0;
+            city.BesiegerId = -1;
+            city.SiegeEnginesBuilt = 0;
             city.Population = Math.Max(1, city.Population - 1);
             city.CurrentProduction = null;
             TransferTerritory(city, newOwnerId);
@@ -428,10 +476,13 @@ namespace Crucible.Core.Game
         {
             foreach (var city in _cities.Values.Where(c => c.IsBesieged))
             {
-                bool besieged = city.Position.Neighbors().Any(n => ArmyAt(n) is Army a && AtWar(a.OwnerId, city.OwnerId));
+                bool besieged = city.Position.Neighbors().Any(n => ArmyAt(n) is Army a && a.OwnerId == city.BesiegerId &&
+                                                                   AtWar(a.OwnerId, city.OwnerId));
                 if (besieged) continue;
                 city.BesiegedSinceTurn = -1;
                 city.SiegeProgress = 0;
+                city.BesiegerId = -1;
+                city.SiegeEnginesBuilt = 0;
                 var garrison = ArmyAt(city.Position);
                 if (garrison == null) continue;
                 foreach (var m in garrison.Units.Where(u => u.BoundToCityId == city.Id).ToList()) garrison.Remove(m);
@@ -457,10 +508,11 @@ namespace Crucible.Core.Game
                 ContinueMoveOrder(army);
             RefreshVisibility(player.Id);
 
-            foreach (var city in _cities.Values.Where(c => c.IsBesieged))
+            EndSiegesWithoutBesiegers();
+            foreach (var city in _cities.Values.Where(c => c.IsBesieged && c.BesiegerId == player.Id))
             {
                 foreach (var n in city.Position.Neighbors())
-                    if (ArmyAt(n) is Army a && a.OwnerId == player.Id && AtWar(a.OwnerId, city.OwnerId))
+                    if (ArmyAt(n) is Army a && a.OwnerId == player.Id)
                         city.SiegeProgress += a.Units.Sum(u => u.Def.ProductionCost) / 10;
             }
 

@@ -173,23 +173,27 @@ namespace Crucible.Core.Tests
         public void Siege_attacker_wins_by_holding_the_objective()
         {
             var map = TestWorld.FlatMap();
-            var objective = TestWorld.H(8, 5);
-            var b = TestWorld.Battle(map, A, new[] { "warrior" }, D, new[] { "warrior" }, objective: objective);
-            var warrior = b.DeployedUnits(BattleSideId.Attacker).Single();
+            var objective = TestWorld.H(7, 5);
+            var b = TestWorld.Battle(map, A, new[] { "horseman" }, D, new[] { "warrior", "warrior" }, objective: objective);
+            var holder = b.UnitAt(objective);
+            Assert.NotNull(holder); // the garrison starts on the city centre
+            Assert.Equal(BattleSideId.Defender, b.SideOf(holder));
 
-            // Walk toward the (unoccupied) objective over a few turns.
-            for (int i = 0; i < 6 && b.Status == BattleStatus.InProgress; i++)
+            holder.Hp = 0; // the centre's defender falls; the other warrior is still alive
+            var horse = b.DeployedUnits(BattleSideId.Attacker).Single();
+            for (int i = 0; i < 8 && b.Status == BattleStatus.InProgress; i++)
             {
                 if (b.ActiveSide == BattleSideId.Attacker)
                 {
-                    var reach = b.ReachableHexes(warrior);
+                    var reach = b.ReachableHexes(horse);
                     if (reach.Count > 0)
-                        b.TryMove(warrior, reach.Keys.OrderBy(h => h.DistanceTo(objective)).First());
+                        b.TryMove(horse, reach.Keys.OrderBy(h => h.DistanceTo(objective)).ThenBy(h => h.Q).First());
                 }
                 if (b.Status == BattleStatus.InProgress) b.EndTurn();
             }
-            // The defender is idle in this test, so the attacker should reach the objective.
-            Assert.True(b.Status == BattleStatus.AttackerWon || b.PositionOf(warrior) == objective);
+            Assert.Equal(BattleStatus.AttackerWon, b.Status);
+            Assert.Equal(objective, b.PositionOf(horse));
+            Assert.Contains(b.DeployedUnits(BattleSideId.Defender), u => u.IsAlive);
         }
 
         [Fact]

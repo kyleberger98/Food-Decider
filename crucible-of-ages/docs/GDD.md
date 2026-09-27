@@ -234,10 +234,14 @@ A unit dies at 0 HP. A melee attacker **advances** into the tile when the defend
 4. **Siege engines:** each turn the besieging army gains **Siege Progress** (= sum of its
    units' production value). Spend it to build rams, siege towers or catapults, up to 3 per
    siege. Gunpowder-era armies replace these with sappers and artillery.
-5. **Assault:** the attacker may start an assault at any time. The battlefield is the city's
-   districts plus ring 2. **Walls are hex-edge obstacles with HP.** Melee units cannot cross
-   an intact wall edge. Rams and siege towers bypass one wall edge each, and siege weapons
-   deal ×2 damage to walls.
+5. **Assault:** the attacker may start an assault at any time. The battlefield is everything
+   within 4 hexes, and the garrison's best melee unit holds the city centre. **Walls have HP**
+   (50 per wall tier: a palace gives tier 1, Walls and Castle add one each) and a strength of
+   10 + 8 per tier. While they stand, attacking melee units can neither enter nor strike the
+   centre. The exception is a unit stepping off a hex next to a friendly **siege tower**.
+   Any unit can batter the walls: siege weapons deal ×2 wall damage and **rams** ×3 (rams
+   can't attack units, towers can't attack at all). A breach removes the wall defence
+   bonus.
 6. **Sortie:** the defender may attack the besiegers at any time, which starts a normal field
    battle.
 7. **Capture:** hold the city center at the end of an attacker battle turn (see §4.4).
@@ -331,7 +335,7 @@ crucible-of-ages/
 | M1 | World map & movement 🟡 | ✅ multi-turn A* pathfinding, standing move orders, army move/merge/split, ZOC, fog of war (LOS-aware sight, hills +1, recon +1). ⏳ Edge-following rivers, passing through friendly armies, chunked map mesh |
 | M2 | Tactical battles 🟡 | ✅ battlefield gen, editable deployment phase (defender first), 3×3 rounds, reserves, reinforcements entering from their own edge, joining ongoing battles, retreat, auto-resolve, move/target highlights. ⏳ Real battle camera/animations, naval & coastal fields |
 | M3 | Economy 🟡 | ✅ tile yields (terrain, hills, features, rivers), citizens & governor, Civ V growth curve, starvation, production queue with overflow, 8 buildings, palace, gold income/maintenance/unit upkeep/bankruptcy, global happiness, culture border growth, auto research, settlers & city founding, civilians captured in battle. ⏳ Workers & improvements, specialists, strategic/luxury resources (moved to M5) |
-| M4 | Sieges | Siege state, militia, siege engines, walls, assault battles |
+| M4 | Sieges ✅ | Siege declaration and lifting, militia (stay home, fight only for their city), siege progress → rams/towers/catapults (max 3), walls with HP (50/tier) that block melee from the centre, towers let adjacent infantry climb, rams ×3 / siege ×2 wall damage, breach removes the wall bonus, garrison holds the centre, sorties, AI assaults. ⏳ Gunpowder-era sappers & artillery engines |
 | M5 | Tech & policies (Ancient→Medieval content) | Tech tree, policies, army cap progression |
 | M6 | AI v1 | Tactical AI in all battles; operational + economic AI can win a domination game |
 | M7 | Full-history content | All 8 eras: units, buildings, wonders; naval & air battles |

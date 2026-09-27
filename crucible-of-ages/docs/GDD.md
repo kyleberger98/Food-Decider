@@ -1,0 +1,338 @@
+# Crucible of Ages — Game Design Document
+
+> Working title. A turn-based 4X in the spirit of *Civilization V*, with *Humankind*-style
+> tactical combat: stacked armies, battles fought on the world map, multi-round engagements,
+> reinforcements, and decisive elevation.
+
+| Decision | Choice |
+|---|---|
+| Engine | Unity (C#), 3D low-poly hexes |
+| Strategic layer | Classic Civ V: one faction all game, tech tree, social policies, city tiles, great people, wonders, religion, city-states |
+| Combat layer | Humankind: army stacking, tactical battlefield, multi-round battles, elevation & terrain |
+| Army cap | Tech-based (4 → 8+) |
+| Battle turns | Alternating (attacker then defender) |
+| Cities | Humankind-style sieges and assaults |
+| Opponents (v1) | AI |
+| Content span (v1) | Full history: Ancient → Information era |
+| Victories (v1) | Domination, Science, Culture, Diplomatic, Score/turn limit |
+| Setting | Fictional factions on a historical tech arc |
+
+---
+
+## 1. Pillars
+
+1. **Every war is a place.** Battles happen *on the world map* — rivers, hills, forests and
+   cities you built are the battlefield. Where you fight matters as much as what you bring.
+2. **Armies, not carpets.** No Civ V "1 unit per tile" gridlock. Units travel as armies and
+   unfold into formations when battle starts.
+3. **Build tall or wide, fight on your terms.** The full Civ V economy stays intact, so the
+   military game is fed by real economic decisions.
+4. **Deterministic, testable simulation.** All rules live in a pure C# core with seeded
+   randomness, so AI, autoplay, save/load and (later) multiplayer lockstep come for free.
+
+---
+
+## 2. World
+
+### 2.1 Hex grid
+- Pointy-top hexes, axial coordinates `(q, r)`. Map sizes: Duel 40×24 → Huge 128×80.
+- Horizontal wrap (cylindrical) optional per map script.
+
+### 2.2 Elevation (combat-critical)
+Each land tile has an **elevation level 0–4**; water is below 0.
+
+| Level | Typical terrain | Notes |
+|---|---|---|
+| −2 / −1 | Ocean / Coast | Naval only |
+| 0 | Lowlands, marsh, floodplain | |
+| 1 | Plains, grassland | |
+| 2 | Hills | |
+| 3 | Highlands | |
+| 4 | Mountains | Impassable to land units until Information era (paratroopers/air) |
+
+- **Climbing:** moving up 1 level costs +1 MP. Moving up ≥2 levels in one step is a **cliff**
+  and is impassable (except along roads/ramps built by workers).
+- **High ground:** +3 CS per level above the opponent (max +6), ranged units gain +1 range
+  when firing from at least 1 level higher.
+- **Line of sight:** a hex between shooter and target blocks LOS if its *sight height* is above
+  the higher of the two endpoints. Forests and jungles add +1 sight height. Indirect-fire units
+  (siege, artillery) ignore LOS.
+
+### 2.3 Terrain, features, rivers
+- Base terrains: Grassland, Plains, Desert, Tundra, Snow, Coast, Ocean.
+- Features: Forest, Jungle, Marsh, Floodplain, Oasis, Reef, Ice, natural wonders.
+- **Rivers run along hex edges.** Attacking across a river: −4 CS. Crossing ends movement
+  unless a bridge/road exists (Civ V rule).
+- Resources: Bonus / Luxury / Strategic (Iron, Horses, Niter, Coal, Oil, Aluminum, Uranium) —
+  Civ V quantities model; strategic resources gate units.
+
+---
+
+## 3. Strategic layer (Civ V)
+
+Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
+
+- **Yields:** Food, Production, Gold, Science, Culture, Faith, Tourism.
+- **Cities:** citizens work tiles within 3 rings; borders grow with culture or by buying tiles;
+  buildings, specialists, great-work slots.
+- **Happiness:** global; luxuries, buildings, policies. Unhappiness slows growth and at
+  −10 adds combat penalties. War weariness applies in the Industrial era and later.
+- **Tech tree:** 8 eras (Ancient, Classical, Medieval, Renaissance, Industrial, Modern, Atomic,
+  Information), about 80 techs.
+- **Social policies:** 9 trees plus 3 ideologies (Freedom / Order / Autocracy analogues, renamed).
+- **Great People:** Scientist, Engineer, Merchant, Writer, Artist, Musician, Prophet,
+  **General**, **Admiral**.
+- **Religion:** pantheon → founding → enhancing → reformation beliefs.
+- **City-states:** Maritime / Cultured / Militaristic / Mercantile / Religious; quests; influence.
+- **Diplomacy:** declarations, open borders, research agreements, defensive pacts, embassies,
+  denouncements, and a **World Congress** that becomes the **United Nations** analogue.
+- **Workers** build improvements; **roads** matter more than in Civ V, because armies are the
+  main movers.
+
+### 3.1 Fictional factions
+Each faction has a **unique ability**, **2 unique units/buildings/improvements**, a leader
+personality (for AI), and a historical "inspiration" used only for art direction.
+Launch roster target: 12 factions. Two are specced for v1 content:
+
+| Faction | Ability | Uniques |
+|---|---|---|
+| **Aurel Dominion** (disciplined legions) | *Iron Discipline*: army cap +1; units heal 10 HP when a battle round ends | Aurel Legionary (Swordsman); Castra (camp improvement: +4 CS defense, heals) |
+| **Khaganate of the Steppe** (horse lords) | *Endless Horizon*: mounted units +1 MP on the world map; pillaging is free and yields double | Sky Rider (Horseman); Yurt Camp (movable city building) |
+
+---
+
+## 4. Military layer (Humankind-inspired)
+
+### 4.1 Units
+Every unit has:
+
+| Stat | Meaning |
+|---|---|
+| **Combat Strength (CS)** | melee attack and defense |
+| **Ranged Strength (RS)** | ranged attack (ranged/siege classes only) |
+| **Range** | in hexes |
+| **Battle MP** | movement per battle turn |
+| **World MP** | movement per world turn |
+| **HP** | 100 for all units |
+| **Class** | Melee, Ranged, Mounted, AntiCavalry, Siege, Gunpowder, Armor, Recon, Naval‑Melee, Naval‑Ranged, Carrier, Fighter, Bomber, Missile, Civilian |
+| **Promotions** | Civ V promotion trees per class, earned with XP |
+
+**Class counters** (bonus CS when attacking *or* defending against):
+
+| Class | Bonus vs |
+|---|---|
+| AntiCavalry | Mounted +8 |
+| Mounted | Ranged / Siege +5 (flank‑charge) |
+| Siege | Cities & fortifications +10, −10 vs units in open field |
+| Armor | Gunpowder +5 |
+
+### 4.2 Armies (stacking)
+- An **army** is 1..N units on one tile. **Max one military army per tile** (plus one civilian).
+- **Army cap** comes from tech and policies:
+
+| Source | Cap |
+|---|---|
+| Start | 4 |
+| *Military Tactics* (Classical) | 5 |
+| *Chivalry* (Medieval) | 6 |
+| *Military Science* (Industrial) | 7 |
+| *Combined Arms* (Atomic) | 8 |
+| Great General in army / *Professional Army* policy / Aurel ability | +1 each |
+
+- An army moves at the **speed of its slowest unit**; embarking, ZOC and river rules apply to
+  the whole army.
+- Merge, split, and transfer units freely at the start of a move (costs no MP).
+- **Zone of control:** entering a hex adjacent to an enemy army ends world movement.
+- **Upkeep:** gold per unit, scaling with era (Civ V curve).
+
+### 4.3 Starting a battle
+An army **engages** when it attacks an adjacent enemy army or city, or when it tries to move
+through an enemy's ZOC hex that holds an army.
+
+1. **Battlefield generation.** All passable hexes within **radius 3** of the midpoint between
+   attacker and defender (radius 4 for sieges), clipped to terrain the combatants can stand on.
+   Naval battles use water hexes; coastal battles include both.
+2. **Deployment zones.** Each side gets the hexes of the battlefield closest to its own origin
+   tile, about ⅓ of the field each. The defender deploys first (it chose the ground).
+   Deployment is auto-suggested and can be edited.
+3. **Reinforcements & allies.** Any friendly or allied army whose tile is **inside or adjacent
+   to the battlefield** is pulled in as reinforcement, with its own deployment slots at
+   its edge of the field. Armies that are not pulled in can **march in** between rounds.
+4. **Frontline slots.** Each side can have at most `armyCap` units on the field at once.
+   Extra units wait in **reserve** and deploy at the start of the next battle turn after a
+   friendly unit dies.
+
+### 4.4 Battle flow
+- A battle lasts up to **3 rounds**. **One round = 3 battle turns per side.**
+- **Round 1** plays immediately when the battle starts. **Rounds 2 and 3** play at the start
+  of the attacker's next world turns, so a battle can span 3 world turns. The battlefield
+  tiles stay **locked**: armies can't pass through them, and new armies can enter only as
+  reinforcements.
+- Inside a battle turn, the active side moves and acts with **every** unit (alternating),
+  then ends its turn.
+- **Unit actions per battle turn:** move (battle MP), then one attack (or attack then stop).
+  Ranged units can't move after attacking. Some promotions allow move-after-attack.
+- **Zone of control inside battle:** entering an enemy-adjacent hex, or crossing a river, ends
+  that unit's movement. A unit with MP left can still attack from there.
+- **Retreat:** at the start of any of its battle turns, a side can retreat. Units adjacent to
+  an enemy take a free hit ("disengage damage") first. The retreating army moves 1 hex away
+  from the battle and loses 50% of remaining world MP next turn.
+- **Victory conditions:**
+  - All enemy units destroyed or retreated → win.
+  - **Siege assault:** attacker holds the city center (the capture flag) at the end of any
+    attacker battle turn → city captured.
+  - After round 3 with both sides still standing → **defender wins** and the attacker
+    is pushed back 1 hex.
+- **Auto-resolve** runs the same simulation with AI controlling both sides, so results are
+  identical in expectation to playing it out.
+
+### 4.5 Combat formula
+All modifiers are **flat CS additions** (Humankind-style), so every modifier is easy to read
+in the combat preview tooltip.
+
+```
+Δ   = EffectiveCS(attacker) − EffectiveCS(defender)
+dmg = round( 30 × e^(Δ / 25) × U(0.8, 1.2) )      // damage to defender
+ret = round( 30 × e^(−Δ / 25) × U(0.8, 1.2) )     // damage to attacker (melee only)
+```
+
+`EffectiveCS` = base CS (or RS for ranged attacks) plus modifiers:
+
+| Modifier | Value |
+|---|---|
+| Wounded | −1 per 10 HP missing |
+| High ground | +3 per level above the opponent (max +6) |
+| Defending in forest/jungle (hills are covered by high ground) | +3 |
+| Attacking across river | −4 |
+| Flanking | +2 per *other* friendly unit adjacent to the target (max +6) |
+| Class counter | see §4.1 |
+| Fortified (skipped a battle turn) | +3 |
+| Promotions / veterancy | per promotion |
+| Great General in battle | +3 to all units within 2 hexes |
+| Unhappiness < −10 | −3 |
+| Defending on a walled hex (a capital's palace gives tier 1) | +5 per wall tier |
+
+A unit dies at 0 HP. A melee attacker **advances** into the tile when the defender dies.
+
+### 4.6 Sieges (Humankind-style)
+1. **Besiege:** a hostile army ends its turn adjacent to an enemy city and declares a siege.
+   The city is **besieged** while at least one hostile army is adjacent to it.
+2. **Effects on the besieged city:** no food growth, −25% production, fortification does
+   not regenerate. After 5 turns it starts losing 1 population every 3 turns (starvation).
+3. **Militia:** when the siege begins, the city spawns **militia** units (count = ⌊pop/4⌋ + 1,
+   era-scaled), which defend only inside that city.
+4. **Siege engines:** each turn the besieging army gains **Siege Progress** (= sum of its
+   units' production value). Spend it to build rams, siege towers or catapults, up to 3 per
+   siege. Gunpowder-era armies replace these with sappers and artillery.
+5. **Assault:** the attacker may start an assault at any time. The battlefield is the city's
+   districts plus ring 2. **Walls are hex-edge obstacles with HP.** Melee units cannot cross
+   an intact wall edge. Rams and siege towers bypass one wall edge each, and siege weapons
+   deal ×2 damage to walls.
+6. **Sortie:** the defender may attack the besiegers at any time, which starts a normal field
+   battle.
+7. **Capture:** hold the city center at the end of an attacker battle turn (see §4.4).
+
+### 4.7 Naval, air, nuclear
+- **Naval battles** use the same system on water hexes. Coastal battles let naval ranged
+  units support land fights.
+- **Air units** don't occupy battlefield hexes. From a city or carrier in range they
+  perform one **air strike** per battle round (fighters: intercept; bombers: strike). AA and
+  fighters intercept.
+- **Missiles and nukes** are world-map strikes. Nukes destroy armies in their radius
+  outright and damage cities. Using one triggers diplomatic penalties.
+
+### 4.8 Great Generals & Admirals
+Earned from combat XP. They join an army: army cap +1 and +3 CS aura in battle. They can be
+expended to build a Citadel.
+
+---
+
+## 5. Victory conditions
+
+| Victory | Condition |
+|---|---|
+| **Domination** | Own every original capital |
+| **Science** | Complete the spaceship: Apollo-analogue project, then 6 parts landed |
+| **Culture** | Your Tourism is influential over every other civ's Culture |
+| **Diplomatic** | Win a World Leader vote in the UN-analogue |
+| **Score** | Highest score at the turn limit (default 500, speed-scaled) |
+
+---
+
+## 6. AI
+
+Layered AI; every layer reads the same `GameState` the player sees (no cheating beyond
+difficulty yield bonuses):
+
+1. **Grand strategy:** chooses a victory focus from leader personality and game state,
+   re-evaluated every 10 turns.
+2. **Economic:** city governors (utility scoring for builds and tiles), worker automation,
+   tech path chosen by the grand strategy.
+3. **Operational:** forms armies to a target composition template, picks war targets by
+   threat and opportunity maps, runs sieges.
+4. **Tactical battle AI:** scores every legal (move, attack) pair:
+   `expected dmg dealt − 0.7 × expected dmg taken + terrain value + kill bonus + objective bonus`.
+   It focus-fires, prefers high ground, keeps ranged units behind the line, and retreats when
+   the expected outcome falls below a threshold. The same AI runs auto-resolve.
+5. **Diplomacy:** opinion model (Civ V-style modifiers), deal evaluator.
+
+---
+
+## 7. Technical architecture
+
+```
+crucible-of-ages/
+├─ docs/GDD.md                      ← this file
+├─ UnityProject/
+│  ├─ Packages/manifest.json
+│  └─ Assets/Scripts/
+│     ├─ Core/   (Crucible.Core.asmdef — NO UnityEngine references)
+│     │  ├─ Hex/        HexCoord (axial math, rings, lines, pixel ↔ hex)
+│     │  ├─ Random/     DeterministicRng (seeded, serializable)
+│     │  ├─ World/      Tile, WorldMap, TerrainRules (movement, cliffs, LOS), MapGenerator
+│     │  ├─ Content/    Definitions (UnitDef, TechDef, FactionDef), ContentDatabase, DefaultContent
+│     │  ├─ Units/      Unit, Army
+│     │  ├─ Empire/     Player, TechTree, City
+│     │  ├─ Combat/     CombatResolver, Battlefield, Battle
+│     │  ├─ AI/         TacticalBattleAI
+│     │  └─ Game/       GameState (commands, sieges), TurnManager, VictoryChecker, GameSetup
+│     └─ View/   (Crucible.View.asmdef — Unity MonoBehaviours)
+│        └─ GameBootstrap, HexMapRenderer, CameraRig, GameController, MarkerLayer
+└─ tests/Crucible.Core.Tests/   (.NET 8 xUnit, compiles Core sources directly)
+```
+
+- **Core is engine-agnostic** and deterministic. The Unity layer reads state and issues
+  commands, and never mutates state directly.
+- **Commands** (`MoveArmy`, `Attack`, `BattleMove`, `BattleAttack`, `EndBattleTurn`, …) are the
+  only way to change state, so a command log works as a replay and as a lockstep MP stream.
+- **Content** is defined in C# for now (`DefaultContent`). It moves to JSON or ScriptableObjects
+  once the content volume grows, and the core only ever reads `ContentDatabase`.
+- **Rendering:** one chunked mesh per 16×16 hex block, with vertex colors per terrain and
+  prism height per elevation. That is enough for the low-poly look, and props (trees,
+  units) are instanced.
+
+---
+
+## 8. Milestones (all in v1, sequenced)
+
+| # | Milestone | Exit criteria |
+|---|---|---|
+| M0 | **Scaffold** ✅ | Core compiles; hex math, combat formula, battle flow unit-tested; Unity renders a generated map |
+| M1 | World map & movement | Map gen with elevation/rivers, army move/merge/split, ZOC, fog of war |
+| M2 | Tactical battles | Battlefield gen, deployment, 3×3 rounds, reserves, reinforcement, retreat, auto-resolve, battle UI |
+| M3 | Economy | Cities, tiles, buildings, happiness, gold, workers |
+| M4 | Sieges | Siege state, militia, siege engines, walls, assault battles |
+| M5 | Tech & policies (Ancient→Medieval content) | Tech tree, policies, army cap progression |
+| M6 | AI v1 | Tactical AI in all battles; operational + economic AI can win a domination game |
+| M7 | Full-history content | All 8 eras: units, buildings, wonders; naval & air battles |
+| M8 | Remaining systems | Religion, great people, city-states, World Congress, tourism |
+| M9 | Victory & polish | All five victories, score, balance passes, tutorial |
+
+---
+
+## 9. Open questions
+- Should battles spanning 3 world turns block the attacker's other armies from moving
+  through the battlefield (current rule: yes)?
+- Is naval stacking capped separately from land (proposal: same cap)?
+- Should Humankind's *War Support* replace Civ V war weariness?
+- Mod support: expose `ContentDatabase` loading from JSON at M7?

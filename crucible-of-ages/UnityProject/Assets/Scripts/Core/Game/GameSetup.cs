@@ -1,0 +1,51 @@
+using System.Linq;
+using Crucible.Core.Content;
+using Crucible.Core.Hex;
+using Crucible.Core.World;
+
+namespace Crucible.Core.Game
+{
+    /// <summary>Creates new games. Today: a two-faction skirmish on a generated continent.</summary>
+    public static class GameSetup
+    {
+        public static GameState NewSkirmish(ulong seed, int width = 48, int height = 32)
+        {
+            var content = DefaultContent.Create();
+            var map = MapGenerator.Generate(new MapGeneratorSettings { Seed = seed, Width = width, Height = height });
+            var game = new GameState(content, map, seed ^ 0x5EED5EEDUL);
+
+            var human = game.AddPlayer("You", DefaultContent.Aurel, isAI: false);
+            var ai = game.AddPlayer("The Khagan", DefaultContent.Khaganate, isAI: true);
+
+            var starts = PickStarts(map);
+            PlaceStart(game, human.Id, starts.a, "Aurelia", "warrior", "warrior", "archer", "spearman");
+            PlaceStart(game, ai.Id, starts.b, "Ordu-Baliq", "warrior", "archer", "sky_rider", "horseman");
+            return game;
+        }
+
+        static void PlaceStart(GameState game, int playerId, HexCoord capital, string cityName, params string[] units)
+        {
+            game.FoundCity(playerId, capital, cityName, isCapital: true);
+            var armyHex = capital.Neighbors()
+                .Where(n => game.Map.Get(n) is Tile t && t.IsPassableForLand && game.ArmyAt(n) == null)
+                .OrderBy(n => n.Q).ThenBy(n => n.R)
+                .First();
+            game.CreateArmy(playerId, armyHex, units);
+        }
+
+        /// <summary>Two good start tiles (low, dry land with room around it) as far apart as possible.</summary>
+        static (HexCoord a, HexCoord b) PickStarts(WorldMap map)
+        {
+            bool Good(Tile t) =>
+                t.IsPassableForLand && t.Elevation <= 2 && t.Terrain != TerrainType.Snow &&
+                map.NeighborsOf(t.Coord).Count(n => n.IsPassableForLand) >= 5;
+
+            var candidates = map.Tiles.Where(Good).Select(t => t.Coord).ToList();
+            if (candidates.Count < 2) candidates = map.Tiles.Where(t => t.IsPassableForLand).Select(t => t.Coord).ToList();
+
+            var first = candidates.OrderBy(c => c.ToOffset().col).ThenBy(c => c.R).First();
+            var second = candidates.OrderByDescending(c => c.DistanceTo(first)).ThenBy(c => c.Q).ThenBy(c => c.R).First();
+            return (first, second);
+        }
+    }
+}

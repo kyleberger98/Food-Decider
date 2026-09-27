@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Crucible.Core.Economy;
 
 namespace Crucible.Core.Content
 {
@@ -62,6 +63,28 @@ namespace Crucible.Core.Content
 
         public bool IsRanged => RangedStrength > 0 && Range > 0;
         public bool IsMilitary => Class != UnitClass.Civilian;
+    }
+
+    [Serializable]
+    public sealed class BuildingDef
+    {
+        public string Id;
+        public string Name;
+        public Era Era;
+        public int ProductionCost;
+        public string RequiredTech;
+
+        /// <summary>Gold per turn to keep it running.</summary>
+        public int Maintenance;
+
+        /// <summary>Flat yields added to the city.</summary>
+        public Yields Yields;
+
+        /// <summary>Global happiness it provides.</summary>
+        public int Happiness;
+
+        /// <summary>Wall tiers added to the city centre (see GDD §4.6).</summary>
+        public int WallTiers;
     }
 
     [Serializable]

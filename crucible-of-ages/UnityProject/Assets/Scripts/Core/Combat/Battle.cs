@@ -148,7 +148,8 @@ namespace Crucible.Core.Combat
             if (side.Armies.Contains(army)) return;
             side.Armies.Add(army);
             army.BattleId = Id;
-            foreach (var u in army.Units.Where(u => u.IsAlive))
+            // Civilians (settlers, workers) never take the field; they share their army's fate.
+            foreach (var u in army.Units.Where(u => u.IsAlive && u.Def.IsMilitary))
             {
                 _sideOf[u.Id] = sideId;
                 side.Reserve.Add(u);

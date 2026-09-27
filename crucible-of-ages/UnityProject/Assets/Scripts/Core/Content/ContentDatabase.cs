@@ -12,18 +12,22 @@ namespace Crucible.Core.Content
         readonly Dictionary<string, UnitDef> _units = new Dictionary<string, UnitDef>();
         readonly Dictionary<string, TechDef> _techs = new Dictionary<string, TechDef>();
         readonly Dictionary<string, FactionDef> _factions = new Dictionary<string, FactionDef>();
+        readonly Dictionary<string, BuildingDef> _buildings = new Dictionary<string, BuildingDef>();
 
         public IEnumerable<UnitDef> Units => _units.Values;
         public IEnumerable<TechDef> Techs => _techs.Values;
         public IEnumerable<FactionDef> Factions => _factions.Values;
+        public IEnumerable<BuildingDef> Buildings => _buildings.Values;
 
         public ContentDatabase Add(UnitDef def) { AddUnique(_units, def.Id, def); return this; }
         public ContentDatabase Add(TechDef def) { AddUnique(_techs, def.Id, def); return this; }
         public ContentDatabase Add(FactionDef def) { AddUnique(_factions, def.Id, def); return this; }
+        public ContentDatabase Add(BuildingDef def) { AddUnique(_buildings, def.Id, def); return this; }
 
         public UnitDef Unit(string id) => Lookup(_units, id, "unit");
         public TechDef Tech(string id) => Lookup(_techs, id, "tech");
         public FactionDef Faction(string id) => Lookup(_factions, id, "faction");
+        public BuildingDef Building(string id) => Lookup(_buildings, id, "building");
 
         public bool TryGetTech(string id, out TechDef def) => _techs.TryGetValue(id, out def);
 
@@ -41,6 +45,9 @@ namespace Crucible.Core.Content
                 if (unit.FactionId != null && !_factions.ContainsKey(unit.FactionId))
                     throw new InvalidOperationException($"Unit '{unit.Id}' belongs to unknown faction '{unit.FactionId}'.");
             }
+            foreach (var b in _buildings.Values)
+                if (b.RequiredTech != null && !_techs.ContainsKey(b.RequiredTech))
+                    throw new InvalidOperationException($"Building '{b.Id}' requires unknown tech '{b.RequiredTech}'.");
         }
 
         static void AddUnique<T>(Dictionary<string, T> dict, string id, T def)

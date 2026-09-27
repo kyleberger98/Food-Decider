@@ -61,6 +61,7 @@ namespace Crucible.Core.Game
 
         void Advance()
         {
+            _game.EndPlayerTurn(ActivePlayer);
             do
             {
                 ActivePlayerIndex++;

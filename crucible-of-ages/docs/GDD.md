@@ -75,8 +75,15 @@ Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
 - **Yields:** Food, Production, Gold, Science, Culture, Faith, Tourism.
 - **Cities:** citizens work tiles within 3 rings; borders grow with culture or by buying tiles;
   buildings, specialists, great-work slots.
-- **Happiness:** global; luxuries, buildings, policies. Unhappiness slows growth and at
-  −10 adds combat penalties. War weariness applies in the Industrial era and later.
+- **Happiness:** global. Base 9, −3 per city, −1 per citizen, plus luxuries, buildings and
+  policies. Below 0, growth drops to ¼; at −10, growth stops and units fight at −3 CS.
+  War weariness applies in the Industrial era and later.
+- **Growth:** each citizen eats 2 food. Growing from population n takes
+  15 + 6(n−1) + (n−1)^1.8 food. A city whose food store drops below 0 loses a citizen.
+- **Upkeep:** buildings cost gold maintenance. Units are free up to 2 + 2 per city, then
+  cost 1 gold each. A bankrupt empire disbands one unit per turn.
+- **City governor:** it keeps at least one defender per city and never builds into
+  negative income. Otherwise it follows its build priority list (monument, granary, market, library, walls, …).
 - **Tech tree:** 8 eras (Ancient, Classical, Medieval, Renaissance, Industrial, Modern, Atomic,
   Information), about 80 techs.
 - **Social policies:** 9 trees plus 3 ideologies (Freedom / Order / Autocracy analogues, renamed).
@@ -323,7 +330,7 @@ crucible-of-ages/
 | M0 | **Scaffold** ✅ | Core compiles; hex math, combat formula, battle flow unit-tested; Unity renders a generated map |
 | M1 | World map & movement 🟡 | ✅ multi-turn A* pathfinding, standing move orders, army move/merge/split, ZOC, fog of war (LOS-aware sight, hills +1, recon +1). ⏳ Edge-following rivers, passing through friendly armies, chunked map mesh |
 | M2 | Tactical battles 🟡 | ✅ battlefield gen, editable deployment phase (defender first), 3×3 rounds, reserves, reinforcements entering from their own edge, joining ongoing battles, retreat, auto-resolve, move/target highlights. ⏳ Real battle camera/animations, naval & coastal fields |
-| M3 | Economy | Cities, tiles, buildings, happiness, gold, workers |
+| M3 | Economy 🟡 | ✅ tile yields (terrain, hills, features, rivers), citizens & governor, Civ V growth curve, starvation, production queue with overflow, 8 buildings, palace, gold income/maintenance/unit upkeep/bankruptcy, global happiness, culture border growth, auto research, settlers & city founding, civilians captured in battle. ⏳ Workers & improvements, specialists, strategic/luxury resources (moved to M5) |
 | M4 | Sieges | Siege state, militia, siege engines, walls, assault battles |
 | M5 | Tech & policies (Ancient→Medieval content) | Tech tree, policies, army cap progression |
 | M6 | AI v1 | Tactical AI in all battles; operational + economic AI can win a domination game |

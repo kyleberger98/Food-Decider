@@ -17,7 +17,7 @@ namespace Crucible.Core.Game
     /// mutates state. Everything random draws from <see cref="Rng"/>, so a seed + command log
     /// replays a game exactly.
     /// </summary>
-    public sealed class GameState
+    public sealed partial class GameState
     {
         public const int DefaultTurnLimit = 500;
 
@@ -102,11 +102,7 @@ namespace Crucible.Core.Game
             tile.CityId = city.Id;
             tile.OwnerPlayerId = ownerId;
             if (isCapital) tile.WallTier = Math.Max(tile.WallTier, 1); // palace defences
-            foreach (var n in position.Neighbors())
-            {
-                var t = Map.Get(n);
-                if (t != null && t.OwnerPlayerId < 0) t.OwnerPlayerId = ownerId;
-            }
+            ClaimInitialTerritory(city);
             RefreshVisibility(ownerId);
             return city;
         }
@@ -188,6 +184,8 @@ namespace Crucible.Core.Game
             foreach (var p in _players) RefreshVisibility(p.Id);
         }
 
+        static bool HasMilitary(Army army) => army.Units.Any(u => u.Def.IsMilitary && u.IsAlive);
+
         public bool InEnemyZoc(HexCoord c, int playerId) =>
             c.Neighbors().Any(n => ArmyAt(n) is Army a && AtWar(a.OwnerId, playerId));
 
@@ -241,7 +239,7 @@ namespace Crucible.Core.Game
         public Battle Attack(Army attacker, HexCoord target)
         {
             if (attacker.InBattle || attacker.WorldMovesLeft <= 0) return null;
-            if (attacker.Position.DistanceTo(target) != 1) return null;
+            if (attacker.Position.DistanceTo(target) != 1 || !HasMilitary(attacker)) return null;
 
             var city = CityAt(target);
             var defenderArmy = ArmyAt(target);
@@ -287,7 +285,7 @@ namespace Crucible.Core.Game
         /// </summary>
         public bool JoinBattle(Army army, Battle battle)
         {
-            if (army.InBattle || army.IsEmpty || army.WorldMovesLeft <= 0 || battle.IsFinished) return false;
+            if (army.InBattle || !HasMilitary(army) || army.WorldMovesLeft <= 0 || battle.IsFinished) return false;
             if (!battle.Contains(army.Position) && !army.Position.Neighbors().Any(battle.Contains)) return false;
 
             BattleSideId side;
@@ -313,7 +311,7 @@ namespace Crucible.Core.Game
         {
             foreach (var army in _armies.Values.ToList())
             {
-                if (army.InBattle || army.IsEmpty) continue;
+                if (army.InBattle || !HasMilitary(army)) continue;
                 bool near = battle.Contains(army.Position) || army.Position.Neighbors().Any(battle.Contains);
                 if (!near) continue;
                 if (army.OwnerId == battle.Attacker.Player.Id) battle.AddArmy(BattleSideId.Attacker, army);
@@ -363,12 +361,15 @@ namespace Crucible.Core.Game
             if (!battle.IsFinished || !_battles.ContainsKey(battle.Id)) return;
             _battles.Remove(battle.Id);
 
+            var loser = battle.Winner == BattleSideId.Attacker ? battle.Defender : battle.Attacker;
             foreach (var side in new[] { battle.Attacker, battle.Defender })
                 foreach (var army in side.Armies)
                 {
                     army.BattleId = -1;
                     army.RemoveDead();
-                    if (army.IsEmpty) _armies.Remove(army.Id);
+                    // Civilians left without an escort on the losing side are captured.
+                    bool defenceless = army.Units.All(u => !u.Def.IsMilitary);
+                    if (army.IsEmpty || (side == loser && defenceless)) _armies.Remove(army.Id);
                 }
 
             switch (battle.Status)
@@ -418,7 +419,8 @@ namespace Crucible.Core.Game
             city.BesiegedSinceTurn = -1;
             city.SiegeProgress = 0;
             city.Population = Math.Max(1, city.Population - 1);
-            Map.Get(city.Position).OwnerPlayerId = newOwnerId;
+            city.CurrentProduction = null;
+            TransferTerritory(city, newOwnerId);
             CheckElimination();
         }
 

@@ -64,17 +64,22 @@ namespace Crucible.View
             if (mr.sharedMaterial == null) mr.sharedMaterial = CreateMaterial();
         }
 
-        /// <summary>Unexplored hexes go near-black; explored-but-unseen hexes are dimmed and desaturated.</summary>
-        public void ApplyFog(PlayerVisibility vis)
+        /// <summary>
+        /// Unexplored hexes go near-black; explored-but-unseen hexes are dimmed and desaturated.
+        /// Owned hexes take a tint of their owner's colour so borders read at a glance.
+        /// </summary>
+        public void ApplyFog(PlayerVisibility vis, System.Func<int, Color> ownerColor = null)
         {
             if (_mesh == null) return;
             foreach (var kv in _tileVerts)
             {
                 var state = vis.Get(kv.Key);
                 var (start, count) = kv.Value;
+                int owner = _map.Get(kv.Key).OwnerPlayerId;
                 for (int i = start; i < start + count; i++)
                 {
                     var c = _baseColors[i];
+                    if (owner >= 0 && ownerColor != null) c = Color.Lerp(c, ownerColor(owner), 0.22f);
                     if (state == VisibilityState.Unexplored) c = new Color(0.05f, 0.06f, 0.08f);
                     else if (state == VisibilityState.Fogged)
                     {

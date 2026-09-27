@@ -50,5 +50,34 @@ namespace Crucible.Core.Tests
             }
             Assert.True(fought > 0);
         }
+
+        [Theory]
+        [InlineData(3UL)]
+        [InlineData(2024UL)]
+        public void Long_ai_game_keeps_the_economy_sane(ulong seed)
+        {
+            var map = MapGenerator.Generate(new MapGeneratorSettings { Seed = seed, Width = 40, Height = 28 });
+            var g = new GameState(TestWorld.Content, map, seed);
+            var a = g.AddPlayer("A", Content.DefaultContent.Aurel, true);
+            var b = g.AddPlayer("B", Content.DefaultContent.Khaganate, true);
+            var land = map.Tiles.Where(t => t.IsPassableForLand && t.Elevation <= 2).Select(t => t.Coord).ToList();
+            g.FoundCity(a.Id, land.First(), "A", true);
+            g.FoundCity(b.Id, land.OrderByDescending(c => c.DistanceTo(land.First())).First(), "B", true);
+
+            var turns = new TurnManager(g);
+            turns.Start();
+            for (int i = 0; i < 150 && !turns.IsGameOver; i++) turns.EndTurn();
+
+            foreach (var p in g.Players)
+            {
+                var city = g.Cities.Single(c => c.OwnerId == p.Id);
+                Assert.True(city.Population >= 3, $"{p.Name} pop {city.Population}");
+                Assert.True(city.Buildings.Count >= 2, $"{p.Name} buildings {city.Buildings.Count}");
+                Assert.True(p.Tech.Researched.Count >= 5, $"{p.Name} techs {p.Tech.Researched.Count}");
+                Assert.True(Economy.EconomyRules.EmpireIncome(g, p).Gold >= 0, "the governor should not go bankrupt");
+                Assert.True(g.Map.Tiles.Count(t => t.OwnerCityId == city.Id) > 7, "borders should have grown");
+                Assert.True(g.Armies.Any(ar => ar.OwnerId == p.Id), "the governor should raise a garrison");
+            }
+        }
     }
 }

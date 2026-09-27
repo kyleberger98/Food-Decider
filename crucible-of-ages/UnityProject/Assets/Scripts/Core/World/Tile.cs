@@ -43,6 +43,11 @@ namespace Crucible.Core.World
         public int WallTier { get; set; }
 
         public int OwnerPlayerId { get; set; } = -1;
+
+        /// <summary>City whose territory this tile is (its citizens may work it), or -1.</summary>
+        public int OwnerCityId { get; set; } = -1;
+
+        /// <summary>City founded on this tile, or -1.</summary>
         public int CityId { get; set; } = -1;
 
         public Tile(HexCoord coord)

@@ -18,7 +18,7 @@ namespace Crucible.Core.Game
             var ai = game.AddPlayer("The Khagan", DefaultContent.Khaganate, isAI: true);
 
             var starts = PickStarts(map);
-            PlaceStart(game, human.Id, starts.a, "Aurelia", "warrior", "warrior", "archer", "spearman");
+            PlaceStart(game, human.Id, starts.a, "Aurelia", "warrior", "warrior", "archer", "spearman", DefaultContent.SettlerUnit);
             PlaceStart(game, ai.Id, starts.b, "Ordu-Baliq", "warrior", "archer", "sky_rider", "horseman");
             return game;
         }

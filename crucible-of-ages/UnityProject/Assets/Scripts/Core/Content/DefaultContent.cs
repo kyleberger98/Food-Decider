@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Crucible.Core.Economy;
 
 namespace Crucible.Core.Content
 {
@@ -12,6 +13,7 @@ namespace Crucible.Core.Content
         public const string Aurel = "aurel_dominion";
         public const string Khaganate = "steppe_khaganate";
         public const string MilitiaUnit = "militia";
+        public const string SettlerUnit = "settler";
 
         public static ContentDatabase Create()
         {
@@ -19,6 +21,7 @@ namespace Crucible.Core.Content
             AddFactions(db);
             AddTechs(db);
             AddUnits(db);
+            AddBuildings(db);
             db.Validate();
             return db;
         }
@@ -50,6 +53,8 @@ namespace Crucible.Core.Content
                 db.Add(new TechDef { Id = id, Name = name, Era = era, ScienceCost = cost, ArmyCapBonus = capBonus, Prerequisites = new List<string>(pre) });
 
             T("agriculture", "Agriculture", Era.Ancient, 20, 0);
+            T("pottery", "Pottery", Era.Ancient, 35, 0, "agriculture");
+            T("writing", "Writing", Era.Ancient, 55, 0, "pottery");
             T("animal_husbandry", "Animal Husbandry", Era.Ancient, 35, 0, "agriculture");
             T("archery", "Archery", Era.Ancient, 35, 0, "agriculture");
             T("mining", "Mining", Era.Ancient, 35, 0, "agriculture");
@@ -61,6 +66,7 @@ namespace Crucible.Core.Content
             T("iron_working", "Iron Working", Era.Classical, 105, 0, "bronze_working");
             T("mathematics", "Mathematics", Era.Classical, 105, 0, "the_wheel", "archery");
             T("construction", "Construction", Era.Classical, 105, 0, "masonry", "the_wheel");
+            T("currency", "Currency", Era.Classical, 105, 0, "bronze_working");
             T("military_tactics", "Military Tactics", Era.Classical, 175, 1, "iron_working", "horseback_riding");
 
             T("steel", "Steel", Era.Medieval, 485, 0, "iron_working");
@@ -95,6 +101,9 @@ namespace Crucible.Core.Content
                 db.Add(def);
                 return def;
             }
+
+            // Civilian
+            U(SettlerUnit, "Settler", UnitClass.Civilian, Era.Ancient, 0, 106, null);
 
             // Ancient
             U("scout", "Scout", UnitClass.Recon, Era.Ancient, 5, 25, null, battleMp: 3, worldMp: 3);
@@ -136,6 +145,25 @@ namespace Crucible.Core.Content
             var skyRider = U("sky_rider", "Sky Rider", UnitClass.Mounted, Era.Ancient, 14, 75, "horseback_riding", battleMp: 4, worldMp: 5, resource: "horses");
             skyRider.FactionId = Khaganate;
             skyRider.Replaces = "horseman";
+        }
+
+        static void AddBuildings(ContentDatabase db)
+        {
+            void B(string id, string name, Era era, int cost, string tech, int upkeep, Yields yields, int happiness = 0, int walls = 0) =>
+                db.Add(new BuildingDef
+                {
+                    Id = id, Name = name, Era = era, ProductionCost = cost, RequiredTech = tech,
+                    Maintenance = upkeep, Yields = yields, Happiness = happiness, WallTiers = walls,
+                });
+
+            B("monument", "Monument", Era.Ancient, 40, null, 1, new Yields(culture: 2));
+            B("granary", "Granary", Era.Ancient, 60, "pottery", 1, new Yields(food: 2));
+            B("library", "Library", Era.Ancient, 75, "writing", 1, new Yields(science: 3));
+            B("walls", "Walls", Era.Ancient, 60, "masonry", 1, new Yields(), walls: 1);
+            B("market", "Market", Era.Classical, 100, "currency", 0, new Yields(gold: 3));
+            B("colosseum", "Colosseum", Era.Classical, 100, "construction", 1, new Yields(), happiness: 3);
+            B("workshop", "Workshop", Era.Medieval, 120, "machinery", 2, new Yields(production: 3));
+            B("castle", "Castle", Era.Medieval, 160, "chivalry", 2, new Yields(), walls: 1);
         }
     }
 }

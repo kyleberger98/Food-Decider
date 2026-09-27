@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Text;
 using Crucible.Core.Combat;
+using Crucible.Core.Economy;
 using Crucible.Core.Empire;
 using Crucible.Core.Game;
 using Crucible.Core.Hex;
@@ -27,7 +28,19 @@ namespace Crucible.View
         MeshCollider _mapCollider;
 
         Army _selectedArmy;
+        City _selectedCity;
         Unit _selectedUnit;
+        int _mapVersion = -1;
+        Vector2 _cityScroll;
+
+        /// <summary>Screen areas drawn by OnGUI last frame; clicks there don't reach the map.</summary>
+        readonly System.Collections.Generic.List<Rect> _uiRects = new System.Collections.Generic.List<Rect>();
+
+        bool MouseOverUI()
+        {
+            var p = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+            return _uiRects.Any(r => r.Contains(p));
+        }
         HexCoord? _hover;
         ArmyPath _hoverPath;
         HexCoord? _hoverPathFor;
@@ -63,7 +76,7 @@ namespace Crucible.View
 
             if (!_turns.IsGameOver)
             {
-                if (Input.GetMouseButtonDown(0) && _hover.HasValue)
+                if (Input.GetMouseButtonDown(0) && _hover.HasValue && !MouseOverUI())
                 {
                     ClearRoutePreview();
                     if (battle != null) BattleClick(battle, _hover.Value);
@@ -88,6 +101,18 @@ namespace Crucible.View
                         _message = battle.IsFinished ? $"Auto-resolved: {battle.Status}." : "Round auto-resolved.";
                     }
                 }
+                else if (Input.GetKeyDown(KeyCode.F) && _selectedArmy != null)
+                {
+                    var city = _game.FoundCityWithSettler(_selectedArmy);
+                    _message = city != null
+                        ? $"Founded {city.Name}!"
+                        : "Can't settle here: need a settler with moves, land, 4+ hexes from other cities, not in foreign borders.";
+                    if (city != null) _selectedCity = city;
+                }
+                else if (Input.GetKeyDown(KeyCode.T))
+                {
+                    CycleResearch();
+                }
                 else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
                 {
                     _selectedArmy = null;
@@ -98,13 +123,15 @@ namespace Crucible.View
             }
 
             if (_selectedArmy != null && _game.Army(_selectedArmy.Id) == null) _selectedArmy = null;
+            if (_selectedCity != null && _selectedCity.OwnerId != Human.Id) _selectedCity = null;
             if (_selectedUnit != null && !_selectedUnit.IsAlive) _selectedUnit = null;
 
             var viewer = Viewer;
-            if (viewer.Version != _fogVersion)
+            if (viewer.Version != _fogVersion || _game.MapVersion != _mapVersion)
             {
-                _map.ApplyFog(viewer);
+                _map.ApplyFog(viewer, MarkerLayer.ColorOf);
                 _fogVersion = viewer.Version;
+                _mapVersion = _game.MapVersion;
             }
 
             // Path preview for the selected army (A* is cheap at this map size; cache per hovered hex).
@@ -161,8 +188,22 @@ namespace Crucible.View
 
         // ------------------------------------------------------------------ world map
 
+        void CycleResearch()
+        {
+            var options = Human.Tech.Available().OrderBy(t => t.ScienceCost).ThenBy(t => t.Id).ToList();
+            if (options.Count == 0) return;
+            int i = options.FindIndex(t => t.Id == Human.Tech.CurrentResearch);
+            var next = options[(i + 1) % options.Count];
+            Human.Tech.SetResearch(next.Id);
+            _message = $"Researching {next.Name} ({next.ScienceCost} science).";
+        }
+
         void WorldClick(HexCoord hex)
         {
+            var clickedCity = _game.CityAt(hex);
+            if (clickedCity != null && clickedCity.OwnerId == Human.Id) _selectedCity = clickedCity;
+            else if (_selectedArmy == null) _selectedCity = null;
+
             var army = _game.ArmyAt(hex);
             if (army != null && army.OwnerId == Human.Id)
             {
@@ -245,9 +286,17 @@ namespace Crucible.View
         void OnGUI()
         {
             if (_game == null) return;
+            if (Event.current.type == EventType.Layout) _uiRects.Clear();
             var sb = new StringBuilder();
             sb.AppendLine($"Turn {_game.Turn}  —  {Human.Name} ({Human.Faction.Name})  —  army cap {Human.ArmyCap}");
             if (_turns.IsGameOver) sb.AppendLine($"GAME OVER: {_game.Victory}");
+
+            var income = EconomyRules.EmpireIncome(_game, Human);
+            var research = Human.Tech.CurrentResearch != null ? _game.Content.Tech(Human.Tech.CurrentResearch) : null;
+            sb.AppendLine($"Gold {Human.Gold} ({income.Gold:+#;-#;0})   Science +{income.Science}   Culture +{income.Culture}   Happiness {EconomyRules.Happiness(_game, Human)}");
+            sb.AppendLine(research != null
+                ? $"Research: {research.Name} {Human.Tech.Progress}/{research.ScienceCost}  (T to change)"
+                : "Research: none (T to choose)");
 
             var battle = HumanBattle;
             if (battle != null)
@@ -272,6 +321,8 @@ namespace Crucible.View
                     sb.AppendLine($"Army: {_selectedArmy.Count}/{Human.ArmyCap} units, {_selectedArmy.WorldMovesLeft} moves" +
                                   (_selectedArmy.Destination.HasValue ? $", marching to {_selectedArmy.Destination.Value}" : ""));
                     if (_hoverPath != null) sb.AppendLine($"Route: {_hoverPath.Steps.Count} hexes, {_hoverPath.Turns} turn(s)");
+                    if (_selectedArmy.Units.Any(u => u.Def.Id == Crucible.Core.Content.DefaultContent.SettlerUnit))
+                        sb.AppendLine("F: found a city here");
                 }
             }
 
@@ -279,9 +330,58 @@ namespace Crucible.View
                 sb.AppendLine($"Hex {t}");
             sb.AppendLine(_message);
 
-            GUI.Box(new Rect(10, 10, 520, 24 + 18 * sb.ToString().Split('\n').Length), GUIContent.none);
+            var hud = new Rect(10, 10, 520, 24 + 18 * sb.ToString().Split('\n').Length);
+            if (Event.current.type == EventType.Layout) _uiRects.Add(hud);
+            GUI.Box(hud, GUIContent.none);
             GUI.Label(new Rect(20, 16, 500, 800), sb.ToString());
+
+            if (_selectedCity != null && battle == null) DrawCityPanel(_selectedCity);
         }
+
+        /// <summary>City screen: growth, production and a clickable build list.</summary>
+        void DrawCityPanel(City city)
+        {
+            const float width = 300f;
+            var area = new Rect(Screen.width - width - 10, 10, width, Mathf.Min(560, Screen.height - 20));
+            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
+            GUI.Box(area, GUIContent.none);
+            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
+
+            var y = EconomyRules.CityYields(_game, city);
+            int surplus = EconomyRules.FoodSurplus(_game, city, y);
+            GUILayout.Label($"<b>{city.Name}</b>  pop {city.Population}" + (city.IsBesieged ? "  (BESIEGED)" : ""), Rich());
+            GUILayout.Label($"Yields: {y}");
+            GUILayout.Label($"Food {city.FoodStored}/{EconomyRules.GrowthThreshold(city.Population)} ({surplus:+#;-#;0}/turn)");
+            GUILayout.Label($"Borders: {city.CultureStored}/{EconomyRules.BorderGrowthThreshold(city)} culture");
+            GUILayout.Label("Buildings: " + (city.Buildings.Count == 0 ? "none" :
+                string.Join(", ", city.Buildings.Select(b => _game.Content.Building(b).Name))));
+
+            if (city.CurrentProduction.HasValue)
+            {
+                var item = city.CurrentProduction.Value;
+                int cost = EconomyRules.Cost(_game, item);
+                int turns = y.Production > 0 ? Mathf.CeilToInt(Mathf.Max(0, cost - city.ProductionStored) / (float)y.Production) : 99;
+                GUILayout.Label($"Building: {EconomyRules.NameOf(_game, item)} {city.ProductionStored}/{cost} ({turns} turns)");
+            }
+            else GUILayout.Label($"Building: nothing ({city.ProductionStored} stored)");
+
+            GUILayout.Label("Choose production:");
+            _cityScroll = GUILayout.BeginScrollView(_cityScroll);
+            var options = _game.Content.Buildings.Select(b => ProductionItem.Building(b.Id))
+                .Concat(_game.Content.Units.Select(u => ProductionItem.Unit(u.Id)))
+                .Where(i => EconomyRules.CanBuild(_game, city, i))
+                .OrderBy(i => i.Kind).ThenBy(i => EconomyRules.Cost(_game, i));
+            foreach (var item in options)
+            {
+                if (GUILayout.Button($"{EconomyRules.NameOf(_game, item)}  ({EconomyRules.Cost(_game, item)})"))
+                    _game.SetProduction(city, item);
+            }
+            GUILayout.EndScrollView();
+            if (GUILayout.Button("Close")) _selectedCity = null;
+            GUILayout.EndArea();
+        }
+
+        static GUIStyle Rich() => new GUIStyle(GUI.skin.label) { richText = true };
 
         void AppendPreview(StringBuilder sb, Battle battle)
         {

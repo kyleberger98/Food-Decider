@@ -322,7 +322,7 @@ crucible-of-ages/
 |---|---|---|
 | M0 | **Scaffold** ✅ | Core compiles; hex math, combat formula, battle flow unit-tested; Unity renders a generated map |
 | M1 | World map & movement 🟡 | ✅ multi-turn A* pathfinding, standing move orders, army move/merge/split, ZOC, fog of war (LOS-aware sight, hills +1, recon +1). ⏳ Edge-following rivers, passing through friendly armies, chunked map mesh |
-| M2 | Tactical battles | Battlefield gen, deployment, 3×3 rounds, reserves, reinforcement, retreat, auto-resolve, battle UI |
+| M2 | Tactical battles 🟡 | ✅ battlefield gen, editable deployment phase (defender first), 3×3 rounds, reserves, reinforcements entering from their own edge, joining ongoing battles, retreat, auto-resolve, move/target highlights. ⏳ Real battle camera/animations, naval & coastal fields |
 | M3 | Economy | Cities, tiles, buildings, happiness, gold, workers |
 | M4 | Sieges | Siege state, militia, siege engines, walls, assault battles |
 | M5 | Tech & policies (Ancient→Medieval content) | Tech tree, policies, army cap progression |

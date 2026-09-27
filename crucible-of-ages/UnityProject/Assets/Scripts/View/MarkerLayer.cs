@@ -27,6 +27,7 @@ namespace Crucible.View
         readonly Dictionary<int, GameObject> _cities = new Dictionary<int, GameObject>();
         readonly Dictionary<int, GameObject> _units = new Dictionary<int, GameObject>();
         readonly List<GameObject> _battleTiles = new List<GameObject>();
+        readonly List<GameObject> _highlightPool = new List<GameObject>();
         int _shownBattleId = -1;
 
         public void Init(HexMapRenderer map)
@@ -144,6 +145,31 @@ namespace Crucible.View
                 Destroy(_units[id]);
                 _units.Remove(id);
             }
+        }
+
+        /// <summary>Shows translucent hex highlights (move range, targets, deployment zone); pooled.</summary>
+        public void ShowHighlights(IEnumerable<(Crucible.Core.Hex.HexCoord hex, Color color)> highlights)
+        {
+            int used = 0;
+            foreach (var (hex, color) in highlights)
+            {
+                if (used == _highlightPool.Count)
+                {
+                    var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                    Destroy(q.GetComponent<Collider>());
+                    q.name = "Highlight";
+                    q.transform.SetParent(transform, false);
+                    q.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                    q.transform.localScale = Vector3.one * _map.hexSize * 1.1f;
+                    q.GetComponent<Renderer>().sharedMaterial = _overlayMaterial;
+                    _highlightPool.Add(q);
+                }
+                var go = _highlightPool[used++];
+                go.SetActive(true);
+                go.transform.position = _map.HexToWorld(hex) + Vector3.up * 0.05f;
+                Tint(go, color);
+            }
+            for (int i = used; i < _highlightPool.Count; i++) _highlightPool[i].SetActive(false);
         }
 
         GameObject Primitive(PrimitiveType type, string name)

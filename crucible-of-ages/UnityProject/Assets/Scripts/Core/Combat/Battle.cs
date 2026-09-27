@@ -27,6 +27,9 @@ namespace Crucible.Core.Combat
         DefenderWon,
         AttackerRetreated,
         DefenderRetreated,
+
+        /// <summary>Before round 1: the defender, then the attacker, may rearrange units inside their zone.</summary>
+        Deploying,
     }
 
     public sealed class BattleSide
@@ -71,6 +74,9 @@ namespace Crucible.Core.Combat
         /// <summary>Units that entered enemy ZOC or crossed a river this turn: may still attack, not move.</summary>
         readonly HashSet<int> _moveLocked = new HashSet<int>();
 
+        /// <summary>Reinforcements march in from where their army stood: unit id → world hex it came from.</summary>
+        readonly Dictionary<int, HexCoord> _entryPoints = new Dictionary<int, HexCoord>();
+
         public int Id { get; }
         public WorldMap Map { get; }
         public IReadOnlyCollection<HexCoord> Tiles => _tiles;
@@ -102,7 +108,12 @@ namespace Crucible.Core.Combat
             Objective = objective;
         }
 
-        public bool IsFinished => Status != BattleStatus.InProgress && Status != BattleStatus.AwaitingNextRound;
+        public bool IsFinished =>
+            Status == BattleStatus.AttackerWon || Status == BattleStatus.DefenderWon ||
+            Status == BattleStatus.AttackerRetreated || Status == BattleStatus.DefenderRetreated;
+
+        /// <summary>True while a side must act (deploy or play a battle turn).</summary>
+        public bool AwaitingAction => Status == BattleStatus.InProgress || Status == BattleStatus.Deploying;
 
         /// <summary>Side that won, or null while undecided.</summary>
         public BattleSideId? Winner
@@ -141,12 +152,17 @@ namespace Crucible.Core.Combat
             {
                 _sideOf[u.Id] = sideId;
                 side.Reserve.Add(u);
+                if (Started) _entryPoints[u.Id] = army.Position;
             }
             if (Started) Log.Add($"{army} joins the {sideId.ToString().ToLowerInvariant()} as reinforcements.");
         }
 
-        /// <summary>Computes deployment zones, deploys the defender then the attacker, and starts round 1.</summary>
-        public void Start()
+        /// <summary>
+        /// Computes deployment zones and auto-deploys both sides (defender first: it chose the ground).
+        /// With <paramref name="deploymentPhase"/>, each side then gets to rearrange its units
+        /// (<see cref="Redeploy"/>, <see cref="ConfirmDeployment"/>) before round 1 begins.
+        /// </summary>
+        public void Start(bool deploymentPhase = false)
         {
             if (Started) throw new InvalidOperationException("Battle already started.");
             Started = true;
@@ -161,23 +177,80 @@ namespace Crucible.Core.Combat
 
             Log.Add($"Battle {Id} begins: {Attacker.Player.Name} attacks {Defender.Player.Name} on {_tiles.Count} hexes.");
             CheckElimination();
-            if (Status == BattleStatus.InProgress) BeginSideTurn(Attacker);
+            if (Status != BattleStatus.InProgress) return;
+            if (deploymentPhase)
+            {
+                Status = BattleStatus.Deploying;
+                ActiveSide = BattleSideId.Defender;
+            }
+            else BeginSideTurn(Attacker);
         }
 
-        /// <summary>Fills free frontline slots from the reserve. Front-liners take the tiles nearest the enemy.</summary>
+        /// <summary>During deployment: moves a unit to a hex of its zone, swapping with a friendly unit there.</summary>
+        public bool Redeploy(Unit unit, HexCoord hex)
+        {
+            if (Status != BattleStatus.Deploying || !_sideOf.TryGetValue(unit.Id, out var sideId) || sideId != ActiveSide) return false;
+            var from = PositionOf(unit);
+            if (from == null || from.Value == hex || !Side(sideId).DeploymentZone.Contains(hex)) return false;
+
+            var other = UnitAt(hex);
+            if (other != null && _sideOf[other.Id] != sideId) return false;
+            _occupants.Remove(from.Value);
+            Place(unit, hex);
+            if (other != null) Place(other, from.Value);
+            return true;
+        }
+
+        /// <summary>Ends the active side's deployment. After the attacker confirms, round 1 starts.</summary>
+        public void ConfirmDeployment()
+        {
+            if (Status != BattleStatus.Deploying) throw new InvalidOperationException("Not in deployment.");
+            if (ActiveSide == BattleSideId.Defender)
+            {
+                ActiveSide = BattleSideId.Attacker;
+                return;
+            }
+            Status = BattleStatus.InProgress;
+            Log.Add("Deployment complete. Round 1 begins.");
+            BeginSideTurn(Attacker);
+        }
+
+        /// <summary>
+        /// Fills free frontline slots from the reserve. Units of the original armies use the deployment
+        /// zone (front-liners nearest the enemy); reinforcements enter at the field edge nearest to where
+        /// their army stood.
+        /// </summary>
         void DeployReserves(BattleSide side)
         {
+            int slots = side.FrontlineCap - DeployedUnits(side.Id).Count();
+            foreach (var unit in side.Reserve.Where(u => u.IsAlive && _entryPoints.ContainsKey(u.Id)).ToList())
+            {
+                if (slots <= 0) break;
+                var entry = _entryPoints[unit.Id];
+                var hex = _tiles
+                    .Where(t => !_occupants.ContainsKey(t))
+                    .OrderBy(t => IsAdjacentToEnemy(t, side.Id) ? 1 : 0)
+                    .ThenBy(t => t.DistanceTo(entry)).ThenBy(t => t.Q).ThenBy(t => t.R)
+                    .Select(t => (HexCoord?)t)
+                    .FirstOrDefault();
+                if (!hex.HasValue) break;
+                Place(unit, hex.Value);
+                side.Reserve.Remove(unit);
+                _entryPoints.Remove(unit.Id);
+                unit.Fortified = false;
+                slots--;
+            }
+
             var enemyOrigin = Opponent(side.Id).Origin;
             var freeTiles = side.DeploymentZone
                 .Where(t => !_occupants.ContainsKey(t))
                 .OrderBy(t => t.DistanceTo(enemyOrigin)).ThenBy(t => t.Q).ThenBy(t => t.R)
                 .ToList();
             var queue = side.Reserve
-                .Where(u => u.IsAlive)
+                .Where(u => u.IsAlive && !_entryPoints.ContainsKey(u.Id))
                 .OrderBy(u => IsBackline(u) ? 1 : 0)
                 .ToList();
 
-            int slots = side.FrontlineCap - DeployedUnits(side.Id).Count();
             int tileIndex = 0;
             foreach (var unit in queue)
             {

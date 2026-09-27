@@ -25,6 +25,12 @@ namespace Crucible.Core.AI
         /// <summary>Plays the active side's whole battle turn, ending it (or retreating).</summary>
         public void PlayTurn(Battle battle)
         {
+            if (battle.Status == BattleStatus.Deploying)
+            {
+                ArrangeDeployment(battle);
+                battle.ConfirmDeployment();
+                return;
+            }
             if (battle.Status != BattleStatus.InProgress) return;
             var side = battle.ActiveSide;
 
@@ -49,11 +55,32 @@ namespace Crucible.Core.AI
             if (battle.Status == BattleStatus.InProgress) battle.EndTurn();
         }
 
-        /// <summary>Plays AI turns until the round ends or the battle finishes.</summary>
+        /// <summary>Plays AI turns (including deployment) until the round ends or the battle finishes.</summary>
         public void PlayUntilPause(Battle battle)
         {
             int guard = 0;
-            while (battle.Status == BattleStatus.InProgress && guard++ < 1000) PlayTurn(battle);
+            while (battle.AwaitingAction && guard++ < 1000) PlayTurn(battle);
+        }
+
+        /// <summary>Puts ranged units on the highest ground in the zone, swapping with whoever stood there.</summary>
+        public void ArrangeDeployment(Battle battle)
+        {
+            var side = battle.Active;
+            var enemyOrigin = battle.Opponent(side.Id).Origin;
+            var claimed = new HashSet<HexCoord>();
+            foreach (var unit in battle.DeployedUnits(side.Id).Where(u => u.Def.IsRanged).OrderBy(u => u.Id).ToList())
+            {
+                var best = side.DeploymentZone
+                    .Where(h => !claimed.Contains(h) && (battle.UnitAt(h) == null || !battle.UnitAt(h).Def.IsRanged || battle.UnitAt(h) == unit))
+                    .OrderByDescending(h => battle.Map.Get(h).Elevation)
+                    .ThenByDescending(h => h.DistanceTo(enemyOrigin)) // stay behind the line
+                    .ThenBy(h => h.Q).ThenBy(h => h.R)
+                    .Select(h => (HexCoord?)h)
+                    .FirstOrDefault();
+                if (best.HasValue && battle.Map.Get(best.Value).Elevation > battle.Map.Get(battle.PositionOf(unit).Value).Elevation)
+                    battle.Redeploy(unit, best.Value);
+                claimed.Add(battle.PositionOf(unit).Value);
+            }
         }
 
         /// <summary>Plays every remaining round immediately (auto-resolve of a whole battle).</summary>

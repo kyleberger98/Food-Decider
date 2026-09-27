@@ -10,10 +10,12 @@ using UnityEngine;
 namespace Crucible.View
 {
     /// <summary>
-    /// Input + HUD for the scaffold. World mode: click your army, then click a hex to move to it or
-    /// an adjacent enemy to attack. Battle mode: click a unit, then a hex to move or an enemy to
-    /// attack; hover an enemy for the combat breakdown.
-    /// Keys: Enter = end world turn, Space = end battle turn, R = retreat.
+    /// Input + HUD. World mode: click your army, then click a hex to march there, an adjacent enemy to
+    /// attack, or a hex of an ongoing battle to reinforce it. Deployment: click a unit, then a hex of
+    /// your zone. Battle: click a unit, then a green hex to move or a red enemy to attack; hover an
+    /// enemy for the combat breakdown.
+    /// Keys: Enter = end world turn, Space = confirm deployment / end battle turn, R = retreat,
+    /// A = auto-resolve the current round.
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
@@ -51,7 +53,7 @@ namespace Crucible.View
         PlayerVisibility Viewer => _game.Visibility(_game.Players.FirstOrDefault(p => !p.IsAI)?.Id ?? 0);
 
         /// <summary>A battle waiting on a human decision, if any.</summary>
-        Battle HumanBattle => _game.Battles.FirstOrDefault(b => b.Status == BattleStatus.InProgress && !b.Active.Player.IsAI);
+        Battle HumanBattle => _game.Battles.FirstOrDefault(b => b.AwaitingAction && !b.Active.Player.IsAI);
 
         void Update()
         {
@@ -70,8 +72,21 @@ namespace Crucible.View
 
                 if (battle != null)
                 {
-                    if (Input.GetKeyDown(KeyCode.Space)) { battle.EndTurn(); AfterBattleAction(battle); }
-                    if (Input.GetKeyDown(KeyCode.R)) { battle.Retreat(); AfterBattleAction(battle); }
+                    bool deploying = battle.Status == BattleStatus.Deploying;
+                    if (Input.GetKeyDown(KeyCode.Space))
+                    {
+                        if (deploying) battle.ConfirmDeployment();
+                        else battle.EndTurn();
+                        _selectedUnit = null;
+                        AfterBattleAction(battle);
+                    }
+                    else if (Input.GetKeyDown(KeyCode.R) && !deploying) { battle.Retreat(); AfterBattleAction(battle); }
+                    else if (Input.GetKeyDown(KeyCode.A))
+                    {
+                        _game.AutoResolveRound(battle);
+                        _selectedUnit = null;
+                        _message = battle.IsFinished ? $"Auto-resolved: {battle.Status}." : "Round auto-resolved.";
+                    }
                 }
                 else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
                 {
@@ -105,6 +120,27 @@ namespace Crucible.View
 
             var shown = battle ?? _game.Battles.FirstOrDefault(b => b.Attacker.Player == Human || b.Defender.Player == Human);
             _markers.Sync(_game, viewer, shown, _selectedArmy, _selectedUnit);
+            _markers.ShowHighlights(battle != null ? BattleHighlights(battle) : Enumerable.Empty<(HexCoord, Color)>());
+        }
+
+        /// <summary>Deployment zone while deploying; reachable hexes (green) and targets (red) for the selected unit.</summary>
+        System.Collections.Generic.IEnumerable<(HexCoord, Color)> BattleHighlights(Battle battle)
+        {
+            if (battle.Status == BattleStatus.Deploying)
+            {
+                foreach (var h in battle.Active.DeploymentZone) yield return (h, new Color(0.3f, 0.6f, 1f, 0.35f));
+                yield break;
+            }
+            if (_selectedUnit == null || battle.PositionOf(_selectedUnit) == null) yield break;
+
+            var from = battle.PositionOf(_selectedUnit).Value;
+            foreach (var h in battle.ReachableHexes(_selectedUnit).Keys) yield return (h, new Color(0.3f, 1f, 0.4f, 0.35f));
+            foreach (var enemy in battle.DeployedUnits(battle.Opponent(battle.ActiveSide).Id))
+            {
+                var pos = battle.PositionOf(enemy).Value;
+                bool meleeReady = _selectedUnit.Def.IsRanged || _selectedUnit.BattleMovesLeft > 0;
+                if (meleeReady && battle.CanAttackFrom(_selectedUnit, from, pos)) yield return (pos, new Color(1f, 0.25f, 0.2f, 0.5f));
+            }
         }
 
         void ClearRoutePreview()
@@ -136,6 +172,15 @@ namespace Crucible.View
             }
             if (_selectedArmy == null) return;
 
+            var ongoing = _game.BattleCovering(hex);
+            if (ongoing != null)
+            {
+                _message = _game.JoinBattle(_selectedArmy, ongoing)
+                    ? "Reinforcing! Your units march in from this side at the start of your next battle turn."
+                    : "Can't join: stand next to the battlefield with moves left.";
+                return;
+            }
+
             var city = _game.CityAt(hex);
             bool enemyThere = (army != null && _game.AtWar(army.OwnerId, Human.Id)) ||
                               (city != null && _game.AtWar(city.OwnerId, Human.Id));
@@ -158,6 +203,12 @@ namespace Crucible.View
         void BattleClick(Battle battle, HexCoord hex)
         {
             var unit = battle.UnitAt(hex);
+            if (battle.Status == BattleStatus.Deploying)
+            {
+                if (_selectedUnit != null && battle.Redeploy(_selectedUnit, hex)) _message = "Redeployed.";
+                else if (unit != null && battle.SideOf(unit) == battle.ActiveSide) _selectedUnit = unit;
+                return;
+            }
             if (unit != null && battle.SideOf(unit) == battle.ActiveSide)
             {
                 _selectedUnit = unit;
@@ -201,9 +252,16 @@ namespace Crucible.View
             var battle = HumanBattle;
             if (battle != null)
             {
-                sb.AppendLine($"BATTLE  round {battle.Round}/{Battle.MaxRounds}, turn {battle.TurnInRound}/{Battle.TurnsPerRound}, {battle.ActiveSide} to act");
+                if (battle.Status == BattleStatus.Deploying)
+                {
+                    sb.AppendLine($"DEPLOYMENT ({battle.ActiveSide}): click a unit, then a blue hex. Space confirms.");
+                }
+                else
+                {
+                    sb.AppendLine($"BATTLE  round {battle.Round}/{Battle.MaxRounds}, turn {battle.TurnInRound}/{Battle.TurnsPerRound}, {battle.ActiveSide} to act");
+                    sb.AppendLine("Space: end battle turn   R: retreat   A: auto-resolve round");
+                }
                 sb.AppendLine($"Reserves: you {battle.Active.Reserve.Count} / enemy {battle.Opponent(battle.ActiveSide).Reserve.Count}");
-                sb.AppendLine("Space: end battle turn   R: retreat");
                 AppendPreview(sb, battle);
             }
             else

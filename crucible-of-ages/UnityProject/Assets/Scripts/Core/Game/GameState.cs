@@ -247,7 +247,12 @@ namespace Crucible.Core.Game
             var defenderArmy = ArmyAt(target);
             bool isSiege = city != null && AtWar(city.OwnerId, attacker.OwnerId);
             if (!isSiege && (defenderArmy == null || !AtWar(defenderArmy.OwnerId, attacker.OwnerId))) return null;
-            if (defenderArmy != null && defenderArmy.InBattle) return null; // TODO(M2): join the existing battle instead
+            if (defenderArmy != null && defenderArmy.InBattle)
+            {
+                // Attacking an army that is already fighting: march into that battle instead.
+                var ongoing = Battle(defenderArmy.BattleId);
+                return ongoing != null && JoinBattle(attacker, ongoing) ? ongoing : null;
+            }
 
             int defenderId = isSiege ? city.OwnerId : defenderArmy.OwnerId;
             if (isSiege)
@@ -269,10 +274,38 @@ namespace Crucible.Core.Game
 
             _battles[battle.Id] = battle;
             attacker.WorldMovesLeft = 0;
-            battle.Start();
+            attacker.Destination = null;
+            battle.Start(deploymentPhase: true);
             BattleStarted?.Invoke(battle);
             AdvanceAIBattleTurns(battle);
             return battle;
+        }
+
+        /// <summary>
+        /// Sends an army into an ongoing battle on its owner's side (GDD §4.3). It must stand inside or
+        /// next to the battlefield and have moves left; its units enter from its edge of the field.
+        /// </summary>
+        public bool JoinBattle(Army army, Battle battle)
+        {
+            if (army.InBattle || army.IsEmpty || army.WorldMovesLeft <= 0 || battle.IsFinished) return false;
+            if (!battle.Contains(army.Position) && !army.Position.Neighbors().Any(battle.Contains)) return false;
+
+            BattleSideId side;
+            if (army.OwnerId == battle.Attacker.Player.Id) side = BattleSideId.Attacker;
+            else if (army.OwnerId == battle.Defender.Player.Id) side = BattleSideId.Defender;
+            else return false; // TODO(M8): allies join via defensive pacts
+
+            battle.AddArmy(side, army);
+            army.WorldMovesLeft = 0;
+            army.Destination = null;
+            return true;
+        }
+
+        /// <summary>Lets the tactical AI finish the current round for every side, humans included.</summary>
+        public void AutoResolveRound(Battle battle)
+        {
+            BattleAI.PlayUntilPause(battle);
+            if (battle.IsFinished) ResolveBattle(battle);
         }
 
         /// <summary>Armies inside or adjacent to the battlefield join the side of their owner.</summary>
@@ -319,7 +352,7 @@ namespace Crucible.Core.Game
         public void AdvanceAIBattleTurns(Battle battle)
         {
             int guard = 0;
-            while (battle.Status == BattleStatus.InProgress && battle.Active.Player.IsAI && guard++ < 1000)
+            while (battle.AwaitingAction && battle.Active.Player.IsAI && guard++ < 1000)
                 BattleAI.PlayTurn(battle);
             if (battle.IsFinished) ResolveBattle(battle);
         }

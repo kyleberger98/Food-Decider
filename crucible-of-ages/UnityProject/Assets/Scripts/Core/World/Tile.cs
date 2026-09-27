@@ -23,6 +23,35 @@ namespace Crucible.Core.World
         Floodplain,
     }
 
+    public enum ResourceType
+    {
+        None,
+        // Bonus: always add yields
+        Wheat,
+        Cattle,
+        Fish,
+        // Strategic: gate units once improved
+        Horses,
+        Iron,
+        Oil,
+        // Luxury: +happiness once improved
+        Wine,
+        Silk,
+        Gems,
+        Furs,
+    }
+
+    public enum ImprovementType
+    {
+        None,
+        Farm,
+        Mine,
+        Pasture,
+        Plantation,
+        Camp,
+        Well,
+    }
+
     [Serializable]
     public sealed class Tile
     {
@@ -50,6 +79,13 @@ namespace Crucible.Core.World
         /// <summary>City founded on this tile, or -1.</summary>
         public int CityId { get; set; } = -1;
 
+        public ResourceType Resource { get; set; }
+        public ImprovementType Improvement { get; set; }
+
+        /// <summary>Improvement a worker is currently building here, and turns of work done on it.</summary>
+        public ImprovementType ImprovementInProgress { get; set; }
+        public int ImprovementProgress { get; set; }
+
         public Tile(HexCoord coord)
         {
             Coord = coord;
@@ -67,6 +103,10 @@ namespace Crucible.Core.World
         public bool HasRiver(int direction) => (RiverEdges & (1 << direction)) != 0;
         internal void SetRiver(int direction) => RiverEdges |= (byte)(1 << direction);
 
-        public override string ToString() => $"{Coord} {Terrain}/{Feature} elev {Elevation}";
+        public override string ToString() =>
+            $"{Coord} {Terrain}/{Feature} elev {Elevation}" +
+            (Resource != ResourceType.None ? $" [{Resource}]" : "") +
+            (Improvement != ImprovementType.None ? $" +{Improvement}" : "") +
+            (ImprovementInProgress != ImprovementType.None ? $" (building {ImprovementInProgress} {ImprovementProgress})" : "");
     }
 }

@@ -14,6 +14,7 @@ namespace Crucible.Core.Content
         public const string Khaganate = "steppe_khaganate";
         public const string MilitiaUnit = "militia";
         public const string SettlerUnit = "settler";
+        public const string WorkerUnit = "worker";
 
         public static ContentDatabase Create()
         {
@@ -22,6 +23,7 @@ namespace Crucible.Core.Content
             AddTechs(db);
             AddUnits(db);
             AddBuildings(db);
+            AddPolicies(db);
             db.Validate();
             return db;
         }
@@ -55,6 +57,7 @@ namespace Crucible.Core.Content
             T("agriculture", "Agriculture", Era.Ancient, 20, 0);
             T("pottery", "Pottery", Era.Ancient, 35, 0, "agriculture");
             T("writing", "Writing", Era.Ancient, 55, 0, "pottery");
+            T("calendar", "Calendar", Era.Ancient, 70, 0, "pottery");
             T("animal_husbandry", "Animal Husbandry", Era.Ancient, 35, 0, "agriculture");
             T("archery", "Archery", Era.Ancient, 35, 0, "agriculture");
             T("mining", "Mining", Era.Ancient, 35, 0, "agriculture");
@@ -105,6 +108,7 @@ namespace Crucible.Core.Content
 
             // Civilian
             U(SettlerUnit, "Settler", UnitClass.Civilian, Era.Ancient, 0, 106, null);
+            U(WorkerUnit, "Worker", UnitClass.Civilian, Era.Ancient, 0, 70, null);
 
             // Ancient
             U("scout", "Scout", UnitClass.Recon, Era.Ancient, 5, 25, null, battleMp: 3, worldMp: 3);
@@ -162,6 +166,34 @@ namespace Crucible.Core.Content
             var skyRider = U("sky_rider", "Sky Rider", UnitClass.Mounted, Era.Ancient, 14, 75, "horseback_riding", battleMp: 4, worldMp: 5, resource: "horses");
             skyRider.FactionId = Khaganate;
             skyRider.Replaces = "horseman";
+        }
+
+        static void AddPolicies(ContentDatabase db)
+        {
+            void P(string tree, string id, string name, string requires, string text,
+                Yields capital = default, Yields city = default, int happiness = 0, int armyCap = 0, int cs = 0) =>
+                db.Add(new PolicyDef
+                {
+                    Id = id, Name = name, Tree = tree, Requires = requires, Description = text,
+                    CapitalYields = capital, CityYields = city, Happiness = happiness,
+                    ArmyCapBonus = armyCap, CombatStrengthBonus = cs,
+                });
+
+            P("Tradition", "tradition", "Tradition", null, "+3 culture and +2 food in the capital.", capital: new Yields(food: 2, culture: 3));
+            P("Tradition", "aristocracy", "Aristocracy", "tradition", "+3 production in the capital.", capital: new Yields(production: 3));
+            P("Tradition", "monarchy", "Monarchy", "aristocracy", "+3 gold in the capital, +2 happiness.", capital: new Yields(gold: 3), happiness: 2);
+
+            P("Liberty", "liberty", "Liberty", null, "+1 culture in every city.", city: new Yields(culture: 1));
+            P("Liberty", "collective_rule", "Collective Rule", "liberty", "+1 food in every city.", city: new Yields(food: 1));
+            P("Liberty", "republic", "Republic", "collective_rule", "+1 production in every city.", city: new Yields(production: 1));
+
+            P("Honor", "honor", "Honor", null, "+2 combat strength for all units.", cs: 2);
+            P("Honor", "discipline", "Discipline", "honor", "+1 more combat strength, +1 happiness.", cs: 1, happiness: 1);
+            P("Honor", "professional_army", "Professional Army", "discipline", "Army cap +1.", armyCap: 1);
+
+            P("Commerce", "commerce", "Commerce", null, "+3 gold in the capital.", capital: new Yields(gold: 3));
+            P("Commerce", "mercantilism", "Mercantilism", "commerce", "+1 gold in every city.", city: new Yields(gold: 1));
+            P("Commerce", "protectionism", "Protectionism", "mercantilism", "+3 happiness.", happiness: 3);
         }
 
         static void AddBuildings(ContentDatabase db)

@@ -45,6 +45,8 @@ namespace Crucible.Core.Economy
             }
 
             if (!t.IsWater && t.RiverEdges != 0) y.Gold += 1;
+            y += Improvements.ResourceYields(t.Resource);
+            y += Improvements.ImprovementYields(t.Improvement);
             return y;
         }
 
@@ -64,6 +66,12 @@ namespace Crucible.Core.Economy
             foreach (var c in city.WorkedTiles) total += TileYields(game.Map.Get(c), game.Map);
             foreach (var id in city.Buildings) total += game.Content.Building(id).Yields;
             if (IsCapital(game, city)) total += new Yields(production: 3, gold: 3, science: 3, culture: 1);
+            foreach (var id in game.Player(city.OwnerId).Policies)
+            {
+                var policy = game.Content.Policy(id);
+                total += policy.CityYields;
+                if (IsCapital(game, city)) total += policy.CapitalYields;
+            }
             total.Science += city.Population; // Civ V BNW: 1 science per citizen
 
             if (city.IsBesieged) total.Production = total.Production * 3 / 4;
@@ -100,7 +108,9 @@ namespace Crucible.Core.Economy
         {
             var cities = game.Cities.Where(c => c.OwnerId == player.Id).ToList();
             int buildings = cities.Sum(c => c.Buildings.Sum(b => game.Content.Building(b).Happiness));
-            return BaseHappiness + buildings
+            int policies = player.Policies.Sum(p => game.Content.Policy(p).Happiness);
+            int luxuries = Improvements.ConnectedLuxuries(game, player.Id).Count() * Improvements.HappinessPerLuxury;
+            return BaseHappiness + buildings + policies + luxuries
                    - UnhappinessPerCity * cities.Count
                    - UnhappinessPerCitizen * cities.Sum(c => c.Population);
         }
@@ -119,6 +129,20 @@ namespace Crucible.Core.Economy
         public static int BuildingMaintenance(GameState game, Player player) =>
             game.Cities.Where(c => c.OwnerId == player.Id)
                 .Sum(c => c.Buildings.Sum(b => game.Content.Building(b).Maintenance));
+
+        /// <summary>Civ V: 25 + (3n)^2.01 culture for the (n+1)th policy, +10% per extra city, rounded down to 5.</summary>
+        public static int PolicyCost(GameState game, Player player)
+        {
+            int n = player.Policies.Count;
+            double cost = 25 + Math.Pow(3 * n, 2.01);
+            int cities = Math.Max(1, game.Cities.Count(c => c.OwnerId == player.Id));
+            cost *= 1 + 0.1 * (cities - 1);
+            return (int)(cost / 5) * 5;
+        }
+
+        public static bool CanAdopt(GameState game, Player player, PolicyDef policy) =>
+            !player.Policies.Contains(policy.Id) &&
+            (policy.Requires == null || player.Policies.Contains(policy.Requires));
 
         /// <summary>Empire-wide yields per turn, with <see cref="Yields.Gold"/> as net gold after upkeep.</summary>
         public static Yields EmpireIncome(GameState game, Player player)
@@ -146,7 +170,11 @@ namespace Crucible.Core.Economy
             // A faction's unique unit replaces the generic one.
             if (game.Content.Units.Any(x => x.FactionId == player.Faction.Id && x.Replaces == u.Id)) return false;
             if (u.Id == DefaultContent.SettlerUnit && city.Population < 2) return false;
-            // TODO(M5): strategic resources (RequiredResource) gate units once resources are placed.
+            if (u.RequiredResource != null)
+            {
+                var r = Improvements.Parse(u.RequiredResource);
+                if (Improvements.StrategicAvailable(game, player.Id, r) <= Improvements.StrategicUsed(game, player.Id, r)) return false;
+            }
             return true;
         }
 

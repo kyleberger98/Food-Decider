@@ -39,12 +39,29 @@ namespace Crucible.Core.Economy
             }
 
             player.LifetimeCulture += culture;
+            player.PolicyCulture += culture;
+            if (player.IsAI) AutoAdoptPolicies(game, player);
 
             if (player.Tech.CurrentResearch == null) AutoPickResearch(player);
             player.Tech.AddScience(science);
             if (player.Tech.CurrentResearch == null) AutoPickResearch(player);
 
             player.Happiness = EconomyRules.Happiness(game, player);
+        }
+
+        /// <summary>AI: open trees in a fixed preference order (Tradition, Honor, Commerce, Liberty).</summary>
+        public static void AutoAdoptPolicies(GameState game, Player player)
+        {
+            string[] treeOrder = { "Tradition", "Honor", "Commerce", "Liberty" };
+            for (int guard = 0; guard < 5; guard++)
+            {
+                var next = game.Content.Policies
+                    .Where(p => EconomyRules.CanAdopt(game, player, p))
+                    .OrderBy(p => System.Array.IndexOf(treeOrder, p.Tree))
+                    .ThenBy(p => p.Requires == null ? 1 : 0) // finish a tree before opening another
+                    .FirstOrDefault();
+                if (next == null || !game.AdoptPolicy(player, next.Id)) return;
+            }
         }
 
         /// <summary>Cheapest available tech (the UI can override the choice at any time).</summary>

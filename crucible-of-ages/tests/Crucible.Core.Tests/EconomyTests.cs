@@ -140,6 +140,10 @@ namespace Crucible.Core.Tests
             Assert.True(EconomyRules.CanBuild(g, khanCity, ProductionItem.Unit("archer")));
 
             aurelPlayer.Tech.Grant("iron_working");
+            Assert.False(EconomyRules.CanBuild(g, aurelCity, ProductionItem.Unit("aurel_legionary"))); // no iron
+            var ironHex = aurelCity.Position.Neighbor(0);
+            g.Map.Get(ironHex).Resource = World.ResourceType.Iron;
+            g.Map.Get(ironHex).Improvement = World.ImprovementType.Mine;
             Assert.True(EconomyRules.CanBuild(g, aurelCity, ProductionItem.Unit("aurel_legionary")));
             Assert.False(EconomyRules.CanBuild(g, aurelCity, ProductionItem.Unit("swordsman"))); // replaced
             Assert.False(EconomyRules.CanBuild(g, khanCity, ProductionItem.Unit("aurel_legionary"))); // not theirs

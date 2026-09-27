@@ -476,10 +476,18 @@ namespace Crucible.Core.Combat
                     n != from && _occupants.TryGetValue(n, out var o) && o != attacker && _sideOf[o.Id] == side),
                 WallsBreached = HasWalls && !WallsIntact && Objective == target,
             };
+            int atkPolicy = PolicyCombatBonus(Side(side).Player), defPolicy = PolicyCombatBonus(Opponent(side).Player);
+            if (atkPolicy != 0) s.AttackerExtras.Add(new CombatModifier("Policies", atkPolicy));
+            if (defPolicy != 0) s.DefenderExtras.Add(new CombatModifier("Policies", defPolicy));
             if (Side(side).Player.IsVeryUnhappy) s.AttackerExtras.Add(new CombatModifier("Unhappiness", UnhappinessPenalty));
             if (Opponent(side).Player.IsVeryUnhappy) s.DefenderExtras.Add(new CombatModifier("Unhappiness", UnhappinessPenalty));
             return s;
         }
+
+        /// <summary>Set by the game from content: policy id → CS bonus (keeps Battle free of the content DB).</summary>
+        public Func<string, int> PolicyStrength { get; set; }
+
+        int PolicyCombatBonus(Player p) => PolicyStrength == null ? 0 : p.Policies.Sum(PolicyStrength);
 
         public CombatPreview PreviewAttack(Unit attacker, HexCoord from, Unit defender) =>
             CombatResolver.Preview(BuildSituation(attacker, from, defender));

@@ -28,6 +28,7 @@ namespace Crucible.View
         readonly Dictionary<int, GameObject> _units = new Dictionary<int, GameObject>();
         readonly List<GameObject> _battleTiles = new List<GameObject>();
         readonly List<GameObject> _highlightPool = new List<GameObject>();
+        readonly List<GameObject> _terrainMarkers = new List<GameObject>();
         int _shownBattleId = -1;
 
         public void Init(HexMapRenderer map)
@@ -144,6 +145,40 @@ namespace Crucible.View
             {
                 Destroy(_units[id]);
                 _units.Remove(id);
+            }
+        }
+
+        /// <summary>
+        /// Resources (small spheres: green bonus, red strategic, violet luxury) and improvements (flat
+        /// tan slabs) on explored hexes. Rebuilt only when the map or fog changes.
+        /// </summary>
+        public void SyncTerrainMarkers(GameState game, PlayerVisibility viewer)
+        {
+            foreach (var m in _terrainMarkers) Destroy(m);
+            _terrainMarkers.Clear();
+            foreach (var t in game.Map.Tiles)
+            {
+                if (viewer != null && !viewer.IsExplored(t.Coord)) continue;
+                var center = _map.HexToWorld(t.Coord);
+                if (t.Improvement != Crucible.Core.World.ImprovementType.None)
+                {
+                    var slab = Primitive(PrimitiveType.Cube, t.Improvement.ToString());
+                    slab.transform.localScale = new Vector3(0.45f, 0.05f, 0.45f);
+                    slab.transform.position = center + new Vector3(-0.3f, 0.03f, -0.3f);
+                    Tint(slab, new Color(0.75f, 0.62f, 0.4f));
+                    _terrainMarkers.Add(slab);
+                }
+                if (t.Resource != Crucible.Core.World.ResourceType.None)
+                {
+                    var orb = Primitive(PrimitiveType.Sphere, t.Resource.ToString());
+                    orb.transform.localScale = Vector3.one * 0.2f;
+                    orb.transform.position = center + new Vector3(0.35f, 0.12f, 0.25f);
+                    var kind = Crucible.Core.Economy.Improvements.KindOf(t.Resource);
+                    Tint(orb, kind == Crucible.Core.Economy.ResourceKind.Strategic ? new Color(0.85f, 0.25f, 0.2f)
+                        : kind == Crucible.Core.Economy.ResourceKind.Luxury ? new Color(0.7f, 0.35f, 0.9f)
+                        : new Color(0.4f, 0.85f, 0.35f));
+                    _terrainMarkers.Add(orb);
+                }
             }
         }
 

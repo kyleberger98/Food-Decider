@@ -107,6 +107,27 @@ namespace Crucible.Core.Content
         public int WallTiers;
     }
 
+    /// <summary>A social policy (GDD §3). Trees are linear: each policy needs the previous one.</summary>
+    [Serializable]
+    public sealed class PolicyDef
+    {
+        public string Id;
+        public string Name;
+        public string Tree;
+        public string Description;
+
+        /// <summary>Policy that must be adopted first (the tree's opener has none).</summary>
+        public string Requires;
+
+        public Yields CapitalYields;
+        public Yields CityYields;
+        public int Happiness;
+        public int ArmyCapBonus;
+
+        /// <summary>Flat CS for all of the owner's units in battle.</summary>
+        public int CombatStrengthBonus;
+    }
+
     [Serializable]
     public sealed class TechDef
     {

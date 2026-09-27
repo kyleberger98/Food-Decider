@@ -63,7 +63,54 @@ namespace Crucible.Core.World
 
             MarkCoasts(map);
             CarveRivers(map, rng, s.LandTilesPerRiver);
+            // Separate stream so resource tuning never reshapes the terrain of a given seed.
+            PlaceResources(map, new DeterministicRng(s.Seed ^ 0xA5A5_5A5A_1234_4321UL));
             return map;
+        }
+
+        /// <summary>Scatters resources where they make sense (GDD §2.3). Roughly 1 tile in 9 gets one.</summary>
+        static void PlaceResources(WorldMap map, DeterministicRng rng)
+        {
+            foreach (var t in map.Tiles)
+            {
+                if (t.IsMountain || t.Terrain == TerrainType.Snow || t.Terrain == TerrainType.Ocean) continue;
+                double roll = rng.NextDouble();
+                bool hills = !t.IsWater && t.Elevation >= 2;
+
+                if (t.Terrain == TerrainType.Coast) { if (roll < 0.08) t.Resource = ResourceType.Fish; continue; }
+                if (hills && t.Feature == FeatureType.None)
+                {
+                    t.Resource = roll < 0.07 ? ResourceType.Iron : roll < 0.10 ? ResourceType.Gems : t.Resource;
+                    continue;
+                }
+                switch (t.Feature)
+                {
+                    case FeatureType.Forest:
+                        t.Resource = roll < 0.05 ? (t.Terrain == TerrainType.Tundra ? ResourceType.Furs : ResourceType.Silk) : ResourceType.None;
+                        continue;
+                    case FeatureType.Jungle:
+                        t.Resource = roll < 0.05 ? ResourceType.Gems : ResourceType.None;
+                        continue;
+                    case FeatureType.Marsh:
+                        t.Resource = roll < 0.06 ? ResourceType.Oil : ResourceType.None;
+                        continue;
+                }
+                switch (t.Terrain)
+                {
+                    case TerrainType.Grassland:
+                        t.Resource = roll < 0.04 ? ResourceType.Horses : roll < 0.08 ? ResourceType.Cattle : roll < 0.10 ? ResourceType.Wine : ResourceType.None;
+                        break;
+                    case TerrainType.Plains:
+                        t.Resource = roll < 0.04 ? ResourceType.Horses : roll < 0.08 ? ResourceType.Wheat : roll < 0.10 ? ResourceType.Wine : roll < 0.12 ? ResourceType.Iron : ResourceType.None;
+                        break;
+                    case TerrainType.Desert:
+                        t.Resource = t.Feature == FeatureType.Floodplain && roll < 0.2 ? ResourceType.Wheat : roll < 0.05 ? ResourceType.Oil : ResourceType.None;
+                        break;
+                    case TerrainType.Tundra:
+                        t.Resource = roll < 0.05 ? ResourceType.Oil : roll < 0.09 ? ResourceType.Furs : ResourceType.None;
+                        break;
+                }
+            }
         }
 
         static TerrainType PickTerrain(double latitude, double moisture, int elevation)

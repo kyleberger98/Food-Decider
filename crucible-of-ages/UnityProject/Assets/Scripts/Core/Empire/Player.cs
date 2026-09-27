@@ -22,6 +22,10 @@ namespace Crucible.Core.Empire
         /// <summary>Extra army cap from policies, great generals held in reserve, etc.</summary>
         public int PolicyArmyCapBonus { get; set; }
 
+        /// <summary>Adopted social policies, and culture banked toward the next one.</summary>
+        public HashSet<string> Policies { get; } = new HashSet<string>();
+        public int PolicyCulture { get; set; }
+
         // --- Victory progress (systems land in M8; the checker reads these today) ---
         public int SpaceshipPartsLanded { get; set; }
         public int Tourism { get; set; }

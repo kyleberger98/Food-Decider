@@ -87,6 +87,13 @@ Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
 - **Tech tree:** 8 eras (Ancient, Classical, Medieval, Renaissance, Industrial, Modern, Atomic,
   Information), about 80 techs.
 - **Social policies:** 9 trees plus 3 ideologies (Freedom / Order / Autocracy analogues, renamed).
+  Culture fills a policy pool. The next policy costs 25 + (3n)^2.01, +10% per extra city.
+  Trees are linear. **Honor** carries the combat policies: +2 CS, +1 CS, and army cap +1
+  (*Professional Army*).
+- **Resources & workers:** bonus resources add yields on their own. Strategic and luxury
+  resources count once a worker connects them with the right improvement: a farm, mine,
+  pasture, plantation, camp or well, each taking 5–7 turns and needing a tech. Each connected
+  strategic source supports 4 units that need it. Each distinct luxury gives +4 happiness.
 - **Great People:** Scientist, Engineer, Merchant, Writer, Artist, Musician, Prophet,
   **General**, **Admiral**.
 - **Religion:** pantheon → founding → enhancing → reformation beliefs.
@@ -336,7 +343,7 @@ crucible-of-ages/
 | M2 | Tactical battles 🟡 | ✅ battlefield gen, editable deployment phase (defender first), 3×3 rounds, reserves, reinforcements entering from their own edge, joining ongoing battles, retreat, auto-resolve, move/target highlights. ⏳ Real battle camera/animations, naval & coastal fields |
 | M3 | Economy 🟡 | ✅ tile yields (terrain, hills, features, rivers), citizens & governor, Civ V growth curve, starvation, production queue with overflow, 8 buildings, palace, gold income/maintenance/unit upkeep/bankruptcy, global happiness, culture border growth, auto research, settlers & city founding, civilians captured in battle. ⏳ Workers & improvements, specialists, strategic/luxury resources (moved to M5) |
 | M4 | Sieges ✅ | Siege declaration and lifting, militia (stay home, fight only for their city), siege progress → rams/towers/catapults (max 3), walls with HP (50/tier) that block melee from the centre, towers let adjacent infantry climb, rams ×3 / siege ×2 wall damage, breach removes the wall bonus, garrison holds the centre, sorties, AI assaults. ⏳ Gunpowder-era sappers & artillery engines |
-| M5 | Tech & policies (Ancient→Medieval content) | Tech tree, policies, army cap progression |
+| M5 | Tech, policies, resources 🟡 | ✅ tech-gated units/buildings/improvements, army cap progression, 4 policy trees (Tradition, Liberty, Honor, Commerce) with Civ V cost curve, resources on the map (bonus/strategic/luxury), workers & 6 improvements, strategic caps (4 units per connected source), luxuries (+4 happiness each), worker automation, AI policy adoption. ⏳ Remaining Civ V trees & ideologies, roads, pillaging (Khaganate ability) |
 | M6 | AI v1 | Tactical AI in all battles; operational + economic AI can win a domination game |
 | M7 | Full-history content | All 8 eras: units, buildings, wonders; naval & air battles |
 | M8 | Remaining systems | Religion, great people, city-states, World Congress, tourism |

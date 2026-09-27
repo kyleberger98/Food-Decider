@@ -19,6 +19,12 @@ namespace Crucible.Core.Units
         /// <summary>Standing move order, continued automatically at the start of each of the owner's turns.</summary>
         public HexCoord? Destination { get; set; }
 
+        /// <summary>Improvement this army's worker is building on its hex (cleared when it moves).</summary>
+        public Crucible.Core.World.ImprovementType BuildOrder { get; set; }
+
+        /// <summary>Workers in this army pick their own jobs each turn.</summary>
+        public bool AutomatedWorkers { get; set; }
+
         /// <summary>Id of the battle this army is currently locked into, or -1.</summary>
         public int BattleId { get; set; } = -1;
 

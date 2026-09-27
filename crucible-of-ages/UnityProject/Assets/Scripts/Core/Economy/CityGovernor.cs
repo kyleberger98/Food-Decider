@@ -50,6 +50,13 @@ namespace Crucible.Core.Economy
             // Never leave the empire without at least one defender per city.
             if (units < cities && BestUnit(game, city) is ProductionItem defender) return defender;
 
+            // One worker per city while there is land to improve.
+            int workers = game.Armies.Where(a => a.OwnerId == owner.Id)
+                .Sum(a => a.Units.Count(u => u.Def.Id == DefaultContent.WorkerUnit));
+            bool improvable = game.Map.Tiles.Any(t => t.OwnerPlayerId == owner.Id &&
+                                                      Improvements.Best(owner, t) != World.ImprovementType.None);
+            if (workers < cities && improvable) return ProductionItem.Unit(DefaultContent.WorkerUnit);
+
             if (owner.Happiness < 2 && EconomyRules.CanBuild(game, city, ProductionItem.Building("colosseum")))
                 return ProductionItem.Building("colosseum");
 

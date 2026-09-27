@@ -4,6 +4,7 @@ using System.Linq;
 using Crucible.Core.AI;
 using Crucible.Core.Combat;
 using Crucible.Core.Content;
+using Crucible.Core.Economy;
 using Crucible.Core.Empire;
 using Crucible.Core.Hex;
 using Crucible.Core.Random;
@@ -144,6 +145,7 @@ namespace Crucible.Core.Game
             }
 
             bool crossesRiver = Map.HasRiverBetween(army.Position, dest);
+            army.BuildOrder = ImprovementType.None;
             army.Position = dest;
             army.WorldMovesLeft = Math.Max(0, army.WorldMovesLeft - cost);
             if (crossesRiver || InEnemyZoc(dest, army.OwnerId)) army.WorldMovesLeft = 0;
@@ -280,6 +282,7 @@ namespace Crucible.Core.Game
                 new BattleSide(BattleSideId.Defender, Player(defenderId), target),
                 Rng, isSiege ? target : (HexCoord?)null, isSiege ? city.Id : -1);
 
+            battle.PolicyStrength = id => Content.Policy(id).CombatStrengthBonus;
             battle.AddArmy(BattleSideId.Attacker, attacker);
             if (defenderArmy != null) battle.AddArmy(BattleSideId.Defender, defenderArmy);
             PullInReinforcements(battle);
@@ -504,8 +507,10 @@ namespace Crucible.Core.Game
         {
             foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id))
                 army.WorldMovesLeft = army.InBattle ? 0 : WorldMovementOf(army);
+            ProgressImprovements(player);
             foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id && a.Destination.HasValue).ToList())
                 ContinueMoveOrder(army);
+            WorkerAutomation.Run(this, player.Id);
             RefreshVisibility(player.Id);
 
             EndSiegesWithoutBesiegers();

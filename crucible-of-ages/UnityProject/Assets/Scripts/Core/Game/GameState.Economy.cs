@@ -28,6 +28,64 @@ namespace Crucible.Core.Game
             return true;
         }
 
+        // ------------------------------------------------------------------ policies
+
+        /// <summary>Adopts a social policy if enough culture is banked and its prerequisite is held.</summary>
+        public bool AdoptPolicy(Player player, string policyId)
+        {
+            var policy = Content.Policy(policyId);
+            int cost = EconomyRules.PolicyCost(this, player);
+            if (!EconomyRules.CanAdopt(this, player, policy) || player.PolicyCulture < cost) return false;
+            player.PolicyCulture -= cost;
+            player.Policies.Add(policy.Id);
+            player.PolicyArmyCapBonus += policy.ArmyCapBonus;
+            player.Happiness = EconomyRules.Happiness(this, player);
+            return true;
+        }
+
+        // ------------------------------------------------------------------ workers
+
+        /// <summary>
+        /// Orders the army's worker to build an improvement on its hex. Work accrues at the start of
+        /// each of the owner's turns while the army stays put; moving cancels the order (progress is kept on the tile).
+        /// </summary>
+        public bool StartImprovement(Army army, ImprovementType improvement)
+        {
+            if (army.InBattle || !WorkerAutomation.HasWorker(army)) return false;
+            var tile = Map.Get(army.Position);
+            if (!Improvements.CanBuild(Player(army.OwnerId), tile, improvement)) return false;
+            if (tile.ImprovementInProgress != improvement)
+            {
+                tile.ImprovementInProgress = improvement;
+                tile.ImprovementProgress = 0;
+            }
+            army.BuildOrder = improvement;
+            army.Destination = null;
+            army.WorldMovesLeft = 0;
+            return true;
+        }
+
+        void ProgressImprovements(Player player)
+        {
+            foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id && a.BuildOrder != ImprovementType.None))
+            {
+                var tile = Map.Get(army.Position);
+                if (!WorkerAutomation.HasWorker(army) || tile.ImprovementInProgress != army.BuildOrder)
+                {
+                    army.BuildOrder = ImprovementType.None;
+                    continue;
+                }
+                // Moves stay available: walking away simply cancels the order (see MoveArmy).
+                if (++tile.ImprovementProgress < Improvements.BuildTurns(army.BuildOrder)) continue;
+
+                tile.Improvement = army.BuildOrder;
+                tile.ImprovementInProgress = ImprovementType.None;
+                tile.ImprovementProgress = 0;
+                army.BuildOrder = ImprovementType.None;
+                MapVersion++;
+            }
+        }
+
         /// <summary>Ends a player's turn: runs the economy for their cities and treasury.</summary>
         internal void EndPlayerTurn(Player player) => EconomyProcessor.ProcessTurn(this, player);
 

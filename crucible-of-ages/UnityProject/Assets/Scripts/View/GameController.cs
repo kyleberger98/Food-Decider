@@ -33,6 +33,7 @@ namespace Crucible.View
         Unit _selectedUnit;
         int _mapVersion = -1;
         Vector2 _cityScroll;
+        bool _showPolicies;
 
         /// <summary>Screen areas drawn by OnGUI last frame; clicks there don't reach the map.</summary>
         readonly System.Collections.Generic.List<Rect> _uiRects = new System.Collections.Generic.List<Rect>();
@@ -121,6 +122,23 @@ namespace Crucible.View
                 {
                     CycleResearch();
                 }
+                else if (Input.GetKeyDown(KeyCode.P))
+                {
+                    _showPolicies = !_showPolicies;
+                }
+                else if (Input.GetKeyDown(KeyCode.I) && _selectedArmy != null)
+                {
+                    var tile = _game.Map.Get(_selectedArmy.Position);
+                    var imp = Improvements.Best(Human, tile);
+                    _message = imp != Crucible.Core.World.ImprovementType.None && _game.StartImprovement(_selectedArmy, imp)
+                        ? $"Building a {imp} ({Improvements.BuildTurns(imp) - tile.ImprovementProgress} turns). Moving cancels."
+                        : "Nothing to build here (needs a worker, your territory, the right tech and terrain).";
+                }
+                else if (Input.GetKeyDown(KeyCode.U) && _selectedArmy != null && WorkerAutomation.HasWorker(_selectedArmy))
+                {
+                    _selectedArmy.AutomatedWorkers = !_selectedArmy.AutomatedWorkers;
+                    _message = _selectedArmy.AutomatedWorkers ? "Workers automated." : "Workers under manual control.";
+                }
                 else if (Input.GetKeyDown(KeyCode.G) && _selectedArmy != null)
                 {
                     var target = AdjacentEnemyCity(_selectedArmy);
@@ -145,6 +163,7 @@ namespace Crucible.View
             if (viewer.Version != _fogVersion || _game.MapVersion != _mapVersion)
             {
                 _map.ApplyFog(viewer, MarkerLayer.ColorOf);
+                _markers.SyncTerrainMarkers(_game, viewer);
                 _fogVersion = viewer.Version;
                 _mapVersion = _game.MapVersion;
             }
@@ -324,6 +343,13 @@ namespace Crucible.View
             sb.AppendLine(research != null
                 ? $"Research: {research.Name} {Human.Tech.Progress}/{research.ScienceCost}  (T to change)"
                 : "Research: none (T to choose)");
+            int policyCost = EconomyRules.PolicyCost(_game, Human);
+            string Strategic(Crucible.Core.World.ResourceType r) =>
+                $"{r} {Improvements.StrategicUsed(_game, Human.Id, r)}/{Improvements.StrategicAvailable(_game, Human.Id, r)}";
+            sb.AppendLine($"{Strategic(Crucible.Core.World.ResourceType.Horses)}  {Strategic(Crucible.Core.World.ResourceType.Iron)}  " +
+                          $"{Strategic(Crucible.Core.World.ResourceType.Oil)}   Luxuries {Improvements.ConnectedLuxuries(_game, Human.Id).Count()}");
+            sb.AppendLine($"Policies {Human.Policies.Count}: culture {Human.PolicyCulture}/{policyCost}" +
+                          (Human.PolicyCulture >= policyCost ? "  — P: adopt a policy!" : "  (P to view)"));
 
             var battle = HumanBattle;
             if (battle != null)
@@ -354,6 +380,9 @@ namespace Crucible.View
                     if (_hoverPath != null) sb.AppendLine($"Route: {_hoverPath.Steps.Count} hexes, {_hoverPath.Turns} turn(s)");
                     if (_selectedArmy.Units.Any(u => u.Def.Id == Crucible.Core.Content.DefaultContent.SettlerUnit))
                         sb.AppendLine("F: found a city here");
+                    if (WorkerAutomation.HasWorker(_selectedArmy))
+                        sb.AppendLine($"I: improve this hex   U: {(_selectedArmy.AutomatedWorkers ? "stop automating" : "automate")}" +
+                                      (_selectedArmy.BuildOrder != Crucible.Core.World.ImprovementType.None ? $"   (building {_selectedArmy.BuildOrder})" : ""));
                     if (AdjacentEnemyCity(_selectedArmy) is City enemyCity && !enemyCity.IsBesieged)
                         sb.AppendLine($"G: besiege {enemyCity.Name}   (click it to assault)");
                 }
@@ -368,7 +397,8 @@ namespace Crucible.View
             GUI.Box(hud, GUIContent.none);
             GUI.Label(new Rect(20, 16, 500, 800), sb.ToString());
 
-            if (_selectedCity != null && battle == null) DrawCityPanel(_selectedCity);
+            if (_showPolicies && battle == null) DrawPolicyPanel();
+            else if (_selectedCity != null && battle == null) DrawCityPanel(_selectedCity);
             else if (battle == null && BesiegedBySelection() is City siege) DrawSiegePanel(siege);
         }
 
@@ -436,6 +466,31 @@ namespace Crucible.View
             }
             GUILayout.EndScrollView();
             if (GUILayout.Button("Close")) _selectedCity = null;
+            GUILayout.EndArea();
+        }
+
+        /// <summary>Social policies: one column per tree, adoptable ones as buttons.</summary>
+        void DrawPolicyPanel()
+        {
+            var area = new Rect(Screen.width - 430, 10, 420, 360);
+            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
+            GUI.Box(area, GUIContent.none);
+            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
+            int cost = EconomyRules.PolicyCost(_game, Human);
+            GUILayout.Label($"<b>Social policies</b>  culture {Human.PolicyCulture}/{cost}", Rich());
+            foreach (var tree in _game.Content.Policies.GroupBy(p => p.Tree))
+            {
+                GUILayout.Label($"<b>{tree.Key}</b>", Rich());
+                foreach (var policy in tree)
+                {
+                    bool adopted = Human.Policies.Contains(policy.Id);
+                    GUI.enabled = !adopted && EconomyRules.CanAdopt(_game, Human, policy) && Human.PolicyCulture >= cost;
+                    string label = (adopted ? "✓ " : "") + $"{policy.Name}: {policy.Description}";
+                    if (GUILayout.Button(label) && _game.AdoptPolicy(Human, policy.Id)) _message = $"Adopted {policy.Name}.";
+                    GUI.enabled = true;
+                }
+            }
+            if (GUILayout.Button("Close")) _showPolicies = false;
             GUILayout.EndArea();
         }
 

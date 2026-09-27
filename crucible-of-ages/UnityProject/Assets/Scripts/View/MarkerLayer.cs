@@ -38,14 +38,15 @@ namespace Crucible.View
         public static Color ColorOf(int playerId) => PlayerColors[playerId % PlayerColors.Length];
 
         /// <summary>Brings markers in line with the game state. Cheap enough to call every frame at this scale.</summary>
-        public void Sync(GameState game, Battle focusBattle, Army selectedArmy, Unit selectedUnit)
+        /// <param name="viewer">Fog of war to respect (the human player's), or null to show everything.</param>
+        public void Sync(GameState game, PlayerVisibility viewer, Battle focusBattle, Army selectedArmy, Unit selectedUnit)
         {
-            SyncCities(game);
-            SyncArmies(game, focusBattle, selectedArmy);
+            SyncCities(game, viewer);
+            SyncArmies(game, viewer, focusBattle, selectedArmy);
             SyncBattle(focusBattle, selectedUnit);
         }
 
-        void SyncCities(GameState game)
+        void SyncCities(GameState game, PlayerVisibility viewer)
         {
             foreach (var city in game.Cities)
             {
@@ -56,11 +57,12 @@ namespace Crucible.View
                     go.transform.position = _map.HexToWorld(city.Position) + Vector3.up * 0.25f;
                     _cities[city.Id] = go;
                 }
+                go.SetActive(viewer == null || viewer.IsExplored(city.Position));
                 Tint(go, ColorOf(city.OwnerId) * 0.8f);
             }
         }
 
-        void SyncArmies(GameState game, Battle focusBattle, Army selected)
+        void SyncArmies(GameState game, PlayerVisibility viewer, Battle focusBattle, Army selected)
         {
             var alive = new HashSet<int>();
             foreach (var army in game.Armies)
@@ -72,7 +74,9 @@ namespace Crucible.View
                     _armies[army.Id] = go;
                 }
                 // Armies unfold into individual units while their battle is on screen.
-                go.SetActive(focusBattle == null || !focusBattle.Attacker.Armies.Concat(focusBattle.Defender.Armies).Contains(army));
+                bool seen = viewer == null || viewer.IsVisible(army.Position);
+                bool unfolded = focusBattle != null && focusBattle.Attacker.Armies.Concat(focusBattle.Defender.Armies).Contains(army);
+                go.SetActive(seen && !unfolded);
                 float h = 0.1f + 0.06f * army.Count;
                 go.transform.localScale = new Vector3(0.55f, h, 0.55f);
                 go.transform.position = _map.HexToWorld(army.Position) + Vector3.up * (h + 0.02f);

@@ -27,6 +27,9 @@ namespace Crucible.View
         Army _selectedArmy;
         Unit _selectedUnit;
         HexCoord? _hover;
+        ArmyPath _hoverPath;
+        HexCoord? _hoverPathFor;
+        int _fogVersion = -1;
         string _message = "Select your army (blue) and click a hex to move. Enter ends the turn.";
 
         public void Init(GameState game, TurnManager turns, HexMapRenderer map, CameraRig rig)
@@ -44,6 +47,9 @@ namespace Crucible.View
 
         Player Human => _turns.ActivePlayer;
 
+        /// <summary>Fog is drawn from the (single) human player's point of view.</summary>
+        PlayerVisibility Viewer => _game.Visibility(_game.Players.FirstOrDefault(p => !p.IsAI)?.Id ?? 0);
+
         /// <summary>A battle waiting on a human decision, if any.</summary>
         Battle HumanBattle => _game.Battles.FirstOrDefault(b => b.Status == BattleStatus.InProgress && !b.Active.Player.IsAI);
 
@@ -57,6 +63,7 @@ namespace Crucible.View
             {
                 if (Input.GetMouseButtonDown(0) && _hover.HasValue)
                 {
+                    ClearRoutePreview();
                     if (battle != null) BattleClick(battle, _hover.Value);
                     else WorldClick(_hover.Value);
                 }
@@ -69,6 +76,7 @@ namespace Crucible.View
                 else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
                 {
                     _selectedArmy = null;
+                    ClearRoutePreview();
                     _turns.EndTurn();
                     _message = _turns.IsGameOver ? $"Game over — {_game.Victory}" : $"Turn {_game.Turn}.";
                 }
@@ -77,8 +85,32 @@ namespace Crucible.View
             if (_selectedArmy != null && _game.Army(_selectedArmy.Id) == null) _selectedArmy = null;
             if (_selectedUnit != null && !_selectedUnit.IsAlive) _selectedUnit = null;
 
+            var viewer = Viewer;
+            if (viewer.Version != _fogVersion)
+            {
+                _map.ApplyFog(viewer);
+                _fogVersion = viewer.Version;
+            }
+
+            // Path preview for the selected army (A* is cheap at this map size; cache per hovered hex).
+            if (battle == null && _selectedArmy != null && _hover.HasValue)
+            {
+                if (_hoverPathFor != _hover)
+                {
+                    _hoverPath = Pathfinder.Find(_game, _selectedArmy, _hover.Value);
+                    _hoverPathFor = _hover;
+                }
+            }
+            else ClearRoutePreview();
+
             var shown = battle ?? _game.Battles.FirstOrDefault(b => b.Attacker.Player == Human || b.Defender.Player == Human);
-            _markers.Sync(_game, shown, _selectedArmy, _selectedUnit);
+            _markers.Sync(_game, viewer, shown, _selectedArmy, _selectedUnit);
+        }
+
+        void ClearRoutePreview()
+        {
+            _hoverPath = null;
+            _hoverPathFor = null;
         }
 
         bool PickHex(out HexCoord hex)
@@ -115,18 +147,10 @@ namespace Crucible.View
                 return;
             }
 
-            // Greedy step-by-step movement; real pathfinding arrives in M1.
-            int steps = 0;
-            while (_selectedArmy.Position != hex && _selectedArmy.WorldMovesLeft > 0 && steps++ < 20)
-            {
-                var from = _selectedArmy.Position;
-                bool moved = from.Neighbors()
-                    .Where(n => n.DistanceTo(hex) < from.DistanceTo(hex))
-                    .OrderBy(n => n.DistanceTo(hex))
-                    .Any(n => _game.MoveArmy(_selectedArmy, n));
-                if (!moved) break;
-            }
-            _message = _selectedArmy.Position == hex ? "Moved." : "Blocked or out of moves (cliffs, rivers and enemy ZOC stop you).";
+            var path = _game.OrderMove(_selectedArmy, hex);
+            if (path == null) _message = "No route there (water, mountains, cliffs or blocked).";
+            else if (_selectedArmy.Position == hex) _message = "Arrived.";
+            else _message = $"Marching: arrives in {path.Turns} turn(s). The order continues automatically.";
         }
 
         // ------------------------------------------------------------------ tactical battle
@@ -185,6 +209,12 @@ namespace Crucible.View
             else
             {
                 sb.AppendLine("Enter: end turn   WASD: pan   Q/E: rotate   Wheel: zoom");
+                if (_selectedArmy != null)
+                {
+                    sb.AppendLine($"Army: {_selectedArmy.Count}/{Human.ArmyCap} units, {_selectedArmy.WorldMovesLeft} moves" +
+                                  (_selectedArmy.Destination.HasValue ? $", marching to {_selectedArmy.Destination.Value}" : ""));
+                    if (_hoverPath != null) sb.AppendLine($"Route: {_hoverPath.Steps.Count} hexes, {_hoverPath.Turns} turn(s)");
+                }
             }
 
             if (_hover.HasValue && _game.Map.Get(_hover.Value) is Crucible.Core.World.Tile t)

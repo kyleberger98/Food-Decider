@@ -88,6 +88,9 @@ Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
   denouncements, and a **World Congress** that becomes the **United Nations** analogue.
 - **Workers** build improvements; **roads** matter more than in Civ V, because armies are the
   main movers.
+- **Fog of war:** unexplored / fogged (terrain and cities remembered) / visible. Sight is 2 hexes,
+  +1 from hills or higher and +1 for an army that contains recon. Ridges and forests block sight
+  using the same LOS rule as ranged combat.
 
 ### 3.1 Fictional factions
 Each faction has a **unique ability**, **2 unique units/buildings/improvements**, a leader
@@ -318,7 +321,7 @@ crucible-of-ages/
 | # | Milestone | Exit criteria |
 |---|---|---|
 | M0 | **Scaffold** ✅ | Core compiles; hex math, combat formula, battle flow unit-tested; Unity renders a generated map |
-| M1 | World map & movement | Map gen with elevation/rivers, army move/merge/split, ZOC, fog of war |
+| M1 | World map & movement 🟡 | ✅ multi-turn A* pathfinding, standing move orders, army move/merge/split, ZOC, fog of war (LOS-aware sight, hills +1, recon +1). ⏳ Edge-following rivers, passing through friendly armies, chunked map mesh |
 | M2 | Tactical battles | Battlefield gen, deployment, 3×3 rounds, reserves, reinforcement, retreat, auto-resolve, battle UI |
 | M3 | Economy | Cities, tiles, buildings, happiness, gold, workers |
 | M4 | Sieges | Siege state, militia, siege engines, walls, assault battles |

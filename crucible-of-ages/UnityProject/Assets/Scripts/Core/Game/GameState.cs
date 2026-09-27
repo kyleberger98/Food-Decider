@@ -25,6 +25,7 @@ namespace Crucible.Core.Game
         readonly Dictionary<int, Army> _armies = new Dictionary<int, Army>();
         readonly Dictionary<int, City> _cities = new Dictionary<int, City>();
         readonly Dictionary<int, Battle> _battles = new Dictionary<int, Battle>();
+        readonly Dictionary<int, PlayerVisibility> _visibility = new Dictionary<int, PlayerVisibility>();
         int _nextUnitId = 1, _nextArmyId = 1, _nextCityId = 1, _nextBattleId = 1;
 
         public ContentDatabase Content { get; }
@@ -52,6 +53,7 @@ namespace Crucible.Core.Game
         public IEnumerable<Battle> Battles => _battles.Values;
 
         public Player Player(int id) => _players[id];
+        public PlayerVisibility Visibility(int playerId) => _visibility[playerId];
         public Army Army(int id) => _armies.TryGetValue(id, out var a) ? a : null;
         public City City(int id) => _cities.TryGetValue(id, out var c) ? c : null;
         public Battle Battle(int id) => _battles.TryGetValue(id, out var b) ? b : null;
@@ -68,6 +70,7 @@ namespace Crucible.Core.Game
         {
             var p = new Player(_players.Count, name, Content.Faction(factionId), isAI, Content);
             _players.Add(p);
+            _visibility[p.Id] = new PlayerVisibility();
             return p;
         }
 
@@ -86,6 +89,7 @@ namespace Crucible.Core.Game
                     throw new InvalidOperationException($"Army exceeds cap of {cap}.");
             _armies[army.Id] = army;
             army.WorldMovesLeft = WorldMovementOf(army);
+            RefreshVisibility(ownerId);
             return army;
         }
 
@@ -103,6 +107,7 @@ namespace Crucible.Core.Game
                 var t = Map.Get(n);
                 if (t != null && t.OwnerPlayerId < 0) t.OwnerPlayerId = ownerId;
             }
+            RefreshVisibility(ownerId);
             return city;
         }
 
@@ -132,7 +137,55 @@ namespace Crucible.Core.Game
             army.Position = dest;
             army.WorldMovesLeft = Math.Max(0, army.WorldMovesLeft - cost);
             if (crossesRiver || InEnemyZoc(dest, army.OwnerId)) army.WorldMovesLeft = 0;
+            RefreshVisibility(army.OwnerId);
             return true;
+        }
+
+        /// <summary>
+        /// Gives the army a standing order to walk to <paramref name="dest"/> (possibly over several
+        /// turns) and moves it as far as it can this turn. Returns the planned path, or null if unreachable.
+        /// </summary>
+        public ArmyPath OrderMove(Army army, HexCoord dest)
+        {
+            if (army.InBattle) return null;
+            var path = Pathfinder.Find(this, army, dest);
+            if (path == null) return null;
+            army.Destination = dest;
+            ContinueMoveOrder(army);
+            return path;
+        }
+
+        /// <summary>Follows the army's standing order with the moves it has left. Re-plans around new obstacles.</summary>
+        public void ContinueMoveOrder(Army army)
+        {
+            if (!army.Destination.HasValue) return;
+            for (int replans = 0; replans < 2 && army.WorldMovesLeft > 0 && !army.InBattle; replans++)
+            {
+                var path = Pathfinder.Find(this, army, army.Destination.Value);
+                if (path == null) break;
+                foreach (var step in path.Steps)
+                {
+                    if (army.WorldMovesLeft <= 0) return;
+                    if (!MoveArmy(army, step)) break; // blocked since planning: re-plan
+                }
+                if (army.Position == army.Destination) break;
+            }
+            if (army.Position == army.Destination || army.WorldMovesLeft > 0) army.Destination = null;
+        }
+
+        /// <summary>Recomputes one player's fog of war from their armies and cities.</summary>
+        public void RefreshVisibility(int playerId)
+        {
+            var sources = _armies.Values.Where(a => a.OwnerId == playerId)
+                .Select(a => (a.Position, PlayerVisibility.SightOf(a, Map)))
+                .Concat(_cities.Values.Where(c => c.OwnerId == playerId)
+                    .Select(c => (c.Position, PlayerVisibility.BaseSight)));
+            _visibility[playerId].Recompute(Map, sources);
+        }
+
+        void RefreshAllVisibility()
+        {
+            foreach (var p in _players) RefreshVisibility(p.Id);
         }
 
         public bool InEnemyZoc(HexCoord c, int playerId) =>
@@ -153,6 +206,7 @@ namespace Crucible.Core.Game
             }
             target.WorldMovesLeft = Math.Min(target.WorldMovesLeft, source.WorldMovesLeft);
             if (source.IsEmpty) _armies.Remove(source.Id);
+            RefreshVisibility(target.OwnerId);
             return moved;
         }
 
@@ -174,6 +228,7 @@ namespace Crucible.Core.Game
             }
             split.WorldMovesLeft = 0;
             _armies[split.Id] = split;
+            RefreshVisibility(army.OwnerId);
             return split;
         }
 
@@ -298,6 +353,7 @@ namespace Crucible.Core.Game
             }
 
             EndSiegesWithoutBesiegers();
+            RefreshAllVisibility();
             BattleEnded?.Invoke(battle);
             Victory = Victory ?? VictoryChecker.Check(this);
         }
@@ -362,6 +418,9 @@ namespace Crucible.Core.Game
         {
             foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id))
                 army.WorldMovesLeft = army.InBattle ? 0 : WorldMovementOf(army);
+            foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id && a.Destination.HasValue).ToList())
+                ContinueMoveOrder(army);
+            RefreshVisibility(player.Id);
 
             foreach (var city in _cities.Values.Where(c => c.IsBesieged))
             {

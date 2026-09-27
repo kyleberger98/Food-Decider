@@ -16,6 +16,9 @@ namespace Crucible.Core.Units
         public HexCoord Position { get; set; }
         public int WorldMovesLeft { get; set; }
 
+        /// <summary>Standing move order, continued automatically at the start of each of the owner's turns.</summary>
+        public HexCoord? Destination { get; set; }
+
         /// <summary>Id of the battle this army is currently locked into, or -1.</summary>
         public int BattleId { get; set; } = -1;
 

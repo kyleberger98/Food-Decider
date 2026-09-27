@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Crucible.Core.Game;
 using Crucible.Core.Hex;
 using Crucible.Core.World;
 using UnityEngine;
@@ -24,6 +25,12 @@ namespace Crucible.View
         readonly List<Color> _colors = new List<Color>();
         readonly List<int> _tris = new List<int>();
 
+        // Per-tile vertex range and lit colours, so fog can recolour without rebuilding geometry.
+        readonly Dictionary<HexCoord, (int start, int count)> _tileVerts = new Dictionary<HexCoord, (int, int)>();
+        Color[] _baseColors;
+        Color[] _shownColors;
+        Mesh _mesh;
+
         public WorldMap Map => _map;
 
         public void Build(WorldMap map)
@@ -32,10 +39,19 @@ namespace Crucible.View
             _verts.Clear();
             _colors.Clear();
             _tris.Clear();
+            _tileVerts.Clear();
 
-            foreach (var tile in map.Tiles) AddTile(tile);
+            foreach (var tile in map.Tiles)
+            {
+                int start = _verts.Count;
+                AddTile(tile);
+                _tileVerts[tile.Coord] = (start, _verts.Count - start);
+            }
+            _baseColors = _colors.ToArray();
+            _shownColors = _colors.ToArray();
 
             var mesh = new Mesh { name = "WorldMap", indexFormat = IndexFormat.UInt32 };
+            _mesh = mesh;
             mesh.SetVertices(_verts);
             mesh.SetColors(_colors);
             mesh.SetTriangles(_tris, 0);
@@ -46,6 +62,30 @@ namespace Crucible.View
             GetComponent<MeshCollider>().sharedMesh = mesh;
             var mr = GetComponent<MeshRenderer>();
             if (mr.sharedMaterial == null) mr.sharedMaterial = CreateMaterial();
+        }
+
+        /// <summary>Unexplored hexes go near-black; explored-but-unseen hexes are dimmed and desaturated.</summary>
+        public void ApplyFog(PlayerVisibility vis)
+        {
+            if (_mesh == null) return;
+            foreach (var kv in _tileVerts)
+            {
+                var state = vis.Get(kv.Key);
+                var (start, count) = kv.Value;
+                for (int i = start; i < start + count; i++)
+                {
+                    var c = _baseColors[i];
+                    if (state == VisibilityState.Unexplored) c = new Color(0.05f, 0.06f, 0.08f);
+                    else if (state == VisibilityState.Fogged)
+                    {
+                        float grey = c.grayscale;
+                        c = Color.Lerp(c, new Color(grey, grey, grey), 0.6f) * 0.55f;
+                    }
+                    c.a = 1f;
+                    _shownColors[i] = c;
+                }
+            }
+            _mesh.colors = _shownColors;
         }
 
         static Material CreateMaterial()

@@ -38,11 +38,11 @@ army caps, and the victory conditions.
 
 | Mode | Input |
 |---|---|
-| World | Click your army (blue), then click a hex to move or an adjacent enemy/city to attack. **Enter** ends the turn. |
+| World | Click your army (blue), hover a hex to see the route and turns, and click to march there (multi-turn orders continue automatically). Click an adjacent enemy or city to attack. **Enter** ends the turn. |
 | Battle | Click a unit, then a hex to move or an enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats. |
 | Camera | WASD/arrows pan, Q/E rotate, mouse wheel zooms |
 
 ## Status
 
-Milestone **M0 (scaffold)** is done. See GDD §8 for the milestone plan. The AI player is passive
+Milestone **M0 (scaffold)** is done. **M1** is mostly done: pathfinding, move orders and fog of war. See GDD §8 for the milestone plan. The AI player is passive
 for now: it defends with the tactical AI but does not start wars until M6.

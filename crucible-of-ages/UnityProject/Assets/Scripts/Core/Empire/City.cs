@@ -59,6 +59,11 @@ namespace Crucible.Core.Empire
         public int TilesClaimed { get; set; }
 
         public ProductionItem? CurrentProduction { get; set; }
+
+        /// <summary>Items to build after the current one, in order (Civ V production queue).</summary>
+        public List<ProductionItem> Queue { get; } = new List<ProductionItem>();
+
+        public const int MaxQueue = 6;
         public HashSet<string> Buildings { get; } = new HashSet<string>();
         public HashSet<HexCoord> WorkedTiles { get; } = new HashSet<HexCoord>();
 

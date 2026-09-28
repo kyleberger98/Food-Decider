@@ -67,9 +67,14 @@ namespace Crucible.Core.Economy
             }
         }
 
-        /// <summary>Cheapest available tech (the UI can override the choice at any time).</summary>
+        /// <summary>
+        /// Next step toward the player's research target if one is set, else the cheapest available
+        /// tech (the UI can override the choice at any time).
+        /// </summary>
         public static void AutoPickResearch(Player player)
         {
+            var step = player.Tech.NextTowardTarget();
+            if (step != null) { player.Tech.SetResearch(step); return; }
             var next = player.Tech.Available().OrderBy(t => t.ScienceCost).ThenBy(t => t.Id).FirstOrDefault();
             if (next != null) player.Tech.SetResearch(next.Id);
         }
@@ -101,6 +106,7 @@ namespace Crucible.Core.Economy
         {
             if (city.CurrentProduction.HasValue && !EconomyRules.CanBuild(game, city, city.CurrentProduction.Value))
                 city.CurrentProduction = null; // e.g. the building was finished elsewhere or pop dropped
+            game.AdvanceQueue(city);
             if (!city.CurrentProduction.HasValue) city.CurrentProduction = CityGovernor.ChooseProduction(game, city);
 
             city.ProductionStored += Math.Max(0, y.Production);
@@ -117,6 +123,7 @@ namespace Crucible.Core.Economy
 
             city.ProductionStored -= cost;
             city.CurrentProduction = null;
+            game.AdvanceQueue(city); // the queue picks up straight away, so no turn is wasted
         }
 
         static void GrowBorders(GameState game, City city, Yields y)

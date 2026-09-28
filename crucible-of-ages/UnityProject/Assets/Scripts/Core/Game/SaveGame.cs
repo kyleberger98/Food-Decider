@@ -22,7 +22,7 @@ namespace Crucible.Core.Game
     public static class SaveGame
     {
         const string Magic = "CRUCIBLE";
-        public const int Version = 4; // 2: diplomacy between majors; 3: natural wonders; 4: auto-explore
+        public const int Version = 5; // 2: diplomacy; 3: natural wonders; 4: auto-explore; 5: queues, research targets, army orders
 
         public static byte[] Save(GameState game, TurnManager turns)
         {
@@ -143,6 +143,7 @@ namespace Crucible.Core.Game
                 w.StringIntMap(p.CompletedProjects); w.Int(p.SpaceshipPartsBuilt); w.Int(p.SpaceshipArrivalTurn); w.Int(p.SpaceshipPartsLanded);
                 w.Int(p.Tourism); w.Int(p.LifetimeCulture); w.Bool(p.WonWorldLeaderVote); w.IntMap(p.TourismAgainst);
                 w.Strings(p.Tech.Researched.OrderBy(x => x, StringComparer.Ordinal)); w.String(p.Tech.CurrentResearch); w.Int(p.Tech.Progress);
+                w.String(p.Tech.Target); w.StringIntMap(p.Tech.PartialProgress.OrderBy(kv => kv.Key, StringComparer.Ordinal));
                 var vis = _visibility[p.Id];
                 w.Hexes(vis.Explored.OrderBy(h => h.Q).ThenBy(h => h.R));
                 w.Hexes(vis.Visible.OrderBy(h => h.Q).ThenBy(h => h.R));
@@ -160,7 +161,7 @@ namespace Crucible.Core.Game
             foreach (var a in _armies.Values)
             {
                 w.Int(a.Id); w.Int(a.OwnerId); w.Hex(a.Position); w.Int(a.WorldMovesLeft); w.OptHex(a.Destination);
-                w.Int((int)a.BuildOrder); w.Bool(a.AutomatedWorkers); w.Bool(a.AutoExplore); w.Int(a.BattleId);
+                w.Int((int)a.BuildOrder); w.Bool(a.AutomatedWorkers); w.Bool(a.AutoExplore); w.Int((int)a.Stance); w.Int(a.BattleId);
                 w.Int(a.Count);
                 foreach (var u in a.Units) WriteUnit(u);
             }
@@ -173,6 +174,8 @@ namespace Crucible.Core.Game
                 w.Int(c.FoodStored); w.Int(c.ProductionStored); w.Int(c.CultureStored); w.Int(c.TilesClaimed);
                 w.Bool(c.CurrentProduction.HasValue);
                 if (c.CurrentProduction.HasValue) { w.Int((int)c.CurrentProduction.Value.Kind); w.String(c.CurrentProduction.Value.Id); }
+                w.Int(c.Queue.Count);
+                foreach (var q in c.Queue) { w.Int((int)q.Kind); w.String(q.Id); }
                 w.Strings(c.Buildings.OrderBy(x => x, StringComparer.Ordinal));
                 w.Hexes(c.WorkedTiles.OrderBy(h => h.Q).ThenBy(h => h.R));
                 w.Int(c.BesiegedSinceTurn); w.Int(c.SiegeProgress); w.Int(c.BesiegerId); w.Int(c.SiegeEnginesBuilt);
@@ -250,7 +253,7 @@ namespace Crucible.Core.Game
                 p.SpaceshipPartsBuilt = r.Int(); p.SpaceshipArrivalTurn = r.Int(); p.SpaceshipPartsLanded = r.Int();
                 p.Tourism = r.Int(); p.LifetimeCulture = r.Int(); p.WonWorldLeaderVote = r.Bool();
                 foreach (var kv in r.IntMap()) p.TourismAgainst[kv.Key] = kv.Value;
-                p.Tech.Restore(r.Strings(), r.String(), r.Int());
+                p.Tech.Restore(r.Strings(), r.String(), r.Int(), r.String(), r.StringIntMap());
                 g._visibility[p.Id].Restore(r.Hexes(), r.Hexes(), r.Int());
             }
 
@@ -271,7 +274,7 @@ namespace Crucible.Core.Game
                 var a = new Army(r.Int(), r.Int(), r.Hex())
                 {
                     WorldMovesLeft = r.Int(), Destination = r.OptHex(), BuildOrder = (ImprovementType)r.Int(),
-                    AutomatedWorkers = r.Bool(), AutoExplore = r.Bool(), BattleId = r.Int(),
+                    AutomatedWorkers = r.Bool(), AutoExplore = r.Bool(), Stance = (ArmyStance)r.Int(), BattleId = r.Int(),
                 };
                 for (int k = r.Int(); k > 0; k--) a.RestoreUnit(ReadUnit());
                 g._armies[a.Id] = a;
@@ -285,6 +288,7 @@ namespace Crucible.Core.Game
                     FoodStored = r.Int(), ProductionStored = r.Int(), CultureStored = r.Int(), TilesClaimed = r.Int(),
                 };
                 if (r.Bool()) c.CurrentProduction = new ProductionItem((ProductionKind)r.Int(), r.String());
+                for (int k = r.Int(); k > 0; k--) c.Queue.Add(new ProductionItem((ProductionKind)r.Int(), r.String()));
                 foreach (var b in r.Strings()) c.Buildings.Add(b);
                 foreach (var h in r.Hexes()) c.WorkedTiles.Add(h);
                 c.BesiegedSinceTurn = r.Int(); c.SiegeProgress = r.Int(); c.BesiegerId = r.Int(); c.SiegeEnginesBuilt = r.Int();

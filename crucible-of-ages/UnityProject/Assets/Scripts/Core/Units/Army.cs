@@ -5,6 +5,17 @@ using Crucible.Core.Hex;
 
 namespace Crucible.Core.Units
 {
+    public enum ArmyStance
+    {
+        Awake,
+
+        /// <summary>Sentry: skipped by "next unit" until an enemy comes within sight range.</summary>
+        Sentry,
+
+        /// <summary>Rests until every unit is at full health (or an enemy approaches).</summary>
+        Heal,
+    }
+
     /// <summary>A stack of units sharing one world tile (GDD §4.2). One military army per tile.</summary>
     [Serializable]
     public sealed class Army
@@ -27,6 +38,12 @@ namespace Crucible.Core.Units
 
         /// <summary>The army explores on its own each turn until nothing reachable is left unseen.</summary>
         public bool AutoExplore { get; set; }
+
+        /// <summary>Standing "leave me be" order (Civ sleep / fortify-until-healed); moving wakes the army.</summary>
+        public ArmyStance Stance { get; set; }
+
+        /// <summary>Health of the army as a fraction of full (its units' combined HP).</summary>
+        public float HealthFraction => _units.Count == 0 ? 1f : _units.Sum(u => u.Hp) / (float)(_units.Count * Unit.MaxHp);
 
         /// <summary>Id of the battle this army is currently locked into, or -1.</summary>
         public int BattleId { get; set; } = -1;

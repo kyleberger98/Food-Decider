@@ -167,6 +167,7 @@ namespace Crucible.Core.Game
 
             bool crossesRiver = Map.HasRiverBetween(army.Position, dest);
             army.BuildOrder = ImprovementType.None;
+            army.Stance = ArmyStance.Awake;
             army.Position = dest;
             army.WorldMovesLeft = Math.Max(0, army.WorldMovesLeft - cost);
             if (crossesRiver || InEnemyZoc(dest, army.OwnerId)) army.WorldMovesLeft = 0;
@@ -569,13 +570,72 @@ namespace Crucible.Core.Game
                     p.IsEliminated = true;
         }
 
+        // ------------------------------------------------------------------ healing and standing orders
+
+        public const int HealInCity = 25, HealInOwnTerritory = 15, HealNeutral = 10, HealInEnemyTerritory = 5;
+
+        /// <summary>
+        /// World-map healing (Civ V rates) for armies that rested — did not move or fight — last turn:
+        /// 25 in one of your cities, 15 in your land, 10 in neutral land, 5 in foreign land.
+        /// Ships only repair in your own waters; troops in boats don't heal.
+        /// </summary>
+        public int HealRate(Army army)
+        {
+            var tile = Map.Get(army.Position);
+            if (IsEmbarked(army)) return 0;
+            if (CityAt(army.Position) is Empire.City c && c.OwnerId == army.OwnerId) return HealInCity;
+            if (tile.OwnerPlayerId == army.OwnerId) return HealInOwnTerritory;
+            if (army.IsNaval) return 0;
+            return tile.OwnerPlayerId < 0 ? HealNeutral : HealInEnemyTerritory;
+        }
+
+        void HealArmy(Army army)
+        {
+            if (army.InBattle || army.WorldMovesLeft < WorldMovementOf(army)) return; // moved or fought: no rest
+            int rate = HealRate(army);
+            foreach (var u in army.Units) u.Heal(rate);
+        }
+
+        /// <summary>Sleeping or healing armies wake when an enemy at war comes within 3 hexes; healers also when whole.</summary>
+        void WakeArmies(Player player)
+        {
+            var enemies = _armies.Values.Where(a => a.OwnerId != player.Id && AtWar(player.Id, a.OwnerId)).Select(a => a.Position).ToList();
+            foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id && a.Stance != ArmyStance.Awake))
+            {
+                bool threat = enemies.Any(e => e.DistanceTo(army.Position) <= 3);
+                bool healed = army.Stance == ArmyStance.Heal && army.Units.All(u => u.Hp >= Unit.MaxHp);
+                if (threat || healed)
+                {
+                    army.Stance = ArmyStance.Awake;
+                    ArmyWoke?.Invoke(army, threat);
+                }
+            }
+        }
+
+        /// <summary>A sleeping or healing army woke up (true: because an enemy came near).</summary>
+        public event Action<Army, bool> ArmyWoke;
+
+        /// <summary>Sets a standing order; healing an army already at full health does nothing.</summary>
+        public bool SetStance(Army army, ArmyStance stance)
+        {
+            if (army.InBattle) return false;
+            if (stance == ArmyStance.Heal && army.Units.All(u => u.Hp >= Unit.MaxHp)) return false;
+            army.Stance = stance;
+            if (stance != ArmyStance.Awake) { army.Destination = null; army.AutoExplore = false; }
+            return true;
+        }
+
         // ------------------------------------------------------------------ per-turn upkeep
 
         /// <summary>Start-of-turn work for one player: refresh movement, siege ticks, continue battles.</summary>
         internal void BeginPlayerTurn(Player player)
         {
             foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id))
+            {
+                HealArmy(army);
                 army.WorldMovesLeft = army.InBattle ? 0 : WorldMovementOf(army);
+            }
+            WakeArmies(player);
             ProgressImprovements(player);
             foreach (var c in _cities.Values.Where(c => c.OwnerId == player.Id))
                 foreach (var plane in c.AirUnits) plane.Heal(20); // repairs in the hangar

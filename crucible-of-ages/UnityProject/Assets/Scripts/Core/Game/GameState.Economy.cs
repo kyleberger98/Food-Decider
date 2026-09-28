@@ -28,6 +28,34 @@ namespace Crucible.Core.Game
             return true;
         }
 
+        /// <summary>Adds an item to the city's queue (or makes it current if nothing is being built).</summary>
+        public bool EnqueueProduction(City city, ProductionItem item)
+        {
+            if (!EconomyRules.CanBuild(this, city, item)) return false;
+            if (!city.CurrentProduction.HasValue) { city.CurrentProduction = item; return true; }
+            // Buildings and projects only once; units may repeat.
+            if (item.Kind != ProductionKind.Unit && (city.CurrentProduction.Value.Equals(item) || city.Queue.Contains(item))) return false;
+            if (city.Queue.Count >= Empire.City.MaxQueue) return false;
+            city.Queue.Add(item);
+            return true;
+        }
+
+        public void RemoveQueued(City city, int index)
+        {
+            if (index >= 0 && index < city.Queue.Count) city.Queue.RemoveAt(index);
+        }
+
+        /// <summary>Moves the next buildable queued item into production, dropping ones that no longer qualify.</summary>
+        internal void AdvanceQueue(City city)
+        {
+            while (!city.CurrentProduction.HasValue && city.Queue.Count > 0)
+            {
+                var next = city.Queue[0];
+                city.Queue.RemoveAt(0);
+                if (EconomyRules.CanBuild(this, city, next)) city.CurrentProduction = next;
+            }
+        }
+
         // ------------------------------------------------------------------ policies
 
         /// <summary>Adopts a social policy if enough culture is banked and its prerequisite is held.</summary>
@@ -101,6 +129,7 @@ namespace Crucible.Core.Game
             {
                 city.ProductionStored = 0;
                 city.CurrentProduction = null;
+                AdvanceQueue(city);
             }
             return true;
         }

@@ -124,6 +124,7 @@ namespace Crucible.Core.Economy
             city.ProductionStored -= cost;
             city.CurrentProduction = null;
             game.AdvanceQueue(city); // the queue picks up straight away, so no turn is wasted
+            game.RaiseProductionCompleted(city, item);
         }
 
         static void GrowBorders(GameState game, City city, Yields y)

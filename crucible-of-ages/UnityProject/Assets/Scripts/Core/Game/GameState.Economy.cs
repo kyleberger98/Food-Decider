@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Crucible.Core.Content;
 using Crucible.Core.Economy;
@@ -27,6 +28,11 @@ namespace Crucible.Core.Game
             city.CurrentProduction = item;
             return true;
         }
+
+        /// <summary>A city finished building something (its next item, if queued, is already in production).</summary>
+        public event Action<City, ProductionItem> ProductionCompleted;
+
+        internal void RaiseProductionCompleted(City city, ProductionItem item) => ProductionCompleted?.Invoke(city, item);
 
         /// <summary>Adds an item to the city's queue (or makes it current if nothing is being built).</summary>
         public bool EnqueueProduction(City city, ProductionItem item)

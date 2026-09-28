@@ -304,8 +304,10 @@ namespace Crucible.View.UI
                 policyReady ? ButtonStyle.Primary : ButtonStyle.Normal));
             _topRight.Put(Ui.Btn(pending > 0 ? $"Diplomacy  ({pending})" : "Diplomacy", () => _c.TogglePanel(HudPanel.Diplomacy),
                 pending > 0 ? ButtonStyle.Primary : ButtonStyle.Normal));
-            _topRight.Put(Ui.Btn("Save", _c.QuickSave, ButtonStyle.Ghost));
-            _topRight.Put(Ui.Btn("Load", _c.QuickLoad, ButtonStyle.Ghost, _c.HasQuickSave));
+            _topRight.Put(Ui.Btn("Log", () => _c.TogglePanel(HudPanel.Log), ButtonStyle.Ghost)).tooltip = "Every notification this game (N)";
+            _topRight.Put(Ui.Btn("Save", _c.QuickSave, ButtonStyle.Ghost)).tooltip = "Quick save (F5)";
+            _topRight.Put(Ui.Btn("Load", () => _c.TogglePanel(HudPanel.Saves), ButtonStyle.Ghost)).tooltip = "Quicksave and autosaves (F9 loads the quicksave)";
+            _topRight.Put(Ui.Btn("?", () => _c.TogglePanel(HudPanel.Help), ButtonStyle.Ghost)).tooltip = "Keys (F1)";
         }
 
         // ------------------------------------------------------------------ notifications
@@ -326,10 +328,19 @@ namespace Crucible.View.UI
                 card.style.borderLeftColor = note.Kind == NoticeKind.Good ? Theme.Good
                     : note.Kind == NoticeKind.Bad ? Theme.Bad
                     : note.Kind == NoticeKind.War ? Theme.War : Theme.Info;
-                card.pickingMode = PickingMode.Ignore;
-                var text = Ui.Text(note.Text, 12, Theme.Text, wrap: true);
+                card.pickingMode = note.At.HasValue ? PickingMode.Position : PickingMode.Ignore;
+                var text = Ui.Text(note.At.HasValue ? note.Text + "  ›" : note.Text, 12, Theme.Text, wrap: true);
                 text.pickingMode = PickingMode.Ignore;
                 card.Add(text);
+                if (note.At.HasValue)
+                {
+                    // Click to jump there (Civ-style notification).
+                    var captured = note;
+                    card.RegisterCallback<ClickEvent>(_ => _c.OpenNotice(captured));
+                    card.RegisterCallback<PointerEnterEvent>(_ => card.style.backgroundColor = Theme.Panel);
+                    card.RegisterCallback<PointerLeaveEvent>(_ => card.style.backgroundColor = Theme.Chrome);
+                    card.tooltip = "Go there";
+                }
                 _notices.Put(card);
             }
         }
@@ -343,7 +354,7 @@ namespace Crucible.View.UI
             var route = _c.HoverRoute;
             string sig = battle != null
                 ? $"b|{stamp}|{unit?.Id}|{unit?.Hp}|{unit?.BattleMovesLeft}|{unit?.HasAttacked}|{battle.Status}|{battle.TurnInRound}"
-                : $"w|{stamp}|{army?.Id}|{army?.Count}|{army?.WorldMovesLeft}|{army?.Destination}|{army?.BuildOrder}|{army?.AutomatedWorkers}|{army?.AutoExplore}|" +
+                : $"w|{stamp}|{army?.Id}|{army?.Count}|{army?.WorldMovesLeft}|{army?.Destination}|{army?.BuildOrder}|{army?.AutomatedWorkers}|{army?.AutoExplore}|{army?.Stance}|" +
                   $"{string.Join(",", army?.Units.Select(u => u.Hp) ?? Enumerable.Empty<int>())}|{route?.Steps.Count}|{route?.Turns}";
             if (!Changed("selection", sig)) return;
             _selection.Clear();
@@ -369,7 +380,9 @@ namespace Crucible.View.UI
             titleCol.Put(Ui.Text($"{army.Units.Count(u => u.Def.GreatPerson != GreatPersonType.General)}/{Me.ArmyCap} units  ·  {army.WorldMovesLeft}/{G.WorldMovementOf(army)} moves" +
                                  (army.Destination.HasValue ? "  ·  marching" : "") +
                                  (army.BuildOrder != ImprovementType.None ? $"  ·  building {army.BuildOrder}" : "") +
-                                 (army.AutoExplore ? "  ·  exploring" : army.AutomatedWorkers ? "  ·  auto-improving" : ""), 11, Theme.Muted));
+                                 (army.AutoExplore ? "  ·  exploring" : army.AutomatedWorkers ? "  ·  auto-improving" : "") +
+                                 (army.Stance == ArmyStance.Sentry ? "  ·  sleeping" : army.Stance == ArmyStance.Heal ? "  ·  healing" : "") +
+                                 (army.HealthFraction < 1f ? $"  ·  {Mathf.RoundToInt(army.HealthFraction * 100)}% health (+{G.HealRate(army)}/turn resting)" : ""), 11, Theme.Muted));
             _selection.Put(Ui.Divider());
 
             var list = _selection.Put(Ui.Col(5));
@@ -410,6 +423,15 @@ namespace Crucible.View.UI
             if (Exploration.CanExplore(army))
                 actions.Put(Ui.Btn(army.AutoExplore ? "Stop exploring  (O)" : "Explore  (O)", _c.ToggleExplore,
                                    army.AutoExplore ? ButtonStyle.Primary : ButtonStyle.Normal));
+            if (army.Units.Any(u => u.Def.IsMilitary))
+            {
+                actions.Put(Ui.Btn(army.Stance == ArmyStance.Sentry ? "Wake  (Z)" : "Sleep  (Z)", () => _c.ToggleStance(ArmyStance.Sentry)))
+                    .tooltip = "Sleep until enemies come within 3 hexes; skipped by Next unit";
+                if (army.HealthFraction < 1f || army.Stance == ArmyStance.Heal)
+                    actions.Put(Ui.Btn(army.Stance == ArmyStance.Heal ? "Stop healing  (H)" : "Heal  (H)", () => _c.ToggleStance(ArmyStance.Heal)))
+                        .tooltip = "Rest until every unit is at full health";
+            }
+            actions.Put(Ui.Btn("Skip turn  (Space)", _c.SkipTurn, ButtonStyle.Ghost)).tooltip = "Leave this army be until next turn";
             var gp = _c.GreatPersonInSelection();
             if (gp != null) actions.Put(Ui.Btn($"Use {gp.Def.Name}  (V)", _c.UseGreatPerson, ButtonStyle.Primary));
             var enemyCity = _c.AdjacentEnemyCityOfSelection();
@@ -441,18 +463,28 @@ namespace Crucible.View.UI
 
         void UpdateEndTurn(string stamp, Battle battle)
         {
-            int idle = G.Armies.Count(a => a.OwnerId == Me.Id && !a.InBattle && a.WorldMovesLeft > 0 && !a.Destination.HasValue &&
-                                           a.BuildOrder == ImprovementType.None && !a.AutomatedWorkers && !a.AutoExplore && G.CityAt(a.Position) == null);
+            var blocker = battle != null || G.Victory != null ? TurnBlocker.None : _c.Blocker();
+            int idle = blocker == TurnBlocker.None ? 0 : _c.IdleArmies().Count;
             int unset = G.Cities.Count(c => c.OwnerId == Me.Id && !c.CurrentProduction.HasValue);
-            if (!Changed("endturn", $"{stamp}|{battle != null}|{idle}|{unset}|{G.Victory != null}")) return;
+            if (!Changed("endturn", $"{stamp}|{battle != null}|{blocker}|{idle}|{unset}|{G.Victory != null}")) return;
             _endTurn.Clear();
-            if (unset > 0) _endTurn.Put(Ui.Pill($"{unset} city idle — pick production", Theme.Gold));
-            if (idle > 0) _endTurn.Put(Ui.Pill($"{idle} arm{(idle == 1 ? "y" : "ies")} can still move", Theme.Info));
-            var btn = Ui.Btn(battle != null ? "BATTLE IN PROGRESS" : "END TURN", _c.EndTurn, ButtonStyle.Primary, battle == null && G.Victory == null, size: 18);
+            if (unset > 0) _endTurn.Put(Ui.Pill($"{unset} cit{(unset == 1 ? "y" : "ies")} idle — pick production", Theme.Gold));
+            if (idle > 0) _endTurn.Put(Ui.Pill($"{idle} arm{(idle == 1 ? "y needs" : "ies need")} orders  ·  Tab: next", Theme.Info));
+
+            // Civ-style: the big button takes you to whatever still needs you, then ends the turn.
+            string label = battle != null ? "BATTLE IN PROGRESS"
+                : blocker == TurnBlocker.ChooseResearch ? "CHOOSE RESEARCH"
+                : blocker == TurnBlocker.ChooseProduction ? "CHOOSE PRODUCTION"
+                : blocker == TurnBlocker.UnitNeedsOrders ? "UNIT NEEDS ORDERS"
+                : "END TURN";
+            var btn = Ui.Btn(label, _c.NextAction, blocker == TurnBlocker.None ? ButtonStyle.Primary : ButtonStyle.Normal,
+                battle == null && G.Victory == null, size: 18);
             btn.style.paddingLeft = btn.style.paddingRight = 34;
             btn.style.paddingTop = btn.style.paddingBottom = 14;
-            btn.tooltip = "Enter";
+            btn.tooltip = blocker == TurnBlocker.None ? "Enter" : "Enter: go there  ·  Shift+Enter: end the turn anyway";
             _endTurn.Put(btn);
+            if (blocker != TurnBlocker.None)
+                _endTurn.Put(Ui.Btn("End turn anyway  (Shift+Enter)", _c.EndTurn, ButtonStyle.Ghost, true, 11));
         }
 
         // ------------------------------------------------------------------ battle HUD
@@ -606,7 +638,9 @@ namespace Crucible.View.UI
             var tile = G.Map.Get(hover.Value);
             var unit = battle?.UnitAt(hover.Value);
             var army = _c.Viewer.IsVisible(hover.Value) ? G.ArmyAt(hover.Value) : null;
-            if (!Changed("tooltip", $"{hover}|{unit?.Id}|{unit?.Hp}|{army?.Id}|{army?.Count}|{tile.Improvement}|{tile.OwnerPlayerId}")) return;
+            var forecast = _c.HoverForecast();
+            if (!Changed("tooltip", $"{hover}|{unit?.Id}|{unit?.Hp}|{army?.Id}|{army?.Count}|{tile.Improvement}|{tile.OwnerPlayerId}|" +
+                                    $"{_c.SelectedArmy?.Id}|{forecast?.Verdict}|{army?.HealthFraction}")) return;
 
             _tooltip.Clear();
             string height = tile.IsIce ? "pack ice — impassable" : tile.IsWater ? (tile.Terrain == TerrainType.Ocean ? "ocean" : "shallows")
@@ -633,7 +667,26 @@ namespace Crucible.View.UI
             if (unit != null)
                 _tooltip.Put(Ui.Text($"{unit.Def.Name} ({G.Player(unit.OwnerId).Name}) — {unit.Hp} HP", 11, Theme.Text, bold: true));
             else if (army != null)
+            {
                 _tooltip.Put(Ui.Text($"{(army.IsNaval ? "Fleet" : "Army")} of {G.Player(army.OwnerId).Name}: {string.Join(", ", army.Units.Select(u => u.Def.Name))}", 11, Theme.Text, wrap: true));
+                if (army.HealthFraction < 1f) _tooltip.Put(Ui.Text($"{Mathf.RoundToInt(army.HealthFraction * 100)}% health", 11, Theme.Muted));
+            }
+            if (forecast != null) AddForecast(forecast);
+        }
+
+        /// <summary>Humankind-style battle estimate for attacking the hovered enemy with the selected army.</summary>
+        void AddForecast(BattleForecast f)
+        {
+            _tooltip.Put(Ui.Divider());
+            var color = f.Verdict >= ForecastVerdict.LikelyVictory ? Theme.Good : f.Verdict == ForecastVerdict.EvenFight ? Theme.Gold : Theme.Bad;
+            _tooltip.Put(Ui.Text("If you attack: " + f.Label.ToUpperInvariant(), 12, color, bold: true));
+            var notes = new List<string> { $"your {f.AttackerUnits} vs their {f.DefenderUnits}" };
+            if (f.Militia > 0) notes.Add($"{f.Militia} militia will rise");
+            if (f.WallTier > 0) notes.Add($"walls +{f.WallTier * Crucible.Core.Combat.CombatResolver.WallBonusPerTier}");
+            if (f.DefenderHoldsHighGround) notes.Add("they hold the high ground");
+            _tooltip.Put(Ui.Text(string.Join("  ·  ", notes), 11, Theme.Muted, wrap: true));
+            if (_c.SelectedArmy != null && _c.HoverHex.HasValue && _c.SelectedArmy.Position.DistanceTo(_c.HoverHex.Value) > 1)
+                _tooltip.Put(Ui.Text("Move next to them to attack.", 11, Theme.Info));
         }
 
         // ------------------------------------------------------------------ world overlays
@@ -701,7 +754,8 @@ namespace Crucible.View.UI
                 int count = army.Units.Count(u => u.Def.IsMilitary);
                 bool general = army.Units.Any(u => u.Def.GreatPerson == GreatPersonType.General);
                 bool selected = army == _c.SelectedArmy, embarked = !army.IsNaval && G.IsEmbarked(army);
-                string sig = $"{lead.Def.Id}|{count}|{army.Count}|{general}|{selected}|{embarked}|{army.OwnerId}";
+                string sig = $"{lead.Def.Id}|{count}|{army.Count}|{general}|{selected}|{embarked}|{army.OwnerId}|" +
+                             $"{Mathf.RoundToInt(army.HealthFraction * 20)}|{army.Stance}|{army.AutoExplore}";
                 if (Changed("army" + army.Id, sig)) BuildArmyBadge(badge, army, lead, count, general, selected, embarked);
                 Place(badge, _c.MapRenderer.HexToWorld(army.Position), 0.95f);
             }
@@ -774,6 +828,32 @@ namespace Crucible.View.UI
                 var star = Ui.Flag(Icons.UnitIcon.General, Theme.Accent, 16);
                 Ui.Absolute(star, -8, -4);
                 flag.Add(star);
+            }
+            // Standing order marker in the upper right: Zz sleeping, + healing, ? exploring.
+            string order = army.Stance == ArmyStance.Sentry ? "Zz" : army.Stance == ArmyStance.Heal ? "+" : army.AutoExplore ? "?" : null;
+            if (order != null)
+            {
+                var tag = Ui.Box(new Color(0.07f, 0.07f, 0.09f, 0.9f), 0, 6);
+                Ui.Absolute(tag, null, -6, -8);
+                tag.style.paddingLeft = tag.style.paddingRight = 3;
+                tag.Add(Ui.Text(order, 9, army.Stance == ArmyStance.Heal ? Theme.Good : Theme.Info, bold: true));
+                flag.Add(tag);
+            }
+            // Health bar under wounded armies (Civ shows health on the unit flag).
+            float health = army.HealthFraction;
+            if (health < 0.999f)
+            {
+                var track = Ui.Box(new Color(0, 0, 0, 0.75f), 0, 2);
+                track.style.width = 26;
+                track.style.height = 5;
+                track.style.marginTop = 2;
+                track.style.alignSelf = Align.Center;
+                track.style.paddingLeft = track.style.paddingRight = track.style.paddingTop = track.style.paddingBottom = 1;
+                var fill = Ui.Box(health > 0.6f ? Theme.Good : health > 0.3f ? Theme.Gold : Theme.Bad, 0, 1);
+                fill.style.width = Length.Percent(health * 100);
+                fill.style.height = 3;
+                track.Add(fill);
+                badge.Add(track);
             }
             foreach (var child in badge.Query<VisualElement>().ToList()) child.pickingMode = PickingMode.Ignore;
         }

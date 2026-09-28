@@ -22,6 +22,9 @@ namespace Crucible.View
         Diplomacy,
         Policies,
         Tech,
+        Log,
+        Saves,
+        Help,
     }
 
     public enum NoticeKind
@@ -38,6 +41,18 @@ namespace Crucible.View
         public NoticeKind Kind;
         public int Turn;
         public float Time;
+
+        /// <summary>Where it happened: clicking the notice moves the camera there.</summary>
+        public HexCoord? At;
+    }
+
+    /// <summary>What still needs the player's attention this turn (Civ's End Turn prompts).</summary>
+    public enum TurnBlocker
+    {
+        None,
+        ChooseResearch,
+        ChooseProduction,
+        UnitNeedsOrders,
     }
 
     /// <summary>
@@ -45,10 +60,11 @@ namespace Crucible.View
     /// shortcuts share one code path; the HUD (<see cref="GameHud"/>) only reads state and calls these.
     /// World: click your army, then a hex to march, an adjacent enemy to attack, or a battlefield hex to
     /// reinforce. Battle: click a unit, then a green hex to move or a red enemy to attack.
-    /// Keys: Enter end turn · Space confirm deployment / end battle turn · R retreat · X auto-resolve ·
-    /// B batter walls · G besiege · F found city · T research · P policies · L diplomacy · I/U improve /
-    /// automate · V use great person · Esc close panel / deselect · F5/F9 quick save/load.
-    /// (WASD/QE belong to the camera.)
+    /// Keys: Enter next action / end turn (Shift+Enter: end turn now) · Tab next unit · Space skip unit
+    /// (in battle: confirm deployment / end battle turn) · Z sleep · H heal · R retreat · X auto-resolve ·
+    /// B batter walls · G besiege · F found city · T research · P policies · L diplomacy · N notification log ·
+    /// I/U improve / auto-improve · O explore · V use great person · C centre on selection · Home capital ·
+    /// F1 keys · Esc close panel / deselect · F5/F9 quick save/load. (WASD/QE belong to the camera.)
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
@@ -73,8 +89,11 @@ namespace Crucible.View
         public HexCoord? HoverHex { get; private set; }
         public ArmyPath HoverRoute { get; private set; }
 
-        /// <summary>Newest last. The HUD shows the most recent few.</summary>
+        /// <summary>Newest last. The HUD shows the most recent few; the log (N) shows them all.</summary>
         public List<Notice> Notices { get; } = new List<Notice>();
+
+        /// <summary>Armies told to skip this turn (Space); cleared when the player's next turn starts.</summary>
+        readonly HashSet<int> _skipped = new HashSet<int>();
 
         /// <summary>Set by the HUD: true while the pointer is over a UI element (clicks then don't reach the map).</summary>
         public Func<bool> IsPointerOverUi = () => false;
@@ -101,17 +120,35 @@ namespace Crucible.View
             _markers.Init(map);
             rig.BlockZoom = () => IsPointerOverUi();
             HookEvents();
-            Post("Select your army and click a hex to march. End the turn with the button or Enter.");
+            Post("Select your army and click a hex to march. Tab jumps to the next unit, F1 lists every key.");
         }
 
         void HookEvents()
         {
-            Game.BattleStarted += b => Post($"Battle: {b.Attacker.Player.Name} vs {b.Defender.Player.Name}.", NoticeKind.War);
+            Turns.TurnStarted += p =>
+            {
+                if (p.IsAI) return;
+                _skipped.Clear();
+                Autosave();
+            };
+            Game.ProductionCompleted += (city, item) =>
+            {
+                if (city.OwnerId != HumanPlayer?.Id) return;
+                string next = city.CurrentProduction.HasValue ? $" Next: {EconomyRules.NameOf(Game, city.CurrentProduction.Value)}." : "";
+                Post($"{city.Name} completed {EconomyRules.NameOf(Game, item)}.{next}", NoticeKind.Good, city.Position);
+            };
+            Game.ArmyWoke += (a, threat) =>
+            {
+                if (a.OwnerId != HumanPlayer?.Id) return;
+                Post(threat ? "Enemies sighted! A sleeping army woke up." : "An army has fully healed and awaits orders.",
+                    threat ? NoticeKind.War : NoticeKind.Info, a.Position);
+            };
+            Game.BattleStarted += b => Post($"Battle: {b.Attacker.Player.Name} vs {b.Defender.Player.Name}.", NoticeKind.War, b.Defender.Origin);
             Game.BattleEnded += b => Post($"Battle over — {Describe(b)}.", b.Winner.HasValue && Side(b, b.Winner.Value).Player == HumanPlayer ? NoticeKind.Good : NoticeKind.Bad);
             Game.ArmySunk += a => Post($"An embarked army ({a.Count} units) was sunk at sea!", NoticeKind.Bad);
             Game.ExplorationFinished += a =>
             {
-                if (a.OwnerId == Human.Id) Post($"{(a.IsNaval ? "A fleet" : "An explorer")} has nothing left to explore nearby and awaits orders.");
+                if (a.OwnerId == Human.Id) Post($"{(a.IsNaval ? "A fleet" : "An explorer")} has nothing left to explore nearby and awaits orders.", NoticeKind.Info, a.Position);
             };
             Game.GreatPersonBorn += (p, u) => { if (!p.IsAI) Post($"A {u.Def.Name} is born! Select them to use their gift.", NoticeKind.Good); };
             Game.ReligionFounded += r => Post($"{r.Name} has been founded by {Game.Player(r.FounderId).Name}.");
@@ -135,10 +172,21 @@ namespace Crucible.View
             }
         }
 
-        public void Post(string text, NoticeKind kind = NoticeKind.Info)
+        public void Post(string text, NoticeKind kind = NoticeKind.Info, HexCoord? at = null)
         {
-            Notices.Add(new Notice { Text = text, Kind = kind, Turn = Game?.Turn ?? 0, Time = UnityEngine.Time.time });
-            if (Notices.Count > 50) Notices.RemoveAt(0);
+            Notices.Add(new Notice { Text = text, Kind = kind, Turn = Game?.Turn ?? 0, Time = UnityEngine.Time.time, At = at });
+            if (Notices.Count > 200) Notices.RemoveAt(0);
+        }
+
+        /// <summary>Moves the camera to a hex (from a notice, the next-unit button or the C/Home keys).</summary>
+        public void FocusOn(HexCoord hex) => _rig.FocusOn(_map.HexToWorld(hex));
+
+        public void OpenNotice(Notice notice)
+        {
+            if (!notice.At.HasValue) return;
+            FocusOn(notice.At.Value);
+            if (Game.CityAt(notice.At.Value) is City c && c.OwnerId == Human.Id) OpenCity(c);
+            else if (Game.ArmyAt(notice.At.Value) is Army a && a.OwnerId == Human.Id) SelectArmy(a);
         }
 
         // ------------------------------------------------------------------ frame
@@ -192,6 +240,10 @@ namespace Crucible.View
             if (Input.GetKeyDown(KeyCode.F5)) QuickSave();
             if (Input.GetKeyDown(KeyCode.F9)) { QuickLoad(); return; }
             if (Input.GetKeyDown(KeyCode.Escape)) { if (OpenPanel != HudPanel.None) ClosePanel(); else Deselect(); }
+            if (Input.GetKeyDown(KeyCode.F1)) TogglePanel(HudPanel.Help);
+            if (Input.GetKeyDown(KeyCode.N)) TogglePanel(HudPanel.Log);
+            if (Input.GetKeyDown(KeyCode.Home)) FocusCapital();
+            if (Input.GetKeyDown(KeyCode.C)) FocusSelection();
             if (Turns.IsGameOver) return;
 
             if (battle != null)
@@ -211,7 +263,15 @@ namespace Crucible.View
             else if (Input.GetKeyDown(KeyCode.O)) ToggleExplore();
             else if (Input.GetKeyDown(KeyCode.G)) Besiege();
             else if (Input.GetKeyDown(KeyCode.V)) UseGreatPerson();
-            else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) EndTurn();
+            else if (Input.GetKeyDown(KeyCode.Tab)) SelectNextIdle();
+            else if (Input.GetKeyDown(KeyCode.Space)) SkipTurn();
+            else if (Input.GetKeyDown(KeyCode.Z)) ToggleStance(ArmyStance.Sentry);
+            else if (Input.GetKeyDown(KeyCode.H)) ToggleStance(ArmyStance.Heal);
+            else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) EndTurn();
+                else NextAction();
+            }
         }
 
         bool PickHex(out HexCoord hex)
@@ -287,6 +347,113 @@ namespace Crucible.View
         {
             SelectedCity = city;
             OpenPanel = HudPanel.City;
+        }
+
+        // ------------------------------------------------------------------ what needs attention
+
+        /// <summary>
+        /// Armies still waiting for orders: they can move, and aren't marching, exploring, working,
+        /// sleeping, healing, skipped this turn or sitting as a city garrison.
+        /// </summary>
+        public List<Army> IdleArmies() =>
+            Game.Armies.Where(a => a.OwnerId == Human.Id && !a.InBattle && a.WorldMovesLeft > 0 && !a.Destination.HasValue &&
+                                   a.BuildOrder == ImprovementType.None && !a.AutomatedWorkers && !a.AutoExplore &&
+                                   a.Stance == ArmyStance.Awake && !_skipped.Contains(a.Id) && Game.CityAt(a.Position) == null)
+                .OrderBy(a => a.Id).ToList();
+
+        public City CityWithoutProduction() =>
+            Game.Cities.Where(c => c.OwnerId == Human.Id && !c.CurrentProduction.HasValue).OrderBy(c => c.Id).FirstOrDefault();
+
+        public TurnBlocker Blocker()
+        {
+            if (Human.Tech.CurrentResearch == null && Human.Tech.Available().Any()) return TurnBlocker.ChooseResearch;
+            if (CityWithoutProduction() != null) return TurnBlocker.ChooseProduction;
+            if (IdleArmies().Count > 0) return TurnBlocker.UnitNeedsOrders;
+            return TurnBlocker.None;
+        }
+
+        /// <summary>The End Turn button: deal with the next thing needing attention, or end the turn.</summary>
+        public void NextAction()
+        {
+            switch (Blocker())
+            {
+                case TurnBlocker.ChooseResearch: OpenPanel = HudPanel.Tech; break;
+                case TurnBlocker.ChooseProduction:
+                    var city = CityWithoutProduction();
+                    OpenCity(city);
+                    FocusOn(city.Position);
+                    break;
+                case TurnBlocker.UnitNeedsOrders: SelectNextIdle(); break;
+                default: EndTurn(); break;
+            }
+        }
+
+        /// <summary>Selects (and centres on) the next army waiting for orders, cycling after the current one.</summary>
+        public void SelectNextIdle()
+        {
+            var idle = IdleArmies();
+            if (idle.Count == 0) { Post("No units need orders."); return; }
+            var next = idle.FirstOrDefault(a => SelectedArmy != null && a.Id > SelectedArmy.Id) ?? idle[0];
+            SelectArmy(next);
+            FocusOn(next.Position);
+        }
+
+        /// <summary>Space: leave this army be for the rest of the turn.</summary>
+        public void SkipTurn()
+        {
+            if (SelectedArmy == null) { SelectNextIdle(); return; }
+            _skipped.Add(SelectedArmy.Id);
+            SelectNextOrDeselect();
+        }
+
+        /// <summary>Z sleeps (wakes when enemies come near), H heals until whole; pressing again wakes.</summary>
+        public void ToggleStance(ArmyStance stance)
+        {
+            if (SelectedArmy == null) return;
+            if (SelectedArmy.Stance == stance)
+            {
+                SelectedArmy.Stance = ArmyStance.Awake;
+                Post("The army is awake.");
+                return;
+            }
+            if (!Game.SetStance(SelectedArmy, stance))
+            {
+                Post(stance == ArmyStance.Heal ? "Already at full health." : "Can't do that during a battle.", NoticeKind.Bad);
+                return;
+            }
+            Post(stance == ArmyStance.Heal
+                ? $"Healing: +{Game.HealRate(SelectedArmy)} HP a turn here (25 in your cities, 15 in your land, 10 neutral, 5 foreign)."
+                : "Sleeping until enemies come near.");
+            SelectNextOrDeselect();
+        }
+
+        void SelectNextOrDeselect()
+        {
+            var idle = IdleArmies();
+            if (idle.Count > 0) SelectNextIdle();
+            else Deselect();
+        }
+
+        public void FocusSelection()
+        {
+            if (SelectedArmy != null) FocusOn(SelectedArmy.Position);
+            else if (SelectedCity != null) FocusOn(SelectedCity.Position);
+        }
+
+        public void FocusCapital()
+        {
+            var capital = Game.Cities.FirstOrDefault(c => c.OwnerId == Human.Id && EconomyRules.IsCapital(Game, c));
+            if (capital != null) { FocusOn(capital.Position); OpenCity(capital); }
+        }
+
+        /// <summary>Forecast for attacking the hovered hex with the selected army, if it holds an enemy at war.</summary>
+        public BattleForecast HoverForecast()
+        {
+            if (SelectedArmy == null || !HoverHex.HasValue || HumanBattle != null) return null;
+            var hex = HoverHex.Value;
+            int owner = Game.ArmyAt(hex)?.OwnerId ?? Game.CityAt(hex)?.OwnerId ?? -1;
+            if (owner < 0 || owner == Human.Id || !Game.AtWar(owner, Human.Id) || !Viewer.IsVisible(hex)) return null;
+            return BattleForecast.Estimate(Game, SelectedArmy, hex);
         }
 
         // ------------------------------------------------------------------ world actions
@@ -395,15 +562,33 @@ namespace Crucible.View
 
         public void SetResearch(string techId)
         {
-            if (!Human.Tech.CanResearch(techId)) return;
+            if (!Human.Tech.CanResearch(techId)) { SetResearchTarget(techId); return; }
             Human.Tech.SetResearch(techId);
             Post($"Researching {Game.Content.Tech(techId).Name}.");
+        }
+
+        /// <summary>Heads for a distant tech: its prerequisites are researched first, in order.</summary>
+        public void SetResearchTarget(string techId)
+        {
+            Human.Tech.SetTarget(techId);
+            if (Human.Tech.Target == null) return;
+            int steps = Human.Tech.PathTo(techId).Count;
+            Post($"Research goal: {Game.Content.Tech(techId).Name} ({steps} techs). Now researching {Game.Content.Tech(Human.Tech.CurrentResearch).Name}.");
         }
 
         public void SetProduction(City city, ProductionItem item)
         {
             if (Game.SetProduction(city, item)) Post($"{city.Name} will build {EconomyRules.NameOf(Game, item)}.");
         }
+
+        /// <summary>Adds to the city's build queue (Shift+click Build, or the + button).</summary>
+        public void Enqueue(City city, ProductionItem item)
+        {
+            if (Game.EnqueueProduction(city, item)) Post($"{EconomyRules.NameOf(Game, item)} queued in {city.Name}.");
+            else Post(city.Queue.Count >= City.MaxQueue ? "The queue is full." : "Already queued.", NoticeKind.Bad);
+        }
+
+        public void Unqueue(City city, int index) => Game.RemoveQueued(city, index);
 
         public void Buy(City city, ProductionItem item)
         {
@@ -589,6 +774,10 @@ namespace Crucible.View
         // ------------------------------------------------------------------ save / load
 
         static string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "quicksave.crucible");
+        static string AutosaveDir => System.IO.Path.Combine(Application.persistentDataPath, "autosaves");
+
+        /// <summary>Rolling autosaves kept (one per turn, newest first).</summary>
+        public const int AutosavesKept = 5;
 
         public bool HasQuickSave => System.IO.File.Exists(SavePath);
 
@@ -598,12 +787,41 @@ namespace Crucible.View
             Post("Game saved.", NoticeKind.Good);
         }
 
+        /// <summary>Written at the start of each of the player's turns; the oldest beyond <see cref="AutosavesKept"/> are deleted.</summary>
+        void Autosave()
+        {
+            try
+            {
+                System.IO.Directory.CreateDirectory(AutosaveDir);
+                System.IO.File.WriteAllBytes(System.IO.Path.Combine(AutosaveDir, $"autosave_T{Game.Turn:D4}.crucible"), SaveGame.Save(Game, Turns));
+                foreach (var old in Autosaves().Skip(AutosavesKept)) System.IO.File.Delete(old.path);
+            }
+            catch (System.IO.IOException e)
+            {
+                Post($"Autosave failed: {e.Message}", NoticeKind.Bad);
+            }
+        }
+
+        /// <summary>Autosaves, newest first, with their turn numbers.</summary>
+        public List<(string path, int turn)> Autosaves()
+        {
+            if (!System.IO.Directory.Exists(AutosaveDir)) return new List<(string, int)>();
+            return System.IO.Directory.GetFiles(AutosaveDir, "autosave_T*.crucible")
+                .Select(p => (p, turn: int.TryParse(System.IO.Path.GetFileNameWithoutExtension(p).Substring("autosave_T".Length), out var t) ? t : 0))
+                .OrderByDescending(x => x.turn).ToList();
+        }
+
         public void QuickLoad()
         {
             if (!HasQuickSave) { Post("No quicksave yet (F5 to save).", NoticeKind.Bad); return; }
+            LoadFrom(SavePath);
+        }
+
+        public void LoadFrom(string path)
+        {
             try
             {
-                var (game, turns) = SaveGame.Load(System.IO.File.ReadAllBytes(SavePath), new Crucible.Core.AI.StrategicAI());
+                var (game, turns) = SaveGame.Load(System.IO.File.ReadAllBytes(path), new Crucible.Core.AI.StrategicAI());
                 Game = game;
                 Turns = turns;
                 _map.Build(game.Map);
@@ -615,11 +833,12 @@ namespace Crucible.View
                 _fogVersion = -1; _mapVersion = -1;
                 ClearRoute();
                 Notices.Clear();
+                _skipped.Clear();
                 HookEvents();
                 Post($"Loaded turn {game.Turn}.", NoticeKind.Good);
                 GameReplaced?.Invoke();
             }
-            catch (System.IO.InvalidDataException e)
+            catch (Exception e) when (e is System.IO.InvalidDataException || e is System.IO.IOException)
             {
                 Post($"Couldn't load: {e.Message}", NoticeKind.Bad);
             }

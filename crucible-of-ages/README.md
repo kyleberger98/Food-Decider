@@ -68,10 +68,10 @@ lighting will differ a little.
 The HUD is built with UI Toolkit entirely in code (no assets to set up):
 
 - **Top bar:** gold, science, culture, faith, happiness, tourism, free strategic resources, a research button with a progress bar, and Policies / Diplomacy buttons that light up when something needs you. Save and Load are here too.
-- **Notifications** slide in on the left: green for good news, red for bad, orange for war.
+- **Notifications** slide in on the left: green for good news, red for bad, orange for war. Ones with a place (city finished a build, battle, army woke up) are clickable and jump there; **N** or **Log** shows the whole history by turn.
 - **Right panel:** city screen (yields, growth, borders, build list with turns and **Buy**), research picker (what each tech unlocks), policy trees, diplomacy (treaties, opinion bars, proposals), city-states and siege camp.
 - **Selection card** (bottom-left): the army's units with health bars and context buttons (Found city, Build farm, Auto-improve, Explore, Besiege, Use great person…).
-- **End turn** (bottom-right) warns about idle cities and armies that can still move.
+- **End turn** (bottom-right) works like Civ's: it reads *Choose research*, *Choose production* or *Unit needs orders* and takes you there, then *End turn*. **Shift+Enter** or *End turn anyway* skips the prompts.
 - **Battles:** a banner with round/turn pips, walls and air support, an action bar, and a **combat preview** card listing every modifier and the expected damage (with KILL markers).
 - **On the map:** city banners (population, growth and production bars), army flags with unit counts, flags and health bars over units in battle, and a tooltip for the hex under the cursor (including natural wonders and their yields).
 
@@ -79,8 +79,9 @@ The HUD is built with UI Toolkit entirely in code (no assets to set up):
 
 | Mode | Input |
 |---|---|
-| World | Click your army (blue), hover a hex to see the route and turns, and click to march there (multi-turn orders continue automatically). Click an adjacent enemy or city to attack. **Enter** ends the turn. |
-| Cities | Click your city for its panel (growth, borders, production); pick what to build from the list, or **Buy** it with gold. **F** founds a city with a selected settler. **T** cycles research. **P** opens social policies. |
+| World | Click your army (blue), hover a hex to see the route and turns, and click to march there (multi-turn orders continue automatically). Hover an enemy with an army selected for a **battle forecast** (Decisive victory … Crushing defeat, counting militia, walls and high ground); click an adjacent one to attack. **Enter** goes to the next thing needing attention, then ends the turn; **Shift+Enter** ends it now. |
+| Unit orders | **Tab** selects the next unit waiting for orders. **Space** skips its turn, **Z** sleeps it until enemies come within 3 hexes, **H** heals it until whole. Armies that don't move heal each turn: 25 HP in your cities, 15 in your land, 10 in neutral land, 5 in foreign land (ships only in your waters). Flags show health bars and Zz / + / ? for sleeping, healing and exploring. |
+| Cities | Click your city for its panel (growth, borders, production); pick what to build from the list, **Shift+click** (or **+**) to add it to the queue (up to 6, built back to back), or **Buy** it with gold. **F** founds a city with a selected settler. **T** opens research; any later tech can be set as a **goal** and its prerequisites are researched in order. Switching research keeps the science already spent. **P** opens social policies. |
 | Diplomacy | **L** opens the leaders screen: war and peace, open borders, defensive pacts, AI opinion, and proposals waiting for your answer. At peace you can't enter another civ's land without open borders. |
 | Great people & city-states | With a great person selected, **V** uses their gift (Great Generals lead armies instead: merge them in). Click a city-state to see influence and gift gold. |
 | Workers | With a worker selected: **I** builds the best improvement on its hex (moving cancels), **U** toggles **auto-improve**: the worker picks, walks to and builds the best improvement in your land every turn, starting right away. |
@@ -89,8 +90,8 @@ The HUD is built with UI Toolkit entirely in code (no assets to set up):
 | Battle | Click a unit, then a green hex to move or a red enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats, **X** auto-resolves the round, **B** batters the walls with the selected unit. |
 | Reinforce | With an army next to an ongoing battle selected, click a battlefield hex to join it. |
 | Siege | Next to an enemy city, **G** declares a siege (militia rise, the city stops growing). The siege panel spends siege progress on rams, siege towers and catapults. Click the city to assault it. |
-| Camera | WASD/arrows pan, Q/E rotate, mouse wheel zooms (scrolls panels when over the HUD) · **Esc** closes a panel or deselects |
-| Saving | **F5** quick-saves, **F9** quick-loads (`quicksave.crucible` in Unity's persistent data folder) |
+| Camera | WASD/arrows, screen edges or middle-drag pan, Q/E rotate, mouse wheel zooms (scrolls panels when over the HUD) · **C** centres on the selection, **Home** on your capital · **Esc** closes a panel or deselects · **F1** lists every key |
+| Saving | **F5** quick-saves, **F9** quick-loads (`quicksave.crucible` in Unity's persistent data folder). The game autosaves at the start of each of your turns and keeps the last 5; **Load** lists them. |
 
 ## Status
 

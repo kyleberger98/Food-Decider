@@ -2,15 +2,18 @@ using System.Collections.Generic;
 using Crucible.Core.Game;
 using Crucible.Core.Hex;
 using Crucible.Core.World;
+using Crucible.View.Art;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace Crucible.View
 {
     /// <summary>
-    /// Builds the low-poly world: one vertex-coloured prism per hex, raised by elevation, with
-    /// cliff walls down to lower neighbours and thin river strips along hex edges.
-    /// TODO(M1): split into 16×16 chunks so edits only rebuild one chunk.
+    /// Renders the low-poly world built by <see cref="TerrainArt"/>: bevelled hex ground (with the
+    /// picking collider) and a separate decoration mesh — woods, jungle, reeds, palms, dunes, peaks
+    /// and natural wonders. Fog recolours vertices in place; decorations on unexplored hexes are
+    /// folded away so their silhouettes never give the map away.
+    /// TODO: split into 16×16 chunks so edits only rebuild one chunk.
     /// </summary>
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public sealed class HexMapRenderer : MonoBehaviour
@@ -21,47 +24,92 @@ namespace Crucible.View
         public float riverWidth = 0.14f;
 
         WorldMap _map;
-        readonly List<Vector3> _verts = new List<Vector3>();
-        readonly List<Color> _colors = new List<Color>();
-        readonly List<int> _tris = new List<int>();
-
-        // Per-tile vertex range and lit colours, so fog can recolour without rebuilding geometry.
-        readonly Dictionary<HexCoord, (int start, int count)> _tileVerts = new Dictionary<HexCoord, (int, int)>();
-        Color[] _baseColors;
-        Color[] _shownColors;
-        Mesh _mesh;
+        TerrainArt _art;
+        TerrainMesh _built;
+        Mesh _groundMesh, _propMesh;
+        Color[] _groundBase, _groundShown, _propBase, _propShown;
+        Vector3[] _propPositions, _propShownPositions;
+        readonly HashSet<HexCoord> _clearedProps = new HashSet<HexCoord>();
 
         public WorldMap Map => _map;
+
+        /// <summary>Shared vertex-colour material for everything low-poly (map, props, units, cities).</summary>
+        public static Material LowPolyMaterial
+        {
+            get
+            {
+                if (_material == null)
+                {
+                    var shader = Shader.Find("Crucible/VertexColorLit") ?? Shader.Find("Sprites/Default");
+                    _material = new Material(shader) { name = "LowPoly", enableInstancing = true };
+                }
+                return _material;
+            }
+        }
+        static Material _material;
 
         public void Build(WorldMap map)
         {
             _map = map;
-            _verts.Clear();
-            _colors.Clear();
-            _tris.Clear();
-            _tileVerts.Clear();
+            _art = new TerrainArt { HexSize = hexSize, LevelHeight = levelHeight, WaterHeight = waterHeight, RiverWidth = riverWidth };
+            _built = _art.Build(map);
+            if (_groundMesh != null) Destroy(_groundMesh); // rebuilt after a load
+            if (_propMesh != null) Destroy(_propMesh);
 
-            foreach (var tile in map.Tiles)
+            _groundMesh = ToMesh(_built.Ground, "WorldGround");
+            _groundBase = _groundMesh.colors;
+            _groundShown = (Color[])_groundBase.Clone();
+            GetComponent<MeshFilter>().sharedMesh = _groundMesh;
+            GetComponent<MeshCollider>().sharedMesh = _groundMesh;
+            GetComponent<MeshRenderer>().sharedMaterial = LowPolyMaterial;
+
+            var props = transform.Find("Decorations");
+            if (props == null)
             {
-                int start = _verts.Count;
-                AddTile(tile);
-                _tileVerts[tile.Coord] = (start, _verts.Count - start);
+                props = new GameObject("Decorations").transform;
+                props.SetParent(transform, false);
+                props.gameObject.AddComponent<MeshFilter>();
+                props.gameObject.AddComponent<MeshRenderer>().sharedMaterial = LowPolyMaterial;
             }
-            _baseColors = _colors.ToArray();
-            _shownColors = _colors.ToArray();
+            _propMesh = ToMesh(_built.Props, "WorldDecorations");
+            _propMesh.MarkDynamic();
+            _propBase = _propMesh.colors;
+            _propShown = (Color[])_propBase.Clone();
+            _propPositions = _propMesh.vertices;
+            _propShownPositions = (Vector3[])_propPositions.Clone();
+            props.GetComponent<MeshFilter>().sharedMesh = _propMesh;
+            _clearedProps.Clear();
+        }
 
-            var mesh = new Mesh { name = "WorldMap", indexFormat = IndexFormat.UInt32 };
-            _mesh = mesh;
-            mesh.SetVertices(_verts);
-            mesh.SetColors(_colors);
-            mesh.SetTriangles(_tris, 0);
+        /// <summary>Converts engine-free art into a Unity mesh (32-bit indices; flat facets via per-triangle vertices).</summary>
+        public static Mesh ToMesh(MeshData data, string name)
+        {
+            int n = data.VertexCount;
+            var verts = new Vector3[n];
+            var colors = new Color[n];
+            var tris = new int[n];
+            for (int i = 0; i < n; i++)
+            {
+                var p = data.Positions[i];
+                var c = data.Colors[i];
+                verts[i] = new Vector3(p.X, p.Y, p.Z);
+                colors[i] = new Color(c.R, c.G, c.B, 1f);
+                tris[i] = i;
+            }
+            var mesh = new Mesh { name = name, indexFormat = n > 65000 ? IndexFormat.UInt32 : IndexFormat.UInt16 };
+            mesh.vertices = verts;
+            mesh.colors = colors;
+            mesh.triangles = tris;
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
+            return mesh;
+        }
 
-            GetComponent<MeshFilter>().sharedMesh = mesh;
-            GetComponent<MeshCollider>().sharedMesh = mesh;
-            var mr = GetComponent<MeshRenderer>();
-            if (mr.sharedMaterial == null) mr.sharedMaterial = CreateMaterial();
+        /// <summary>Hides a hex's decorations (e.g. trees under a city); cleared hexes stay cleared until the next Build.</summary>
+        public void ClearDecorations(HexCoord hex)
+        {
+            if (_clearedProps.Add(hex)) FoldProps(hex, true);
+            _propMesh.vertices = _propShownPositions;
         }
 
         /// <summary>
@@ -70,36 +118,47 @@ namespace Crucible.View
         /// </summary>
         public void ApplyFog(PlayerVisibility vis, System.Func<int, Color> ownerColor = null)
         {
-            if (_mesh == null) return;
-            foreach (var kv in _tileVerts)
+            if (_groundMesh == null) return;
+            foreach (var tile in _map.Tiles)
             {
-                var state = vis.Get(kv.Key);
-                var (start, count) = kv.Value;
-                int owner = _map.Get(kv.Key).OwnerPlayerId;
-                for (int i = start; i < start + count; i++)
-                {
-                    var c = _baseColors[i];
-                    if (owner >= 0 && ownerColor != null) c = Color.Lerp(c, ownerColor(owner), 0.22f);
-                    if (state == VisibilityState.Unexplored) c = new Color(0.05f, 0.06f, 0.08f);
-                    else if (state == VisibilityState.Fogged)
-                    {
-                        float grey = c.grayscale;
-                        c = Color.Lerp(c, new Color(grey, grey, grey), 0.6f) * 0.55f;
-                    }
-                    c.a = 1f;
-                    _shownColors[i] = c;
-                }
+                var state = vis.Get(tile.Coord);
+                int owner = tile.OwnerPlayerId;
+                var tint = owner >= 0 && ownerColor != null ? ownerColor(owner) : (Color?)null;
+                Recolor(_built.GroundRanges[tile.Coord], _groundBase, _groundShown, state, tint);
+                Recolor(_built.PropRanges[tile.Coord], _propBase, _propShown, state, null);
+                FoldProps(tile.Coord, state == VisibilityState.Unexplored || _clearedProps.Contains(tile.Coord));
             }
-            _mesh.colors = _shownColors;
+            _groundMesh.colors = _groundShown;
+            _propMesh.colors = _propShown;
+            _propMesh.vertices = _propShownPositions;
         }
 
-        static Material CreateMaterial()
+        static void Recolor((int start, int count) range, Color[] from, Color[] to, VisibilityState state, Color? tint)
         {
-            var shader = Shader.Find("Crucible/VertexColorLit") ?? Shader.Find("Sprites/Default");
-            return new Material(shader);
+            for (int i = range.start; i < range.start + range.count; i++)
+            {
+                var c = from[i];
+                if (tint.HasValue) c = Color.Lerp(c, tint.Value, 0.2f);
+                if (state == VisibilityState.Unexplored) c = new Color(0.05f, 0.06f, 0.08f);
+                else if (state == VisibilityState.Fogged)
+                {
+                    float grey = c.grayscale;
+                    c = Color.Lerp(c, new Color(grey, grey, grey), 0.6f) * 0.55f;
+                }
+                c.a = 1f;
+                to[i] = c;
+            }
         }
 
-        public float TileHeight(Tile t) => t == null ? 0f : t.IsWater ? waterHeight : t.Elevation * levelHeight;
+        /// <summary>Collapses (or restores) a hex's decoration vertices into a point under the ground.</summary>
+        void FoldProps(HexCoord hex, bool hidden)
+        {
+            var (start, count) = _built.PropRanges[hex];
+            var hide = HexToWorld(hex) + Vector3.down;
+            for (int i = start; i < start + count; i++) _propShownPositions[i] = hidden ? hide : _propPositions[i];
+        }
+
+        public float TileHeight(Tile t) => _art != null ? _art.TileHeight(t) : 0f;
 
         public Vector3 HexToWorld(HexCoord c)
         {
@@ -108,121 +167,5 @@ namespace Crucible.View
         }
 
         public HexCoord WorldToHex(Vector3 p) => HexCoord.FromPoint(p.x, p.z, hexSize);
-
-        // ------------------------------------------------------------------ mesh building
-
-        void AddTile(Tile tile)
-        {
-            var center = HexToWorld(tile.Coord);
-            var color = TerrainColor(tile);
-
-            // Top face: centre + 6 corners.
-            int c0 = _verts.Count;
-            AddVert(center, color);
-            for (int i = 0; i < 6; i++) AddVert(center + Corner(i), color * 0.97f);
-            for (int i = 0; i < 6; i++) AddTri(c0, c0 + 1 + (i + 1) % 6, c0 + 1 + i);
-
-            // Walls down to each lower neighbour (or to sea floor at the map edge).
-            for (int dir = 0; dir < 6; dir++)
-            {
-                var neighbor = _map.Get(tile.Coord.Neighbor(dir));
-                float lowY = neighbor == null ? waterHeight - 0.3f : TileHeight(neighbor);
-                if (lowY >= center.y) continue;
-
-                var (a, b) = EdgeCorners(dir);
-                var top0 = center + a;
-                var top1 = center + b;
-                var bot0 = new Vector3(top0.x, lowY, top0.z);
-                var bot1 = new Vector3(top1.x, lowY, top1.z);
-                AddQuad(top0, top1, bot1, bot0, color * 0.72f);
-            }
-
-            // Rivers: draw each shared edge once (directions 0–2), as a strip sitting on the higher side.
-            for (int dir = 0; dir < 3; dir++)
-            {
-                if (!tile.HasRiver(dir)) continue;
-                var neighbor = _map.Get(tile.Coord.Neighbor(dir));
-                float y = Mathf.Max(center.y, TileHeight(neighbor)) + 0.02f;
-                var (a, b) = EdgeCorners(dir);
-                var p0 = new Vector3(center.x + a.x, y, center.z + a.z);
-                var p1 = new Vector3(center.x + b.x, y, center.z + b.z);
-                var inward = (new Vector3(center.x, y, center.z) - (p0 + p1) * 0.5f).normalized * riverWidth;
-                AddQuad(p0 + inward, p1 + inward, p1 - inward, p0 - inward, new Color(0.25f, 0.5f, 0.85f));
-            }
-        }
-
-        /// <summary>Pointy-top corner i at angle 60·i − 30°.</summary>
-        Vector3 Corner(int i)
-        {
-            float a = Mathf.Deg2Rad * (60f * i - 30f);
-            return new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * hexSize;
-        }
-
-        /// <summary>The two corners bounding the edge that faces hex direction <paramref name="dir"/>.</summary>
-        (Vector3, Vector3) EdgeCorners(int dir)
-        {
-            var (dx, dy) = HexCoord.Direction(dir).ToPoint(1.0);
-            float facing = Mathf.Atan2((float)dy, (float)dx);
-            float half = Mathf.Deg2Rad * 30f;
-            var a = new Vector3(Mathf.Cos(facing - half), 0f, Mathf.Sin(facing - half)) * hexSize;
-            var b = new Vector3(Mathf.Cos(facing + half), 0f, Mathf.Sin(facing + half)) * hexSize;
-            return (a, b);
-        }
-
-        void AddVert(Vector3 p, Color c)
-        {
-            _verts.Add(p);
-            _colors.Add(c);
-        }
-
-        void AddTri(int a, int b, int c)
-        {
-            _tris.Add(a);
-            _tris.Add(b);
-            _tris.Add(c);
-        }
-
-        /// <summary>Double-sided quad so winding never hides a wall.</summary>
-        void AddQuad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color color)
-        {
-            int i = _verts.Count;
-            AddVert(a, color);
-            AddVert(b, color);
-            AddVert(c, color);
-            AddVert(d, color);
-            AddTri(i, i + 1, i + 2);
-            AddTri(i, i + 2, i + 3);
-            AddTri(i, i + 2, i + 1);
-            AddTri(i, i + 3, i + 2);
-        }
-
-        static Color TerrainColor(Tile t)
-        {
-            Color c;
-            switch (t.Terrain)
-            {
-                case TerrainType.Ocean: c = new Color(0.10f, 0.22f, 0.45f); break;
-                case TerrainType.Coast: c = new Color(0.20f, 0.42f, 0.62f); break;
-                case TerrainType.Grassland: c = new Color(0.40f, 0.62f, 0.28f); break;
-                case TerrainType.Plains: c = new Color(0.66f, 0.64f, 0.36f); break;
-                case TerrainType.Desert: c = new Color(0.86f, 0.78f, 0.52f); break;
-                case TerrainType.Tundra: c = new Color(0.55f, 0.56f, 0.48f); break;
-                case TerrainType.Snow: c = new Color(0.93f, 0.95f, 0.97f); break;
-                default: c = Color.magenta; break;
-            }
-
-            switch (t.Feature)
-            {
-                case FeatureType.Forest: c = Color.Lerp(c, new Color(0.13f, 0.36f, 0.16f), 0.65f); break;
-                case FeatureType.Jungle: c = Color.Lerp(c, new Color(0.08f, 0.40f, 0.20f), 0.75f); break;
-                case FeatureType.Marsh: c = Color.Lerp(c, new Color(0.30f, 0.40f, 0.35f), 0.5f); break;
-                case FeatureType.Floodplain: c = Color.Lerp(c, new Color(0.50f, 0.60f, 0.30f), 0.4f); break;
-            }
-
-            if (t.IsMountain) c = Color.Lerp(c, new Color(0.45f, 0.42f, 0.40f), 0.75f);
-            else if (!t.IsWater) c *= 0.9f + 0.05f * t.Elevation; // higher ground reads lighter
-            c.a = 1f;
-            return c;
-        }
     }
 }

@@ -129,6 +129,12 @@ namespace Crucible.View.UI
             row.style.paddingRight = 6;
             row.style.paddingTop = row.style.paddingBottom = 5;
             row.style.marginTop = 4;
+            if (item.Kind == ProductionKind.Unit)
+            {
+                var flag = Ui.Flag(Icons.IconArt.ForUnit(G.Content.Unit(item.Id)), MarkerLayer.ColorOf(Me.Id), 24);
+                flag.style.marginRight = 8;
+                row.Add(flag);
+            }
             var info = Ui.Col(1);
             info.style.flexGrow = 1;
             info.Put(Ui.Text(EconomyRules.NameOf(G, item), 12, Theme.Text, bold: true));

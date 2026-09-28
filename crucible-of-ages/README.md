@@ -9,7 +9,7 @@ The full design is in **[docs/GDD.md](docs/GDD.md)**.
 |---|---|
 | `docs/GDD.md` | Game design document: systems, combat formulas, AI, architecture, milestones |
 | `UnityProject/Assets/Scripts/Core` | Engine-agnostic, deterministic simulation (`Crucible.Core`): hex math, map gen, units, armies, battles, sieges, AI, victory |
-| `UnityProject/Assets/Scripts/View` | Unity presentation (`Crucible.View`): hex mesh, camera, input, HUD, placeholder markers |
+| `UnityProject/Assets/Scripts/View` | Unity presentation (`Crucible.View`): low-poly world and miniatures (`Art/`), unit symbols (`Icons/`), camera, input, HUD |
 | `UnityProject/Assets/Shaders` | Vertex-colour lit shader for the low-poly map |
 | `tests/Crucible.Core.Tests` | xUnit tests that compile the Core sources directly, so no Unity is needed |
 
@@ -20,9 +20,10 @@ cd tests/Crucible.Core.Tests
 dotnet test
 ```
 
-These cover the hex math, map generation, cliffs, LOS, the combat formula and modifiers,
-battle flow (rounds, turns, reserves, ZOC, retreat, sieges), tactical AI determinism,
-army caps, and the victory conditions.
+These cover the hex math, map generation (scripts, lakes, ice, natural wonders), cliffs, LOS,
+the combat formula and modifiers, battle flow (rounds, turns, reserves, ZOC, retreat, sieges),
+tactical AI determinism, army caps, the victory conditions, and the engine-free art (unit
+symbols, miniatures and terrain meshes).
 
 ## Open in Unity
 
@@ -30,9 +31,37 @@ army caps, and the victory conditions.
 2. In Unity Hub, choose **Add → Add project from disk** and pick `UnityProject/`. Unity generates
    `ProjectSettings/`, `Packages/` and the `.meta` files on first open. Commit them afterwards.
 3. Create an empty scene, add an empty GameObject, attach **`GameBootstrap`**, and press **Play**.
+   Its inspector picks the seed, map size and **map script** (Continents, Pangaea, Archipelago).
 4. If you get Input errors, set *Project Settings → Player → Active Input Handling* to **Both**
    (the scaffold uses the legacy `Input` API).
 5. For player builds, add `Crucible/VertexColorLit` to *Graphics → Always Included Shaders*.
+
+### Look
+
+![World](docs/images/world.png)
+
+Everything is procedural, so there are no art assets to import. The images here come from the
+real geometry code, drawn by a small software renderer outside Unity, so the in-editor
+lighting will differ a little.
+
+- **World:** bevelled low-poly hexes with colour variation, sandy beaches and shore foam, rivers,
+  pack ice at the poles, and decorations: conifer and broadleaf woods, jungle, marsh reeds,
+  oasis palms, desert dunes, snow-capped mountain ranges, and three natural wonders (Emberfall
+  Geyser, the Glass Dunes, the Worldspine).
+- **Units:** Humankind-style miniatures. Foot troops are squads of three, cavalry are pairs of
+  riders, and siege engines, tanks, ships and aircraft are single models, all in the owner's
+  colour. Cities grow houses with population and raise walls and towers when fortified.
+- **Unit flags:** Civ-style shields with a symbol for each unit type (sword, spear, bow,
+  crossbow, horse, catapult, cannon, rocket, musket, helmet, tank, sail and steam ships,
+  carrier, fighter, bomber, jet, scout, settler, worker, ram, siege tower and the six great
+  people). They float over armies with a unit count, and also appear over units in battle, in the
+  selection card and in the build list.
+
+| Unit flags | Miniatures |
+|---|---|
+| ![Unit flags](docs/images/unit-flags.png) | ![Miniatures](docs/images/miniatures.png) |
+
+![Units on the map](docs/images/units-on-map.png)
 
 ### Interface
 
@@ -44,7 +73,7 @@ The HUD is built with UI Toolkit entirely in code (no assets to set up):
 - **Selection card** (bottom-left): the army's units with health bars and context buttons (Found city, Build farm, Automate, Besiege, Use great person…).
 - **End turn** (bottom-right) warns about idle cities and armies that can still move.
 - **Battles:** a banner with round/turn pips, walls and air support, an action bar, and a **combat preview** card listing every modifier and the expected damage (with KILL markers).
-- **On the map:** city banners (population, growth and production bars), army badges with unit counts, health bars over units in battle, and a tooltip for the hex under the cursor.
+- **On the map:** city banners (population, growth and production bars), army flags with unit counts, flags and health bars over units in battle, and a tooltip for the hex under the cursor (including natural wonders and their yields).
 
 ### Controls
 

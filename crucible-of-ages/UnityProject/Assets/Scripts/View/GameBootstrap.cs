@@ -13,10 +13,11 @@ namespace Crucible.View
         public int seed = 2024;
         public int mapWidth = 48;
         public int mapHeight = 32;
+        public Crucible.Core.World.MapScript mapScript = Crucible.Core.World.MapScript.Continents;
 
         void Start()
         {
-            var game = GameSetup.NewSkirmish((ulong)seed, mapWidth, mapHeight);
+            var game = GameSetup.NewSkirmish((ulong)seed, mapWidth, mapHeight, script: mapScript);
 
             var mapGo = new GameObject("WorldMap");
             var mapRenderer = mapGo.AddComponent<HexMapRenderer>();

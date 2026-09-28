@@ -59,8 +59,18 @@ Each land tile has an **elevation level 0–4**; water is below 0.
   (siege, artillery) ignore LOS.
 
 ### 2.3 Terrain, features, rivers
-- Base terrains: Grassland, Plains, Desert, Tundra, Snow, Coast, Ocean.
+- Base terrains: Grassland, Plains, Desert, Tundra, Snow, Coast, Ocean, Lake.
 - Features: Forest, Jungle, Marsh, Floodplain, Oasis, Reef, Ice, natural wonders.
+- **Map scripts:** *Continents* (two large landmasses plus islands, 38% land), *Pangaea* (one
+  supercontinent, 42%), *Archipelago* (a scatter of islands, 30%). Land comes from warped
+  continent blobs; sea level is picked per map so the land share is hit on every seed. Ridge
+  noise raises mountain ranges. Climate bands give polar pack ice, tundra and taiga, temperate
+  grass and woods, a subtropical desert belt with oases, and equatorial jungle and marsh.
+- **Lakes** fill inland hollows: shallow water (2 food, 1 gold) that boats and embarked
+  armies can use. **Oases** give 3 food and 1 gold. **Pack ice** blocks ships and embarked armies.
+- **Natural wonders** (three per map, at least 8 hexes apart): *Emberfall Geyser* (+2 science,
+  +2 faith), *Glass Dunes* (+3 gold, +2 culture), *Worldspine* (a mountain: +2 culture,
+  +3 faith). Each gives its owner +1 happiness.
 - **Rivers run along hex edges.** Attacking across a river: −4 CS. Crossing ends movement
   unless a bridge/road exists (Civ V rule).
 - Resources: Bonus / Luxury / Strategic (Iron, Horses, Niter, Coal, Oil, Aluminum, Uranium) —
@@ -336,6 +346,9 @@ crucible-of-ages/
 │     │  ├─ AI/         TacticalBattleAI
 │     │  └─ Game/       GameState (commands, sieges), TurnManager, VictoryChecker, GameSetup
 │     └─ View/   (Crucible.View.asmdef — Unity MonoBehaviours)
+│        ├─ Art/        engine-free low-poly meshes: TerrainArt, UnitModels, CityModels
+│        ├─ Icons/      procedural unit symbols (IconArt) and their textures
+│        ├─ UI/         UI Toolkit HUD
 │        └─ GameBootstrap, HexMapRenderer, CameraRig, GameController, MarkerLayer
 └─ tests/Crucible.Core.Tests/   (.NET 8 xUnit, compiles Core sources directly)
 ```
@@ -346,9 +359,13 @@ crucible-of-ages/
   only way to change state, so a command log works as a replay and as a lockstep MP stream.
 - **Content** is defined in C# for now (`DefaultContent`). It moves to JSON or ScriptableObjects
   once the content volume grows, and the core only ever reads `ContentDatabase`.
-- **Rendering:** one chunked mesh per 16×16 hex block, with vertex colors per terrain and
-  prism height per elevation. That is enough for the low-poly look, and props (trees,
-  units) are instanced.
+- **Rendering:** all art is procedural and vertex-coloured, with no imported assets. The map is
+  bevelled hex prisms with per-tile colour jitter, beaches, foam and rivers. Decorations
+  (woods, palms, dunes, peaks, wonders) live in a second mesh and fold away under fog. Units
+  are low-poly miniatures and cities grow with population. Unit symbols are vector shapes
+  rasterised at startup into the Civ-style shield flags that the HUD draws over armies. The
+  geometry code has no Unity references, so it is unit-tested and can be previewed outside the
+  editor. Planned: 16×16 chunking.
 
 ---
 
@@ -365,7 +382,7 @@ crucible-of-ages/
 | M6 | AI v1 ✅ | Strategic AI: expansion (site scoring, settlers), garrison management, defence, one offensive at a time (rally → march → siege → engines → assault), governor plan (settlers, military target), AI-vs-AI skirmishes end in domination (tested). ⏳ Fog-aware targeting & scouting, diplomacy, spending gold (needs purchasing), multiple fronts |
 | M7 | Full-history content 🟡 | ✅ 57 techs across all 8 eras, land units every era, 5 warships, 3 aircraft, rocket artillery, 20 buildings; fleets (triremes coast-only), embarking (Optics / Astronomy), sinking embarked armies, mixed land-sea battlefields, city hangars with air strikes & interception each round, buying with gold (players and AI). ⏳ Wonders, carriers, nukes, unit upgrades, remaining ~25 techs |
 | M8 | Remaining systems ✅ | Great people (scientist, engineer, merchant, artist, prophet, general) from building points, faith and battle; religion founding and pressure-based spread with founder/follower beliefs; city-states (maritime, cultured, mercantile, militaristic) with influence, friends/allies, bonuses; World Congress & World Leader votes; tourism from great works and late-era culture; Apollo Program + 6 spaceship parts with flight time. All five victories reachable (tested). ⏳ Missionaries, pantheons & chosen beliefs, Congress resolutions, diplomacy between majors, conquering city-states |
-| M9 | Victory & polish 🟡 | ✅ All five victories, save/load (deterministic, tested), diplomacy between majors. ⏳ Balance passes, tutorial, art & animation, options/menus |
+| M9 | Victory & polish 🟡 | ✅ All five victories, save/load (deterministic, tested), diplomacy between majors, UI Toolkit HUD, map scripts with lakes, ice and natural wonders, procedural low-poly art (terrain decorations, unit miniatures, cities) and Civ-style unit flags. ⏳ Balance passes, tutorial, animation, options/menus |
 
 ---
 

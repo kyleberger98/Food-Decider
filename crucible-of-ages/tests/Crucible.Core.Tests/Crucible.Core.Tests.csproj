@@ -2,7 +2,8 @@
 
   <!--
     Compiles the engine-agnostic simulation core (UnityProject/Assets/Scripts/Core) directly,
-    so rules can be tested with `dotnet test` without opening Unity.
+    so rules can be tested with `dotnet test` without opening Unity. The engine-free parts of the
+    view (procedural unit symbols and low-poly meshes) are compiled in as well.
     LangVersion 9.0 matches the C# version Unity 2022.3 / Unity 6 support.
   -->
   <PropertyGroup>
@@ -16,6 +17,9 @@
 
   <ItemGroup>
     <Compile Include="../../UnityProject/Assets/Scripts/Core/**/*.cs" LinkBase="Core" />
+    <!-- Engine-free view art (unit symbols, low-poly meshes) is testable too. -->
+    <Compile Include="../../UnityProject/Assets/Scripts/View/Icons/IconArt.cs" LinkBase="View" />
+    <Compile Include="../../UnityProject/Assets/Scripts/View/Art/*.cs" LinkBase="View" />
   </ItemGroup>
 
   <ItemGroup>

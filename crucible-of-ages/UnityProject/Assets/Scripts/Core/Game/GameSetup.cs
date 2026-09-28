@@ -9,10 +9,11 @@ namespace Crucible.Core.Game
     public static class GameSetup
     {
         /// <param name="allAI">True for AI-vs-AI games (autoplay, balance testing).</param>
-        public static GameState NewSkirmish(ulong seed, int width = 48, int height = 32, bool allAI = false)
+        /// <param name="script">Continents, Pangaea or Archipelago.</param>
+        public static GameState NewSkirmish(ulong seed, int width = 48, int height = 32, bool allAI = false, MapScript script = MapScript.Continents)
         {
             var content = DefaultContent.Create();
-            var map = MapGenerator.Generate(new MapGeneratorSettings { Seed = seed, Width = width, Height = height });
+            var map = MapGenerator.Generate(new MapGeneratorSettings { Seed = seed, Width = width, Height = height, Script = script });
             var game = new GameState(content, map, seed ^ 0x5EED5EEDUL);
             game.Diplomacy.MajorsStartAtWar = false; // wars must be declared
 

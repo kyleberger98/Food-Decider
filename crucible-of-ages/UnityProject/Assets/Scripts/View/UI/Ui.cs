@@ -217,6 +217,38 @@ namespace Crucible.View.UI
             if (bottom.HasValue) e.style.bottom = bottom.Value;
         }
 
+        /// <summary>
+        /// Civ-style unit flag: a dark-rimmed heraldic shield in the owner's colour carrying the unit's
+        /// symbol. Three stacked, tinted images, so any colour costs no new texture.
+        /// </summary>
+        public static VisualElement Flag(Icons.UnitIcon icon, Color color, float size = 28)
+        {
+            var root = Image(Icons.IconTextures.ShieldRim, new Color(0.07f, 0.07f, 0.09f, 0.95f), size);
+            var field = Image(Icons.IconTextures.ShieldField, color, size);
+            Absolute(field, 0, 0);
+            root.Add(field);
+            float g = size * 0.62f;
+            var glyph = Image(Icons.IconTextures.Glyph(icon), new Color(0.98f, 0.96f, 0.9f), g);
+            Absolute(glyph, (size - g) / 2, size * 0.14f);
+            root.Add(glyph);
+            root.pickingMode = field.pickingMode = glyph.pickingMode = PickingMode.Ignore;
+            return root;
+        }
+
+        /// <summary>A bare unit symbol, tinted (for lists and cards).</summary>
+        public static VisualElement Glyph(Icons.UnitIcon icon, Color color, float size = 16) =>
+            Image(Icons.IconTextures.Glyph(icon), color, size);
+
+        static VisualElement Image(Texture2D tex, Color tint, float size)
+        {
+            var e = new VisualElement();
+            e.style.width = e.style.height = size;
+            e.style.flexShrink = 0;
+            e.style.backgroundImage = new StyleBackground(tex);
+            e.style.unityBackgroundImageTintColor = tint;
+            return e;
+        }
+
         public static void Show(VisualElement e, bool visible) => e.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
 
         public static string Signed(int v) => v > 0 ? "+" + v : v.ToString();

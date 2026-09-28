@@ -375,8 +375,9 @@ namespace Crucible.View.UI
             foreach (var u in army.Units)
             {
                 var row = list.Put(Ui.Row(8));
+                row.Put(Ui.Flag(Icons.IconArt.ForUnit(u.Def), MarkerLayer.ColorOf(army.OwnerId), 20));
                 var name = Ui.Text(u.Def.Name, 12, Theme.Text, bold: true);
-                name.style.width = 150;
+                name.style.width = 130;
                 row.Put(name);
                 string stats = u.Def.GreatPerson != GreatPersonType.None ? u.Def.GreatPerson.ToString()
                     : !u.Def.IsMilitary ? "civilian"
@@ -416,10 +417,7 @@ namespace Crucible.View.UI
         void BuildUnitCard(Unit unit, Battle battle)
         {
             var header = _selection.Put(Ui.Row(8));
-            var stripe = Ui.Box(MarkerLayer.ColorOf(unit.OwnerId), 0, 2);
-            stripe.style.width = 4;
-            stripe.style.height = 30;
-            header.Put(stripe);
+            header.Put(Ui.Flag(Icons.IconArt.ForUnit(unit.Def), MarkerLayer.ColorOf(unit.OwnerId), 34));
             var col = header.Put(Ui.Col(2));
             col.Put(Ui.Heading(unit.Def.Name));
             col.Put(Ui.Text($"{unit.Def.Class}  ·  {unit.BattleMovesLeft}/{unit.Def.BattleMovement} MP" + (unit.HasAttacked ? "  ·  attacked" : "") +
@@ -606,13 +604,20 @@ namespace Crucible.View.UI
             if (!Changed("tooltip", $"{hover}|{unit?.Id}|{unit?.Hp}|{army?.Id}|{army?.Count}|{tile.Improvement}|{tile.OwnerPlayerId}")) return;
 
             _tooltip.Clear();
-            string height = tile.IsWater ? (tile.Terrain == TerrainType.Coast ? "coast" : "ocean")
+            string height = tile.IsIce ? "pack ice — impassable" : tile.IsWater ? (tile.Terrain == TerrainType.Ocean ? "ocean" : "shallows")
                 : tile.IsMountain ? "mountain" : new[] { "lowland", "plains", "hills", "highlands" }[Mathf.Clamp(tile.Elevation, 0, 3)];
-            _tooltip.Put(Ui.Text($"{tile.Terrain}{(tile.Feature != FeatureType.None ? " · " + tile.Feature : "")}  ({height})", 12, Theme.Text, bold: true));
-            if (!tile.IsWater && !tile.IsMountain)
+            string feature = tile.Feature != FeatureType.None && !tile.IsIce ? " · " + tile.Feature : "";
+            _tooltip.Put(Ui.Text($"{tile.Terrain}{feature}  ({height})", 12, Theme.Text, bold: true));
+            if (tile.Wonder != NaturalWonder.None)
+            {
+                string name = System.Text.RegularExpressions.Regex.Replace(tile.Wonder.ToString(), "(?<=[a-z])(?=[A-Z])", " ");
+                _tooltip.Put(Ui.Text($"Natural wonder: {name} (+1 happiness to its owner)", 11, Theme.Accent, bold: true, wrap: true));
+            }
+            if (!tile.IsIce && (!tile.IsMountain || tile.Wonder != NaturalWonder.None))
             {
                 var y = EconomyRules.TileYields(tile, G.Map);
-                _tooltip.Put(Ui.Text($"{y.Food} food  ·  {y.Production} prod  ·  {y.Gold} gold", 11, Theme.Muted));
+                string extra = (y.Science > 0 ? $"  ·  {y.Science} sci" : "") + (y.Culture > 0 ? $"  ·  {y.Culture} culture" : "") + (y.Faith > 0 ? $"  ·  {y.Faith} faith" : "");
+                _tooltip.Put(Ui.Text($"{y.Food} food  ·  {y.Production} prod  ·  {y.Gold} gold{extra}", 11, Theme.Muted));
             }
             if (tile.Resource != ResourceType.None)
                 _tooltip.Put(Ui.Text($"{tile.Resource} ({Improvements.KindOf(tile.Resource)})" +
@@ -662,6 +667,7 @@ namespace Crucible.View.UI
                     Ui.Absolute(banner, 0, 0);
                     _overlay.Add(banner);
                     _cityBanners[city.Id] = banner;
+                    _signatures.Remove("city" + city.Id);
                 }
                 string sig = $"{city.OwnerId}|{city.Population}|{city.CurrentProduction}|{city.IsBesieged}|{city.FoodStored}|{city.ProductionStored}";
                 if (Changed("city" + city.Id, sig)) BuildCityBanner(banner, city);
@@ -678,22 +684,21 @@ namespace Crucible.View.UI
                 seen.Add(army.Id);
                 if (!_armyBadges.TryGetValue(army.Id, out var badge))
                 {
-                    badge = Ui.Box(null, 0, 9);
-                    badge.pickingMode = PickingMode.Ignore;
+                    badge = new VisualElement { pickingMode = PickingMode.Ignore };
                     Ui.Absolute(badge, 0, 0);
-                    badge.style.paddingLeft = badge.style.paddingRight = 6;
-                    badge.style.paddingTop = badge.style.paddingBottom = 1;
-                    var label = Ui.Text("", 11, Color.white, bold: true);
-                    label.pickingMode = PickingMode.Ignore;
-                    badge.Add(label);
                     _overlay.Add(badge);
                     _armyBadges[army.Id] = badge;
+                    _signatures.Remove("army" + army.Id); // a fresh (empty) badge must be built
                 }
-                badge.style.backgroundColor = Color.Lerp(MarkerLayer.ColorOf(army.OwnerId), Color.black, 0.35f);
-                Ui.Border(badge, army == _c.SelectedArmy ? Color.white : new Color(0, 0, 0, 0), 1.5f);
-                string icon = army.IsNaval ? "~" : army.Units.Any(u => u.Def.GreatPerson == GreatPersonType.General) ? "*" : "";
-                ((Label)badge[0]).text = $"{icon}{army.Units.Count(u => u.Def.IsMilitary)}" + (army.Units.Any(u => !u.Def.IsMilitary) ? "+" : "");
-                Place(badge, _c.MapRenderer.HexToWorld(army.Position), 0.75f);
+                // Flag of the army's lead unit (strongest military unit, else its first civilian) plus a unit count.
+                var lead = MarkerLayer.LeadUnit(army);
+                if (lead == null) continue;
+                int count = army.Units.Count(u => u.Def.IsMilitary);
+                bool general = army.Units.Any(u => u.Def.GreatPerson == GreatPersonType.General);
+                bool selected = army == _c.SelectedArmy, embarked = !army.IsNaval && G.IsEmbarked(army);
+                string sig = $"{lead.Def.Id}|{count}|{army.Count}|{general}|{selected}|{embarked}|{army.OwnerId}";
+                if (Changed("army" + army.Id, sig)) BuildArmyBadge(badge, army, lead, count, general, selected, embarked);
+                Place(badge, _c.MapRenderer.HexToWorld(army.Position), 0.95f);
             }
             foreach (var id in _armyBadges.Keys.Where(id => !seen.Contains(id)).ToList()) { _armyBadges[id].RemoveFromHierarchy(); _armyBadges.Remove(id); }
 
@@ -706,23 +711,66 @@ namespace Crucible.View.UI
                     seen.Add(unit.Id);
                     if (!_unitBars.TryGetValue(unit.Id, out var bar))
                     {
-                        bar = Ui.Box(new Color(0, 0, 0, 0.7f), 1, 2);
+                        // Unit flag with its health bar underneath.
+                        bar = Ui.Col(2);
+                        bar.style.alignItems = Align.Center;
                         bar.pickingMode = PickingMode.Ignore;
                         Ui.Absolute(bar, 0, 0);
-                        bar.style.width = 34;
-                        bar.style.height = 6;
+                        bar.Put(Ui.Flag(Icons.IconArt.ForUnit(unit.Def), MarkerLayer.ColorOf(unit.OwnerId), 22));
+                        var track = bar.Put(Ui.Box(new Color(0, 0, 0, 0.7f), 1, 2));
+                        track.pickingMode = PickingMode.Ignore;
+                        track.style.width = 34;
+                        track.style.height = 6;
                         var fill = Ui.Box(Theme.Good, 0, 2);
                         fill.style.height = 4;
-                        bar.Add(fill);
+                        fill.pickingMode = PickingMode.Ignore;
+                        track.Add(fill);
                         _overlay.Add(bar);
                         _unitBars[unit.Id] = bar;
                     }
-                    var f = bar[0];
+                    var f = bar[1][0];
                     f.style.width = Length.Percent(unit.Hp);
                     f.style.backgroundColor = unit.OwnerId == Me.Id ? Theme.Good : Theme.Bad;
-                    Place(bar, _c.MapRenderer.HexToWorld(shown.PositionOf(unit).Value), 0.65f);
+                    Place(bar, _c.MapRenderer.HexToWorld(shown.PositionOf(unit).Value), 0.8f);
                 }
             foreach (var id in _unitBars.Keys.Where(id => !seen.Contains(id)).ToList()) { _unitBars[id].RemoveFromHierarchy(); _unitBars.Remove(id); }
+        }
+
+        void BuildArmyBadge(VisualElement badge, Army army, Unit lead, int count, bool general, bool selected, bool embarked)
+        {
+            badge.Clear();
+            var color = MarkerLayer.ColorOf(army.OwnerId);
+            if (embarked) color = Color.Lerp(color, Color.white, 0.45f);
+            var flag = Ui.Flag(Icons.IconArt.ForUnit(lead.Def), color, selected ? 34 : 28);
+            if (selected)
+            {
+                // A pale halo behind the selected army's flag.
+                var halo = Ui.Box(new Color(1, 1, 1, 0.35f), 0, 20);
+                Ui.Absolute(halo, -4, -3, -4, -2);
+                halo.pickingMode = PickingMode.Ignore;
+                flag.Insert(0, halo);
+            }
+            badge.Add(flag);
+
+            // Count pip in the lower right, Civ style; "+" when civilians travel with the army.
+            if (army.Count > 1 || !lead.Def.IsMilitary)
+            {
+                var pip = Ui.Box(new Color(0.07f, 0.07f, 0.09f, 0.95f), 0, 7);
+                Ui.Absolute(pip, null, null, -6, -2);
+                pip.style.paddingLeft = pip.style.paddingRight = 4;
+                Ui.Border(pip, color, 1);
+                string text = count > 0 ? count.ToString() : army.Count.ToString();
+                if (count > 0 && army.Units.Any(u => !u.Def.IsMilitary)) text += "+";
+                pip.Add(Ui.Text(text, 10, Color.white, bold: true));
+                flag.Add(pip);
+            }
+            if (general)
+            {
+                var star = Ui.Flag(Icons.UnitIcon.General, Theme.Accent, 16);
+                Ui.Absolute(star, -8, -4);
+                flag.Add(star);
+            }
+            foreach (var child in badge.Query<VisualElement>().ToList()) child.pickingMode = PickingMode.Ignore;
         }
 
         void BuildCityBanner(VisualElement banner, City city)

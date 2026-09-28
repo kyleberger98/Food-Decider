@@ -3,13 +3,17 @@ using System.Linq;
 using Crucible.Core.Combat;
 using Crucible.Core.Game;
 using Crucible.Core.Units;
+using Crucible.View.Art;
+using Crucible.View.Icons;
 using UnityEngine;
 
 namespace Crucible.View
 {
     /// <summary>
-    /// Placeholder visuals: cylinders for armies, cubes for cities, capsules for units deployed in a
-    /// battle, and translucent tiles over the battlefield. Replaced by real models in M2/M3.
+    /// World-space visuals: low-poly settlements (<see cref="CityModels"/>), army and battle-unit
+    /// miniatures (<see cref="UnitModels"/>: squads, riders, engines, ships, aircraft), resource and
+    /// improvement markers, and translucent battlefield / highlight tiles. Unit flags and health bars
+    /// are drawn by the HUD on top.
     /// </summary>
     public sealed class MarkerLayer : MonoBehaviour
     {
@@ -26,6 +30,9 @@ namespace Crucible.View
         readonly Dictionary<int, GameObject> _armies = new Dictionary<int, GameObject>();
         readonly Dictionary<int, GameObject> _cities = new Dictionary<int, GameObject>();
         readonly Dictionary<int, GameObject> _units = new Dictionary<int, GameObject>();
+        readonly Dictionary<int, string> _armyLooks = new Dictionary<int, string>();
+        readonly Dictionary<int, string> _cityLooks = new Dictionary<int, string>();
+        readonly Dictionary<string, Mesh> _meshCache = new Dictionary<string, Mesh>();
         readonly List<GameObject> _battleTiles = new List<GameObject>();
         readonly List<GameObject> _highlightPool = new List<GameObject>();
         readonly List<GameObject> _terrainMarkers = new List<GameObject>();
@@ -54,13 +61,22 @@ namespace Crucible.View
             {
                 if (!_cities.TryGetValue(city.Id, out var go))
                 {
-                    go = Primitive(PrimitiveType.Cube, $"City {city.Name}");
-                    go.transform.localScale = new Vector3(0.7f, 0.5f, 0.7f);
-                    go.transform.position = _map.HexToWorld(city.Position) + Vector3.up * 0.25f;
+                    go = Model($"City {city.Name}");
+                    go.transform.position = _map.HexToWorld(city.Position);
                     _cities[city.Id] = go;
+                    _map.ClearDecorations(city.Position); // no forest growing through the houses
                 }
                 go.SetActive(viewer == null || viewer.IsExplored(city.Position));
-                Tint(go, ColorOf(city.OwnerId) * 0.8f);
+                int walls = game.Map.Get(city.Position).WallTier;
+                bool capital = Crucible.Core.Economy.EconomyRules.IsCapital(game, city);
+                int size = Mathf.Min(8, city.Population);
+                string look = $"{city.OwnerId}|{size}|{walls}|{capital}";
+                if (!_cityLooks.TryGetValue(city.Id, out var old) || old != look)
+                {
+                    _cityLooks[city.Id] = look;
+                    go.GetComponent<MeshFilter>().sharedMesh = Cached("city" + city.Id + "|" + look,
+                        () => CityModels.Build(size, walls, capital, ToRgb(ColorOf(city.OwnerId)), city.Id));
+                }
             }
         }
 
@@ -72,28 +88,72 @@ namespace Crucible.View
                 alive.Add(army.Id);
                 if (!_armies.TryGetValue(army.Id, out var go))
                 {
-                    // Fleets are hull-shaped slabs; land armies are banners (cylinders).
-                    go = Primitive(army.IsNaval ? PrimitiveType.Cube : PrimitiveType.Cylinder, $"Army {army.Id}");
+                    go = Model($"Army {army.Id}");
                     _armies[army.Id] = go;
                 }
                 // Armies unfold into individual units while their battle is on screen.
                 bool seen = viewer == null || viewer.IsVisible(army.Position);
                 bool unfolded = focusBattle != null && focusBattle.Attacker.Armies.Concat(focusBattle.Defender.Armies).Contains(army);
                 go.SetActive(seen && !unfolded);
-                float h = 0.1f + 0.06f * army.Count;
-                go.transform.localScale = new Vector3(0.55f, h, 0.55f);
-                go.transform.position = _map.HexToWorld(army.Position) + Vector3.up * (h + 0.02f);
-                if (army.IsNaval) go.transform.localScale = new Vector3(0.7f, 0.12f + 0.04f * army.Count, 0.3f);
+                if (!go.activeSelf) continue;
+
+                // The army is shown by its lead unit (strongest military unit, else its first civilian).
+                var lead = LeadUnit(army);
+                if (lead == null) continue;
+                var icon = IconArt.ForUnit(lead.Def);
+                string look = $"{icon}|{army.OwnerId}";
+                if (!_armyLooks.TryGetValue(army.Id, out var old) || old != look)
+                {
+                    _armyLooks[army.Id] = look;
+                    go.GetComponent<MeshFilter>().sharedMesh = UnitMesh(icon, army.OwnerId);
+                }
+                go.transform.position = _map.HexToWorld(army.Position);
+                go.transform.rotation = Quaternion.Euler(0f, FacingYaw, 0f);
                 bool embarked = !army.IsNaval && game.IsEmbarked(army);
-                var color = ColorOf(army.OwnerId);
-                if (embarked) color = Color.Lerp(color, Color.white, 0.5f); // troops in boats: pale
-                Tint(go, army == selected ? Color.white : color);
+                // Selected: brightened. Embarked troops ride in pale boats (pale tint).
+                Tint(go, army == selected ? new Color(1.35f, 1.35f, 1.35f) : embarked ? new Color(0.8f, 0.9f, 1.1f) : Color.white);
             }
             foreach (var id in _armies.Keys.Where(id => !alive.Contains(id)).ToList())
             {
                 Destroy(_armies[id]);
                 _armies.Remove(id);
+                _armyLooks.Remove(id);
             }
+        }
+
+        /// <summary>Models face the default camera, turned a little for a three-quarter view.</summary>
+        const float FacingYaw = 200f;
+
+        public static Unit LeadUnit(Army army) =>
+            army.Units.Where(u => u.Def.IsMilitary && u.Def.GreatPerson == Crucible.Core.Content.GreatPersonType.None)
+                .OrderByDescending(u => Mathf.Max(u.Def.CombatStrength, u.Def.RangedStrength)).FirstOrDefault()
+            ?? army.Units.FirstOrDefault();
+
+        Mesh UnitMesh(UnitIcon icon, int ownerId) =>
+            Cached($"unit|{icon}|{ownerId}", () => UnitModels.Build(icon, ToRgb(ColorOf(ownerId))));
+
+        Mesh Cached(string key, System.Func<MeshData> build)
+        {
+            if (!_meshCache.TryGetValue(key, out var mesh))
+                _meshCache[key] = mesh = HexMapRenderer.ToMesh(build(), key);
+            return mesh;
+        }
+
+        void OnDestroy()
+        {
+            foreach (var mesh in _meshCache.Values) Destroy(mesh);
+            _meshCache.Clear();
+        }
+
+        static Rgb ToRgb(Color c) => new Rgb(c.r, c.g, c.b);
+
+        GameObject Model(string name)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            go.AddComponent<MeshFilter>();
+            go.AddComponent<MeshRenderer>().sharedMaterial = HexMapRenderer.LowPolyMaterial;
+            return go;
         }
 
         void SyncBattle(Battle battle, Unit selected)
@@ -137,13 +197,24 @@ namespace Crucible.View
                     deployed.Add(unit.Id);
                     if (!_units.TryGetValue(unit.Id, out var go))
                     {
-                        go = Primitive(PrimitiveType.Capsule, unit.Def.Name);
-                        go.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+                        go = Model(unit.Def.Name);
+                        go.GetComponent<MeshFilter>().sharedMesh = UnitMesh(IconArt.ForUnit(unit.Def), unit.OwnerId);
+                        go.transform.localScale = Vector3.one * 0.9f;
                         _units[unit.Id] = go;
                     }
-                    go.transform.position = _map.HexToWorld(battle.PositionOf(unit).Value) + Vector3.up * 0.3f;
-                    var c = ColorOf(unit.OwnerId);
-                    Tint(go, unit == selected ? Color.white : Color.Lerp(Color.black, c, 0.35f + 0.65f * unit.Hp / (float)Unit.MaxHp));
+                    go.transform.position = _map.HexToWorld(battle.PositionOf(unit).Value);
+                    // Face the enemy: attackers look toward the defenders' zone and vice versa.
+                    bool attacker = battle.Attacker.Player.Id == unit.OwnerId;
+                    var foe = battle.DeployedUnits(attacker ? BattleSideId.Defender : BattleSideId.Attacker).FirstOrDefault();
+                    if (foe != null)
+                    {
+                        var to = _map.HexToWorld(battle.PositionOf(foe).Value) - go.transform.position;
+                        to.y = 0;
+                        if (to.sqrMagnitude > 0.01f) go.transform.rotation = Quaternion.LookRotation(to);
+                    }
+                    // Selected: bright. Wounded units darken as they lose health.
+                    float hp = unit.Hp / (float)Unit.MaxHp;
+                    Tint(go, unit == selected ? new Color(1.4f, 1.4f, 1.4f) : Color.Lerp(new Color(0.35f, 0.3f, 0.3f), Color.white, 0.3f + 0.7f * hp));
                 }
             }
             foreach (var id in _units.Keys.Where(id => !deployed.Contains(id)).ToList())
@@ -170,7 +241,7 @@ namespace Crucible.View
                     var slab = Primitive(PrimitiveType.Cube, t.Improvement.ToString());
                     slab.transform.localScale = new Vector3(0.45f, 0.05f, 0.45f);
                     slab.transform.position = center + new Vector3(-0.3f, 0.03f, -0.3f);
-                    Tint(slab, new Color(0.75f, 0.62f, 0.4f));
+                    Tint(slab, ImprovementColor(t.Improvement));
                     _terrainMarkers.Add(slab);
                 }
                 if (t.Resource != Crucible.Core.World.ResourceType.None)
@@ -184,6 +255,19 @@ namespace Crucible.View
                         : new Color(0.4f, 0.85f, 0.35f));
                     _terrainMarkers.Add(orb);
                 }
+            }
+        }
+
+        static Color ImprovementColor(Crucible.Core.World.ImprovementType i)
+        {
+            switch (i)
+            {
+                case Crucible.Core.World.ImprovementType.Farm: return new Color(0.86f, 0.78f, 0.35f);
+                case Crucible.Core.World.ImprovementType.Mine: return new Color(0.35f, 0.33f, 0.36f);
+                case Crucible.Core.World.ImprovementType.Pasture: return new Color(0.55f, 0.75f, 0.35f);
+                case Crucible.Core.World.ImprovementType.Plantation: return new Color(0.3f, 0.55f, 0.25f);
+                case Crucible.Core.World.ImprovementType.Camp: return new Color(0.6f, 0.42f, 0.25f);
+                default: return new Color(0.75f, 0.62f, 0.4f);
             }
         }
 

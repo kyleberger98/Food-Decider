@@ -106,12 +106,12 @@ namespace Crucible.View
 
         void HookEvents()
         {
-            Game.BattleStarted += b => Post($"Battle begins: {b.Attacker.Player.Name} attacks {b.Defender.Player.Name}.", NoticeKind.War);
+            Game.BattleStarted += b => Post($"Battle: {b.Attacker.Player.Name} vs {b.Defender.Player.Name}.", NoticeKind.War);
             Game.BattleEnded += b => Post($"Battle over — {Describe(b)}.", b.Winner.HasValue && Side(b, b.Winner.Value).Player == HumanPlayer ? NoticeKind.Good : NoticeKind.Bad);
             Game.ArmySunk += a => Post($"An embarked army ({a.Count} units) was sunk at sea!", NoticeKind.Bad);
             Game.GreatPersonBorn += (p, u) => { if (!p.IsAI) Post($"A {u.Def.Name} is born! Select them to use their gift.", NoticeKind.Good); };
             Game.ReligionFounded += r => Post($"{r.Name} has been founded by {Game.Player(r.FounderId).Name}.");
-            Game.WarDeclared += (a, b) => Post($"{a.Name} declares war on {b.Name}!", NoticeKind.War);
+            Game.WarDeclared += (a, b) => Post($"War: {a.Name} against {b.Name}!", NoticeKind.War);
             Game.PeaceMade += (a, b) => Post($"Peace between {a.Name} and {b.Name}.", NoticeKind.Good);
         }
 
@@ -122,10 +122,11 @@ namespace Crucible.View
         {
             switch (b.Status)
             {
-                case BattleStatus.AttackerWon: return $"{b.Attacker.Player.Name} wins" + (b.Objective.HasValue ? " and takes the city" : "");
-                case BattleStatus.DefenderWon: return $"{b.Defender.Player.Name} holds";
-                case BattleStatus.AttackerRetreated: return $"{b.Attacker.Player.Name} retreats";
-                case BattleStatus.DefenderRetreated: return $"{b.Defender.Player.Name} retreats";
+                // Phrased so they read right for the human player too ("You").
+                case BattleStatus.AttackerWon: return $"victory for {b.Attacker.Player.Name}" + (b.Objective.HasValue ? ", the city falls" : "");
+                case BattleStatus.DefenderWon: return $"the line held for {b.Defender.Player.Name}";
+                case BattleStatus.AttackerRetreated: return $"withdrawal by {b.Attacker.Player.Name}";
+                case BattleStatus.DefenderRetreated: return $"withdrawal by {b.Defender.Player.Name}";
                 default: return b.Status.ToString();
             }
         }

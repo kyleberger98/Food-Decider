@@ -8,6 +8,7 @@ using Xunit;
 namespace Crucible.Core.Tests
 {
     /// <summary>Procedural unit symbols, unit/city miniatures and terrain meshes.</summary>
+    [Collection("ArtLibrary")] // runs apart from tests that swap the global Blender library
     public class ArtTests
     {
         [Fact]

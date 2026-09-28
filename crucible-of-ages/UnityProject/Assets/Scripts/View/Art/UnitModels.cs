@@ -18,8 +18,15 @@ namespace Crucible.View.Art
         /// <summary>Figures are authored small and scaled up so they read at strategy-camera distance.</summary>
         public const float ModelScale = 1.6f;
 
+        /// <summary>Library name of a unit's Blender model: unit_ plus the symbol in lower case (unit_siegetower).</summary>
+        public static string ModelName(UnitIcon icon) => "unit_" + icon.ToString().ToLowerInvariant();
+
         public static MeshData Build(UnitIcon icon, Rgb team, bool plinth = true)
         {
+            // A Blender model wins when one has been exported (Tools/blender).
+            var authored = ArtLibrary.Current?.Get(ModelName(icon), team);
+            if (authored != null) return authored;
+
             var m = new MeshData();
             var o = Frame.At(0, 0, 0);
             bool naval = icon == UnitIcon.SailShip || icon == UnitIcon.Steamship || icon == UnitIcon.Carrier;

@@ -359,7 +359,7 @@ crucible-of-ages/
   only way to change state, so a command log works as a replay and as a lockstep MP stream.
 - **Content** is defined in C# for now (`DefaultContent`). It moves to JSON or ScriptableObjects
   once the content volume grows, and the core only ever reads `ContentDatabase`.
-- **Rendering:** all art is procedural and vertex-coloured, with no imported assets. The map is
+- **Rendering:** all art is vertex-coloured low poly. Units, trees and city parts are Blender models (`Tools/blender`, exported as small `.bytes` meshes to `Resources/Art` and recoloured per owner); everything else is procedural, and procedural stand-ins cover any missing model. The map is
   bevelled hex prisms with per-tile colour jitter, beaches, foam and rivers. Decorations
   (woods, palms, dunes, peaks, wonders) live in a second mesh and fold away under fog. Units
   are low-poly miniatures and cities grow with population. Unit symbols are vector shapes

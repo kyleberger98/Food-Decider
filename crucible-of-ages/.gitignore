@@ -15,3 +15,6 @@ UnityProject/.vscode/
 tests/**/bin/
 tests/**/obj/
 tests/**/TestResults/
+# Blender backups
+*.blend1
+Tools/blender/__pycache__/

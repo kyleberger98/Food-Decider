@@ -17,6 +17,7 @@ namespace Crucible.View
 
         void Start()
         {
+            LoadArtLibrary();
             var game = GameSetup.NewSkirmish((ulong)seed, mapWidth, mapHeight, script: mapScript);
 
             var mapGo = new GameObject("WorldMap");
@@ -40,6 +41,22 @@ namespace Crucible.View
             controller.Init(game, turns, mapRenderer, rig);
             UI.GameHud.Create(controller);
             turns.Start();
+        }
+
+        /// <summary>
+        /// Blender models exported by Tools/blender/export_assets.py live in Resources/Art as .bytes
+        /// files. Anything missing falls back to the procedural art.
+        /// </summary>
+        static void LoadArtLibrary()
+        {
+            var library = new Art.ArtLibrary();
+            foreach (var asset in Resources.LoadAll<TextAsset>("Art"))
+            {
+                try { library.Add(asset.name, asset.bytes); }
+                catch (System.IO.InvalidDataException e) { Debug.LogWarning($"Skipping art '{asset.name}': {e.Message}"); }
+            }
+            Art.ArtLibrary.Current = library;
+            Debug.Log($"Art library: {library.Count} Blender models.");
         }
     }
 }

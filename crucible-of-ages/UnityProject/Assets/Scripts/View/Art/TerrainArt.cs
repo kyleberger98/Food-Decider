@@ -267,9 +267,9 @@ namespace Crucible.View.Art
                 case FeatureType.None:
                     if (tile.Terrain == TerrainType.Desert && rng.Value < 0.6f) Dunes(m, top, rng);
                     else if (tile.Terrain == TerrainType.Tundra && rng.Value < 0.5f)
-                        for (int i = 0; i < 2; i++) m.Gem(Scatter(top, rng, 0.6f), 0.07f, 0.05f, 0.06f, RockDark, Rock);
+                        for (int i = 0; i < 2; i++) { var at = Scatter(top, rng, 0.6f); if (!Authored(m, "prop_rock", at, 0.9f)) m.Gem(at, 0.07f, 0.05f, 0.06f, RockDark, Rock); }
                     else if (tile.Elevation >= 2 && rng.Value < 0.5f)
-                        m.Gem(Scatter(top, rng, 0.5f), 0.1f, 0.06f, 0.08f, Rock, Rock * 1.1f);
+                    { var at = Scatter(top, rng, 0.5f); if (!Authored(m, "prop_rock", at, 1.2f)) m.Gem(at, 0.1f, 0.06f, 0.08f, Rock, Rock * 1.1f); }
                     break;
             }
         }
@@ -280,8 +280,18 @@ namespace Crucible.View.Art
             return f.Move((float)Math.Cos(a) * r, 0, (float)Math.Sin(a) * r).Rotate(rng.Range(0, 360));
         }
 
+        /// <summary>Places a Blender prop if the library has it; the size is relative to the authored model.</summary>
+        static bool Authored(MeshData m, string name, Frame f, float scale, float shade = 1f)
+        {
+            var lib = ArtLibrary.Current;
+            return lib != null && lib.AppendTo(m, name, f.Scale(scale), default, shade);
+        }
+
         static void Conifer(MeshData m, Frame f, float h, bool snowy)
         {
+            // Authored conifers are ~0.5 tall; alternate the two variants by position.
+            string variant = ((int)(f.O.X * 7.3f + f.O.Z * 3.1f) & 1) == 0 ? "prop_conifer" : "prop_conifer_b";
+            if (Authored(m, variant, f, (h + 0.05f) / 0.5f, snowy ? 0.92f : 1f)) return;
             var green = snowy ? Rgb.Lerp(Pine, Rgb.Hex(0x9FB3A6), 0.15f) : Pine;
             var tip = snowy ? Rgb.Lerp(PineLight, Snow, 0.55f) : PineLight;
             m.Frustum(f, 4, 0, 0.022f, 0.06f, 0.018f, Bark);
@@ -291,12 +301,16 @@ namespace Crucible.View.Art
 
         static void Broadleaf(MeshData m, Frame f, float s, Rgb leaf, Rgb light)
         {
+            bool jungle = leaf.Equals(JungleLeaf);
+            string variant = jungle ? "prop_jungle" : ((int)(f.O.X * 5.7f + f.O.Z * 2.3f) & 1) == 0 ? "prop_broadleaf" : "prop_broadleaf_b";
+            if (Authored(m, variant, f, jungle ? s / 1.8f : s / 1.35f)) return;
             m.Frustum(f, 4, 0, 0.025f * s, 0.12f * s, 0.018f * s, Bark);
             m.Gem(f.Move(0, 0.19f * s, 0), 0.13f * s, 0.11f * s, 0.12f * s, leaf, light);
         }
 
         static void PalmTree(MeshData m, Frame f, ArtRng rng, float s)
         {
+            if (Authored(m, "prop_palm", f, s * 0.8f)) return;
             // Curved trunk from three leaning segments, then a crown of drooping fronds.
             float lean = rng.Range(8, 18);
             var seg = f;

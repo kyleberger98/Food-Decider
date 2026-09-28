@@ -13,6 +13,10 @@ namespace Crucible.View.Art
 
         public static MeshData Build(int population, int wallTier, bool capital, Rgb team, int seed)
         {
+            var lib = ArtLibrary.Current;
+            if (lib != null && lib.Has("city_keep") && lib.Has("city_house") && lib.Has("city_wall") && lib.Has("city_tower"))
+                return FromParts(lib, population, wallTier, capital, team, seed);
+
             var m = new MeshData();
             var o = Frame.At(0, 0, 0);
             var rng = new ArtRng(seed, population, 7);
@@ -60,6 +64,42 @@ namespace Crucible.View.Art
                     m.Box(Frame.At(mid.X, h / 2, mid.Z).Rotate(yaw), (p1 - p0).Length / 2, h / 2, 0.025f, Stone, StoneDark);
                     m.Frustum(Frame.At(p0), 6, 0, 0.06f, h + 0.06f, 0.055f, Stone, StoneDark);
                     m.Frustum(Frame.At(p0.X, h + 0.06f, p0.Z), 6, 0, 0.065f, 0.06f, 0, team * 0.85f, team);
+                }
+            }
+            return m;
+        }
+
+        /// <summary>The same layout assembled from Blender parts (city_keep, city_house, city_wall, city_tower).</summary>
+        static MeshData FromParts(ArtLibrary lib, int population, int wallTier, bool capital, Rgb team, int seed)
+        {
+            var m = new MeshData();
+            var o = Frame.At(0, 0, 0);
+            var rng = new ArtRng(seed, population, 7);
+            m.Hexagon(o.Move(0, 0.012f, 0), 0.72f, Paving, Paving * 0.9f);
+            lib.AppendTo(m, "city_keep", o.Rotate(rng.Range(0, 360)).Scale(capital ? 1.25f : 1f), team);
+
+            int houses = Math.Min(12, 4 + population);
+            for (int i = 0; i < houses; i++)
+            {
+                float a = i * 2f * (float)Math.PI / houses + rng.Range(-0.15f, 0.15f);
+                float r = (i % 2 == 0 ? 0.38f : 0.54f) + rng.Range(-0.04f, 0.04f);
+                // Houses face the keep (their door side, the model's front, points inward).
+                var f = o.Move((float)Math.Cos(a) * r, 0, (float)Math.Sin(a) * r).Rotate(-a * 180f / (float)Math.PI - 90);
+                lib.AppendTo(m, "city_house", f.Scale(rng.Range(0.8f, 1.1f)), team, rng.Range(0.9f, 1.05f));
+            }
+
+            if (wallTier > 0)
+            {
+                float rad = 0.8f, height = 1f + 0.3f * (wallTier - 1);
+                for (int i = 0; i < 6; i++)
+                {
+                    double a0 = Math.PI / 180 * (60 * i - 30), a1 = Math.PI / 180 * (60 * (i + 1) - 30);
+                    var p0 = new V3((float)Math.Cos(a0) * rad, 0, (float)Math.Sin(a0) * rad);
+                    var p1 = new V3((float)Math.Cos(a1) * rad, 0, (float)Math.Sin(a1) * rad);
+                    var mid = (p0 + p1) * 0.5f;
+                    float yaw = -(float)(Math.Atan2(p1.Z - p0.Z, p1.X - p0.X) * 180 / Math.PI);
+                    lib.AppendTo(m, "city_wall", Frame.At(mid).Rotate(yaw).Scale((p1 - p0).Length, height, 1f), team);
+                    lib.AppendTo(m, "city_tower", Frame.At(p0).Scale(1f, height, 1f), team);
                 }
             }
             return m;

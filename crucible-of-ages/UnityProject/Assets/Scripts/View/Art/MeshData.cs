@@ -40,6 +40,7 @@ namespace Crucible.View.Art
         public V3 Dir(float x, float y, float z) => X * x + Y * y + Z * z;
         public Frame Move(float x, float y, float z) => new Frame(P(x, y, z), X, Y, Z);
         public Frame Scale(float s) => new Frame(O, X * s, Y * s, Z * s);
+        public Frame Scale(float sx, float sy, float sz) => new Frame(O, X * sx, Y * sy, Z * sz);
 
         /// <summary>Rotates about the local Y (yaw), then X (pitch), then Z (roll) axes; degrees.</summary>
         public Frame Rotate(float yaw, float pitch = 0, float roll = 0)

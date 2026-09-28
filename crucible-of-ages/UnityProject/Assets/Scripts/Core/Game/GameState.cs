@@ -80,14 +80,16 @@ namespace Crucible.Core.Game
         public Army CreateArmy(int ownerId, HexCoord position, params string[] unitDefIds)
         {
             var tile = Map.Get(position) ?? throw new ArgumentException($"{position} is off the map.");
-            if (!tile.IsPassableForLand) throw new InvalidOperationException($"{position} is not passable land.");
             if (ArmyAt(position) != null) throw new InvalidOperationException($"{position} already holds an army.");
 
             var army = new Army(_nextArmyId++, ownerId, position);
             int cap = Player(ownerId).ArmyCap;
             foreach (var id in unitDefIds)
                 if (!army.TryAdd(CreateUnit(id, ownerId), cap))
-                    throw new InvalidOperationException($"Army exceeds cap of {cap}.");
+                    throw new InvalidOperationException($"Army exceeds cap of {cap} (or mixes ships with land units).");
+            bool water = tile.IsWater;
+            if (army.IsNaval != water || (!water && !tile.IsPassableForLand))
+                throw new InvalidOperationException($"{position} is not a valid hex for this army.");
             _armies[army.Id] = army;
             army.WorldMovesLeft = WorldMovementOf(army);
             RefreshVisibility(ownerId);
@@ -108,6 +110,20 @@ namespace Crucible.Core.Game
             return city;
         }
 
+        /// <summary>
+        /// How an army moves: fleets sail (triremes hug the coast); land armies embark after Optics
+        /// and cross open ocean after Astronomy.
+        /// </summary>
+        public Mobility MobilityOf(Army army)
+        {
+            var tech = Player(army.OwnerId).Tech;
+            if (army.IsNaval) return new Mobility(true, false, army.Units.All(u => !u.Def.CoastOnly));
+            return new Mobility(false, tech.Has("optics"), tech.Has("astronomy"));
+        }
+
+        /// <summary>A land army standing on water: it cannot attack and a warship sinks it.</summary>
+        public bool IsEmbarked(Army army) => !army.IsNaval && Map.Get(army.Position)?.IsWater == true;
+
         public int WorldMovementOf(Army army)
         {
             var faction = Player(army.OwnerId).Faction;
@@ -127,7 +143,7 @@ namespace Crucible.Core.Game
             var city = CityAt(dest);
             if (city != null && AtWar(city.OwnerId, army.OwnerId)) return false; // cities are taken by assault
 
-            int cost = TerrainRules.LandStepCost(Map.Get(army.Position), Map.Get(dest));
+            int cost = TerrainRules.StepCost(MobilityOf(army), Map.Get(army.Position), Map.Get(dest));
             if (cost == TerrainRules.Impassable) return false;
 
             // Militia never leave their city: they stay behind as its garrison.
@@ -231,7 +247,7 @@ namespace Crucible.Core.Game
             if (army.InBattle || list.Count == 0 || list.Count >= army.Count) return null;
             if (list.Any(u => !army.Units.Contains(u))) return null;
             if (army.Position.DistanceTo(dest) != 1 || ArmyAt(dest) != null || BattleCovering(dest) != null) return null;
-            if (TerrainRules.LandStepCost(Map.Get(army.Position), Map.Get(dest)) == TerrainRules.Impassable) return null;
+            if (TerrainRules.StepCost(MobilityOf(army), Map.Get(army.Position), Map.Get(dest)) == TerrainRules.Impassable) return null;
 
             var split = new Army(_nextArmyId++, army.OwnerId, dest);
             int cap = Player(army.OwnerId).ArmyCap;
@@ -255,10 +271,17 @@ namespace Crucible.Core.Game
         public Battle Attack(Army attacker, HexCoord target)
         {
             if (attacker.InBattle || attacker.WorldMovesLeft <= 0) return null;
-            if (attacker.Position.DistanceTo(target) != 1 || !HasMilitary(attacker)) return null;
+            if (attacker.Position.DistanceTo(target) != 1 || !HasMilitary(attacker) || IsEmbarked(attacker)) return null;
 
             var city = CityAt(target);
             var defenderArmy = ArmyAt(target);
+
+            // Embarked armies are helpless at sea: a warship sinks them, troops can't reach them.
+            if (defenderArmy != null && IsEmbarked(defenderArmy) && AtWar(defenderArmy.OwnerId, attacker.OwnerId))
+            {
+                if (attacker.IsNaval) SinkEmbarked(attacker, defenderArmy);
+                return null;
+            }
             bool isSiege = city != null && AtWar(city.OwnerId, attacker.OwnerId);
             if (!isSiege && (defenderArmy == null || !AtWar(defenderArmy.OwnerId, attacker.OwnerId))) return null;
             if (defenderArmy != null && defenderArmy.InBattle)
@@ -286,6 +309,7 @@ namespace Crucible.Core.Game
             battle.AddArmy(BattleSideId.Attacker, attacker);
             if (defenderArmy != null) battle.AddArmy(BattleSideId.Defender, defenderArmy);
             PullInReinforcements(battle);
+            AssignAirSupport(battle);
 
             _battles[battle.Id] = battle;
             attacker.WorldMovesLeft = 0;
@@ -302,7 +326,8 @@ namespace Crucible.Core.Game
         /// </summary>
         public bool JoinBattle(Army army, Battle battle)
         {
-            if (army.InBattle || !HasMilitary(army) || army.WorldMovesLeft <= 0 || battle.IsFinished) return false;
+            if (army.InBattle || !HasMilitary(army) || army.WorldMovesLeft <= 0 || battle.IsFinished || IsEmbarked(army)) return false;
+            if (!FieldSuits(battle, army)) return false;
             if (!battle.Contains(army.Position) && !army.Position.Neighbors().Any(battle.Contains)) return false;
 
             BattleSideId side;
@@ -324,13 +349,42 @@ namespace Crucible.Core.Game
         }
 
         /// <summary>Armies inside or adjacent to the battlefield join the side of their owner.</summary>
+        /// <summary>The battlefield has hexes this army's units can stand on (fleets need water).</summary>
+        bool FieldSuits(Battle battle, Army army) =>
+            battle.Tiles.Any(h => TerrainRules.CanStand(army.IsNaval ? Mobility.Ship : Mobility.Land, Map.Get(h)));
+
+        /// <summary>A warship catches an embarked army at sea: every unit aboard is lost.</summary>
+        public void SinkEmbarked(Army ship, Army embarked)
+        {
+            _armies.Remove(embarked.Id);
+            ship.WorldMovesLeft = 0;
+            ArmySunk?.Invoke(embarked);
+            RefreshAllVisibility();
+            Victory = Victory ?? VictoryChecker.Check(this);
+        }
+
+        public event Action<Army> ArmySunk;
+
+        /// <summary>
+        /// Aircraft based in each side's cities within their operating range of the battle join it
+        /// (GDD §4.7). Refreshed at the start of every round.
+        /// </summary>
+        void AssignAirSupport(Battle battle)
+        {
+            var at = battle.Defender.Origin;
+            foreach (var side in new[] { battle.Attacker, battle.Defender })
+                battle.SetAirSupport(side.Id, _cities.Values
+                    .Where(c => c.OwnerId == side.Player.Id)
+                    .SelectMany(c => c.AirUnits.Where(u => u.IsAlive && c.Position.DistanceTo(at) <= u.Def.Range)));
+        }
+
         void PullInReinforcements(Battle battle)
         {
             foreach (var army in _armies.Values.ToList())
             {
-                if (army.InBattle || !HasMilitary(army)) continue;
+                if (army.InBattle || !HasMilitary(army) || IsEmbarked(army)) continue;
                 bool near = battle.Contains(army.Position) || army.Position.Neighbors().Any(battle.Contains);
-                if (!near) continue;
+                if (!near || !FieldSuits(battle, army)) continue;
                 if (army.OwnerId == battle.Attacker.Player.Id) battle.AddArmy(BattleSideId.Attacker, army);
                 else if (army.OwnerId == battle.Defender.Player.Id) battle.AddArmy(BattleSideId.Defender, army);
             }
@@ -435,6 +489,7 @@ namespace Crucible.Core.Game
                     break;
             }
 
+            foreach (var c in _cities.Values) c.AirUnits.RemoveAll(u => !u.IsAlive); // shot down
             EndSiegesWithoutBesiegers();
             RefreshAllVisibility();
             BattleEnded?.Invoke(battle);
@@ -448,7 +503,7 @@ namespace Crucible.Core.Game
                 var dest = army.Position.Neighbors()
                     .Where(n => n.DistanceTo(awayFrom) > army.Position.DistanceTo(awayFrom))
                     .Where(n => ArmyAt(n) == null && CityAt(n) == null && Map.Get(n) != null &&
-                                TerrainRules.LandStepCost(Map.Get(army.Position), Map.Get(n)) != TerrainRules.Impassable)
+                                TerrainRules.StepCost(MobilityOf(army), Map.Get(army.Position), Map.Get(n)) != TerrainRules.Impassable)
                     .OrderBy(n => n.Q).ThenBy(n => n.R)
                     .Select(n => (HexCoord?)n)
                     .FirstOrDefault();
@@ -508,6 +563,8 @@ namespace Crucible.Core.Game
             foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id))
                 army.WorldMovesLeft = army.InBattle ? 0 : WorldMovementOf(army);
             ProgressImprovements(player);
+            foreach (var c in _cities.Values.Where(c => c.OwnerId == player.Id))
+                foreach (var plane in c.AirUnits) plane.Heal(20); // repairs in the hangar
             foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id && a.Destination.HasValue).ToList())
                 ContinueMoveOrder(army);
             WorkerAutomation.Run(this, player.Id);
@@ -526,6 +583,7 @@ namespace Crucible.Core.Game
                 if (battle.Status == BattleStatus.AwaitingNextRound)
                 {
                     PullInReinforcements(battle);
+                    AssignAirSupport(battle);
                     battle.BeginNextRound();
                 }
                 AdvanceAIBattleTurns(battle);

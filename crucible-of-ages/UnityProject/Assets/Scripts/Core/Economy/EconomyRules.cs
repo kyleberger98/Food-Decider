@@ -161,7 +161,7 @@ namespace Crucible.Core.Economy
             if (item.Kind == ProductionKind.Building)
             {
                 var b = game.Content.Building(item.Id);
-                return !city.Has(b.Id) && player.Tech.Has(b.RequiredTech);
+                return !city.Has(b.Id) && player.Tech.Has(b.RequiredTech) && (!b.RequiresCoast || IsCoastal(game, city));
             }
 
             var u = game.Content.Unit(item.Id);
@@ -170,6 +170,8 @@ namespace Crucible.Core.Economy
             // A faction's unique unit replaces the generic one.
             if (game.Content.Units.Any(x => x.FactionId == player.Faction.Id && x.Replaces == u.Id)) return false;
             if (u.Id == DefaultContent.SettlerUnit && city.Population < 2) return false;
+            if (u.Domain == UnitDomain.Naval && !IsCoastal(game, city)) return false;
+            if (u.Domain == UnitDomain.Air && city.AirUnits.Count >= City.AirCapacity) return false;
             if (u.RequiredResource != null)
             {
                 var r = Improvements.Parse(u.RequiredResource);
@@ -177,6 +179,22 @@ namespace Crucible.Core.Economy
             }
             return true;
         }
+
+        /// <summary>
+        /// Gold to buy an item outright: 2 gold per missing production point plus a 50% premium on the full
+        /// cost, rounded to 5. Progress already made on the city's current item counts.
+        /// </summary>
+        public static int PurchaseCost(GameState game, City city, ProductionItem item)
+        {
+            int cost = Cost(game, item);
+            bool current = city.CurrentProduction.HasValue && city.CurrentProduction.Value.Equals(item);
+            int missing = Math.Max(0, cost - (current ? city.ProductionStored : 0));
+            int gold = 2 * missing + cost / 2;
+            return (gold + 4) / 5 * 5;
+        }
+
+        public static bool IsCoastal(GameState game, City city) =>
+            game.Map.NeighborsOf(city.Position).Any(t => t.IsWater);
 
         public static int Cost(GameState game, ProductionItem item) =>
             item.Kind == ProductionKind.Building

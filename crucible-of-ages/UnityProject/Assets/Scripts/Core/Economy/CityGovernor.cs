@@ -14,7 +14,9 @@ namespace Crucible.Core.Economy
     public static class CityGovernor
     {
         static readonly string[] BuildingPriority =
-            { "monument", "granary", "market", "library", "walls", "workshop", "colosseum", "castle" };
+            { "monument", "granary", "market", "library", "harbor", "walls", "temple", "workshop", "amphitheater",
+              "university", "bank", "colosseum", "castle", "stock_exchange", "public_school", "factory",
+              "stadium", "broadcast_tower", "research_lab", "data_center" };
 
         /// <summary>Tiles this city's citizens could work: its own territory within 3 rings, minus the centre.</summary>
         public static IEnumerable<HexCoord> WorkableTiles(GameState game, City city) =>
@@ -47,8 +49,10 @@ namespace Crucible.Core.Economy
             int cities = game.Cities.Count(c => c.OwnerId == owner.Id);
             int units = EconomyRules.MilitaryUnitCount(game, owner);
 
-            // Never leave the empire without at least one defender per city.
-            if (units < cities && BestUnit(game, city) is ProductionItem defender) return defender;
+            // Never leave the empire, or this city, without a defender.
+            var garrison = game.ArmyAt(city.Position);
+            bool garrisoned = garrison != null && garrison.OwnerId == owner.Id && garrison.Units.Any(u => u.Def.IsMilitary && u.BoundToCityId < 0);
+            if ((units < cities || (!garrisoned && owner.IsAI)) && BestUnit(game, city) is ProductionItem defender) return defender;
 
             // One worker per city while there is land to improve.
             int workers = game.Armies.Where(a => a.OwnerId == owner.Id)
@@ -65,6 +69,9 @@ namespace Crucible.Core.Economy
                 return ProductionItem.Unit(DefaultContent.SettlerUnit);
             if (units < owner.AIMilitaryTarget && netGold >= 1 && BestUnit(game, city) is ProductionItem soldier)
                 return soldier;
+            // Air cover: one fighter per city once flight is known.
+            if (owner.IsAI && city.AirUnits.Count == 0 && netGold >= 2 && BestAirUnit(game, city) is ProductionItem plane)
+                return plane;
 
             if (owner.Happiness < 2 && EconomyRules.CanBuild(game, city, ProductionItem.Building("colosseum")))
                 return ProductionItem.Building("colosseum");
@@ -89,11 +96,21 @@ namespace Crucible.Core.Economy
             game.Armies.Any(a => a.OwnerId == playerId && a.Units.Any(u => u.Def.Id == DefaultContent.SettlerUnit)) ||
             game.Cities.Any(c => c.OwnerId == playerId && c.CurrentProduction.HasValue && c.CurrentProduction.Value.Equals(ProductionItem.Unit(DefaultContent.SettlerUnit)));
 
-        /// <summary>The strongest land unit this city can build.</summary>
-        static ProductionItem? BestUnit(GameState game, City city)
+        /// <summary>The best fighter this city can build (interceptors protect the whole region).</summary>
+        public static ProductionItem? BestAirUnit(GameState game, City city)
         {
             var best = game.Content.Units
-                .Where(u => u.IsMilitary && u.Class != UnitClass.Recon)
+                .Where(u => u.Class == UnitClass.Fighter && EconomyRules.CanBuild(game, city, ProductionItem.Unit(u.Id)))
+                .OrderByDescending(u => u.RangedStrength).ThenBy(u => u.Id)
+                .FirstOrDefault();
+            return best == null ? (ProductionItem?)null : ProductionItem.Unit(best.Id);
+        }
+
+        /// <summary>The strongest land unit this city can build.</summary>
+        public static ProductionItem? BestUnit(GameState game, City city)
+        {
+            var best = game.Content.Units
+                .Where(u => u.IsMilitary && u.Class != UnitClass.Recon && u.Domain == UnitDomain.Land)
                 .Where(u => EconomyRules.CanBuild(game, city, ProductionItem.Unit(u.Id)))
                 .OrderByDescending(u => System.Math.Max(u.CombatStrength, u.RangedStrength))
                 .ThenBy(u => u.Id)

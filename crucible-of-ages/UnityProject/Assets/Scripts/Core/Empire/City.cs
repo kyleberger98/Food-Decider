@@ -75,6 +75,11 @@ namespace Crucible.Core.Empire
 
         public const int MaxSiegeEngines = 3;
 
+        /// <summary>Aircraft based here (GDD §4.7). They strike battles within their range.</summary>
+        public List<Units.Unit> AirUnits { get; } = new List<Units.Unit>();
+
+        public const int AirCapacity = 4;
+
         public City(int id, string name, int ownerId, HexCoord position)
         {
             Id = id;

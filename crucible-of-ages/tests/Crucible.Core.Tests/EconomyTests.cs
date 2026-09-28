@@ -243,7 +243,11 @@ namespace Crucible.Core.Tests
             var (g, city) = OneCity();
             Assert.Equal(ProductionItem.Unit("warrior"), CityGovernor.ChooseProduction(g, city));
 
-            g.CreateArmy(0, TestWorld.H(3, 3), "warrior");
+            // A unit elsewhere isn't a garrison for an AI city…
+            var away = g.CreateArmy(0, TestWorld.H(3, 3), "warrior");
+            Assert.Equal(ProductionItem.Unit("warrior"), CityGovernor.ChooseProduction(g, city));
+            // …a unit in the city is.
+            g.CreateArmy(0, city.Position, "warrior");
             Assert.Equal(ProductionItem.Building("monument"), CityGovernor.ChooseProduction(g, city));
             city.Buildings.Add("monument");
             Assert.True(CityGovernor.ChooseProduction(g, city).HasValue);
@@ -253,7 +257,7 @@ namespace Crucible.Core.Tests
         public void Governor_does_not_build_into_bankruptcy()
         {
             var (g, city) = OneCity();
-            g.CreateArmy(0, TestWorld.H(3, 3), "warrior");
+            g.CreateArmy(0, city.Position, "warrior");
             foreach (var t in g.Map.Tiles) t.RiverEdges = 0;
             city.Buildings.Add("monument");
             city.Buildings.Add("granary"); // palace 3 gold − 2 upkeep = +1 net

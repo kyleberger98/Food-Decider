@@ -256,9 +256,19 @@ A unit dies at 0 HP. A melee attacker **advances** into the tile when the defend
 ### 4.7 Naval, air, nuclear
 - **Naval battles** use the same system on water hexes. Coastal battles let naval ranged
   units support land fights.
-- **Air units** don't occupy battlefield hexes. From a city or carrier in range they
-  perform one **air strike** per battle round (fighters: intercept; bombers: strike). AA and
-  fighters intercept.
+- **Fleets** are armies of ships. They sail on water only, and triremes can't leave the coast.
+  Fleets and land units never share an army. Land armies **embark** onto coast after Optics and
+  cross ocean after Astronomy (embarking or landing costs 2 MP). Embarked armies can't attack,
+  and a warship that attacks one **sinks** it.
+- **Battlefields include water.** Ships deploy and move only on water hexes, troops only on land.
+  Melee can't cross domains; ranged units (frigates, battleships, archers) can.
+- **Air units** don't occupy battlefield hexes. They're based in **city hangars** (4 per city) and
+  support any battle within their operating range. At each side's first turn of every round, each
+  aircraft strikes the enemy ground unit it expects to hurt most. Each enemy fighter can
+  **intercept** one striker per round first. Planes that are shot down are lost, and damaged ones
+  repair 20 HP per turn in the hangar. AA units and carriers are ⏳.
+- **Buying with gold:** 2 gold per missing production point plus 50% of the item's cost,
+  rounded to 5. Progress on the current build counts. You can't buy in a besieged city.
 - **Missiles and nukes** are world-map strikes. Nukes destroy armies in their radius
   outright and damage cities. Using one triggers diplomatic penalties.
 
@@ -345,7 +355,7 @@ crucible-of-ages/
 | M4 | Sieges ✅ | Siege declaration and lifting, militia (stay home, fight only for their city), siege progress → rams/towers/catapults (max 3), walls with HP (50/tier) that block melee from the centre, towers let adjacent infantry climb, rams ×3 / siege ×2 wall damage, breach removes the wall bonus, garrison holds the centre, sorties, AI assaults. ⏳ Gunpowder-era sappers & artillery engines |
 | M5 | Tech, policies, resources 🟡 | ✅ tech-gated units/buildings/improvements, army cap progression, 4 policy trees (Tradition, Liberty, Honor, Commerce) with Civ V cost curve, resources on the map (bonus/strategic/luxury), workers & 6 improvements, strategic caps (4 units per connected source), luxuries (+4 happiness each), worker automation, AI policy adoption. ⏳ Remaining Civ V trees & ideologies, roads, pillaging (Khaganate ability) |
 | M6 | AI v1 ✅ | Strategic AI: expansion (site scoring, settlers), garrison management, defence, one offensive at a time (rally → march → siege → engines → assault), governor plan (settlers, military target), AI-vs-AI skirmishes end in domination (tested). ⏳ Fog-aware targeting & scouting, diplomacy, spending gold (needs purchasing), multiple fronts |
-| M7 | Full-history content | All 8 eras: units, buildings, wonders; naval & air battles |
+| M7 | Full-history content 🟡 | ✅ 57 techs across all 8 eras, land units every era, 5 warships, 3 aircraft, rocket artillery, 20 buildings; fleets (triremes coast-only), embarking (Optics / Astronomy), sinking embarked armies, mixed land-sea battlefields, city hangars with air strikes & interception each round, buying with gold (players and AI). ⏳ Wonders, carriers, nukes, unit upgrades, remaining ~25 techs |
 | M8 | Remaining systems | Religion, great people, city-states, World Congress, tourism |
 | M9 | Victory & polish | All five victories, score, balance passes, tutorial |
 

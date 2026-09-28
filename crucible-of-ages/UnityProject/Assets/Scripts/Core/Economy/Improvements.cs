@@ -165,8 +165,8 @@ namespace Crucible.Core.Economy
         public static int StrategicUsed(GameState game, int playerId, ResourceType r)
         {
             string id = ResourceId(r);
-            return game.Armies.Where(a => a.OwnerId == playerId)
-                .Sum(a => a.Units.Count(u => u.Def.RequiredResource == id));
+            return game.Armies.Where(a => a.OwnerId == playerId).Sum(a => a.Units.Count(u => u.Def.RequiredResource == id))
+                   + game.Cities.Where(c => c.OwnerId == playerId).Sum(c => c.AirUnits.Count(u => u.Def.RequiredResource == id));
         }
 
         public static IEnumerable<ResourceType> ConnectedLuxuries(GameState game, int playerId) =>

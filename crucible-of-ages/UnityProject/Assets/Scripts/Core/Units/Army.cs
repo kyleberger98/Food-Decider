@@ -38,6 +38,9 @@ namespace Crucible.Core.Units
         public IReadOnlyList<Unit> Units => _units;
         public int Count => _units.Count;
         public bool IsEmpty => _units.Count == 0;
+
+        /// <summary>A fleet: every unit is a ship. Fleets and land armies never mix.</summary>
+        public bool IsNaval => _units.Count > 0 && _units[0].Def.Domain == Content.UnitDomain.Naval;
         public bool InBattle => BattleId >= 0;
 
         /// <summary>World movement of the slowest unit (plus a per-unit bonus, e.g. faction ability).</summary>
@@ -50,6 +53,8 @@ namespace Crucible.Core.Units
             if (unit == null) throw new ArgumentNullException(nameof(unit));
             if (unit.OwnerId != OwnerId) throw new InvalidOperationException("Cannot add another player's unit.");
             if (_units.Count >= armyCap || _units.Contains(unit)) return false;
+            if (unit.Def.Domain == Content.UnitDomain.Air) return false; // aircraft are based in cities
+            if (_units.Count > 0 && (unit.Def.Domain == Content.UnitDomain.Naval) != IsNaval) return false;
             _units.Add(unit);
             return true;
         }

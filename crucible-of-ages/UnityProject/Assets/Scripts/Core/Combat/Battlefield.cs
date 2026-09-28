@@ -12,8 +12,9 @@ namespace Crucible.Core.Combat
         public const int SiegeRadius = 4;
 
         /// <summary>
-        /// Passable land hexes within <paramref name="radius"/> of the midpoint between the two armies.
-        /// Both origin tiles are always included.
+        /// Land and water hexes (no mountains) within <paramref name="radius"/> of the midpoint between
+        /// the two armies. Both origin tiles are always included. Each unit only uses hexes of its own
+        /// domain, so coastal fights mix fleets and troops (GDD §4.7).
         /// </summary>
         public static HashSet<HexCoord> Generate(WorldMap map, HexCoord attackerOrigin, HexCoord defenderOrigin, int radius)
         {
@@ -24,7 +25,7 @@ namespace Crucible.Core.Combat
             var tiles = new HashSet<HexCoord>(center.Range(radius).Where(c =>
             {
                 var t = map.Get(c);
-                return t != null && t.IsPassableForLand;
+                return t != null && (t.IsPassableForLand || t.IsWater);
             }));
             tiles.Add(attackerOrigin);
             tiles.Add(defenderOrigin);

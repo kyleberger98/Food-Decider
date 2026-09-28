@@ -72,7 +72,8 @@ namespace Crucible.View
                 alive.Add(army.Id);
                 if (!_armies.TryGetValue(army.Id, out var go))
                 {
-                    go = Primitive(PrimitiveType.Cylinder, $"Army {army.Id}");
+                    // Fleets are hull-shaped slabs; land armies are banners (cylinders).
+                    go = Primitive(army.IsNaval ? PrimitiveType.Cube : PrimitiveType.Cylinder, $"Army {army.Id}");
                     _armies[army.Id] = go;
                 }
                 // Armies unfold into individual units while their battle is on screen.
@@ -82,7 +83,11 @@ namespace Crucible.View
                 float h = 0.1f + 0.06f * army.Count;
                 go.transform.localScale = new Vector3(0.55f, h, 0.55f);
                 go.transform.position = _map.HexToWorld(army.Position) + Vector3.up * (h + 0.02f);
-                Tint(go, army == selected ? Color.white : ColorOf(army.OwnerId));
+                if (army.IsNaval) go.transform.localScale = new Vector3(0.7f, 0.12f + 0.04f * army.Count, 0.3f);
+                bool embarked = !army.IsNaval && game.IsEmbarked(army);
+                var color = ColorOf(army.OwnerId);
+                if (embarked) color = Color.Lerp(color, Color.white, 0.5f); // troops in boats: pale
+                Tint(go, army == selected ? Color.white : color);
             }
             foreach (var id in _armies.Keys.Where(id => !alive.Contains(id)).ToList())
             {

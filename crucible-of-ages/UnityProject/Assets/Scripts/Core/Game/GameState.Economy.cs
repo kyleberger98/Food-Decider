@@ -86,6 +86,25 @@ namespace Crucible.Core.Game
             }
         }
 
+        /// <summary>Buys an item outright with gold (not while the city is besieged). Returns false if refused.</summary>
+        public bool Purchase(City city, ProductionItem item)
+        {
+            var player = Player(city.OwnerId);
+            if (city.IsBesieged || !EconomyRules.CanBuild(this, city, item)) return false;
+            int price = EconomyRules.PurchaseCost(this, city, item);
+            if (player.Gold < price) return false;
+
+            bool done = item.Kind == ProductionKind.Building ? CompleteBuilding(city, item.Id) : SpawnUnit(city, item.Id) != null;
+            if (!done) return false;
+            player.Gold -= price;
+            if (city.CurrentProduction.HasValue && city.CurrentProduction.Value.Equals(item))
+            {
+                city.ProductionStored = 0;
+                city.CurrentProduction = null;
+            }
+            return true;
+        }
+
         /// <summary>Ends a player's turn: runs the economy for their cities and treasury.</summary>
         internal void EndPlayerTurn(Player player) => EconomyProcessor.ProcessTurn(this, player);
 
@@ -129,12 +148,32 @@ namespace Crucible.Core.Game
             var unit = CreateUnit(unitDefId, city.OwnerId);
             int cap = Player(city.OwnerId).ArmyCap;
 
-            var garrison = ArmyAt(city.Position);
-            if (garrison != null && garrison.OwnerId == city.OwnerId && !garrison.InBattle && garrison.TryAdd(unit, cap))
+            // Aircraft go into the city's hangar.
+            if (unit.Def.Domain == UnitDomain.Air)
+            {
+                if (city.AirUnits.Count >= Empire.City.AirCapacity) return null;
+                city.AirUnits.Add(unit);
                 return unit;
+            }
 
-            var hex = new[] { city.Position }.Concat(city.Position.Neighbors())
-                .Where(h => ArmyAt(h) == null && BattleCovering(h) == null && Map.Get(h) is Tile t && t.IsPassableForLand)
+            // Ships launch onto adjacent water, joining a friendly fleet there if it has room.
+            bool naval = unit.Def.Domain == UnitDomain.Naval;
+            if (naval)
+            {
+                foreach (var n in city.Position.Neighbors())
+                    if (ArmyAt(n) is Army fleet && fleet.OwnerId == city.OwnerId && fleet.IsNaval && !fleet.InBattle && fleet.TryAdd(unit, cap))
+                        return unit;
+            }
+            else
+            {
+                var garrison = ArmyAt(city.Position);
+                if (garrison != null && garrison.OwnerId == city.OwnerId && !garrison.InBattle && garrison.TryAdd(unit, cap))
+                    return unit;
+            }
+
+            var mobility = naval ? new Mobility(true, false, !unit.Def.CoastOnly) : Mobility.Land;
+            var hex = (naval ? city.Position.Neighbors() : new[] { city.Position }.Concat(city.Position.Neighbors()))
+                .Where(h => ArmyAt(h) == null && BattleCovering(h) == null && TerrainRules.CanStand(mobility, Map.Get(h)))
                 .Where(h => CityAt(h) == null || CityAt(h).OwnerId == city.OwnerId)
                 .Select(h => (HexCoord?)h)
                 .FirstOrDefault();

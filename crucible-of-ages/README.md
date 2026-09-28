@@ -39,7 +39,7 @@ army caps, and the victory conditions.
 | Mode | Input |
 |---|---|
 | World | Click your army (blue), hover a hex to see the route and turns, and click to march there (multi-turn orders continue automatically). Click an adjacent enemy or city to attack. **Enter** ends the turn. |
-| Cities | Click your city for its panel (growth, borders, production); pick what to build from the list. **F** founds a city with a selected settler. **T** cycles research. **P** opens social policies. |
+| Cities | Click your city for its panel (growth, borders, production); pick what to build from the list, or **Buy** it with gold. **F** founds a city with a selected settler. **T** cycles research. **P** opens social policies. |
 | Workers | With a worker selected: **I** builds the best improvement on its hex (moving cancels), **U** toggles automation. |
 | Deployment | Click a unit, then a blue hex of your zone (swaps with friends). **Space** confirms. |
 | Battle | Click a unit, then a green hex to move or a red enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats, **X** auto-resolves the round, **B** batters the walls with the selected unit. |
@@ -49,6 +49,6 @@ army caps, and the victory conditions.
 
 ## Status
 
-Milestone **M0 (scaffold)** is done. **M1–M6** are mostly done: pathfinding, move orders, fog of war, deployment, reinforcements, auto-resolve, and the city economy (growth, production, buildings, gold, happiness, borders, research, settlers) sieges (walls, engines, militia, sorties), and resources, workers and social policies. See GDD §8 for the milestone plan. The AI opponent now
+Milestone **M0 (scaffold)** is done. **M1–M7** are mostly done: pathfinding, move orders, fog of war, deployment, reinforcements, auto-resolve, and the city economy (growth, production, buildings, gold, happiness, borders, research, settlers) sieges (walls, engines, militia, sorties), resources, workers and social policies, and fleets, embarking, coastal battles, air power and buying with gold across all eight eras. See GDD §8 for the milestone plan. The AI opponent now
 expands, builds armies, besieges and assaults your cities (`StrategicAI`). The tests include
 AI-vs-AI skirmishes that end in domination.

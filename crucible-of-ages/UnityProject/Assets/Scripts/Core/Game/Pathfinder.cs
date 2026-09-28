@@ -35,6 +35,8 @@ namespace Crucible.Core.Game
             if (!IsEnterable(game, army, destination)) return null;
 
             int maxMp = Math.Max(1, game.WorldMovementOf(army));
+            var mobility = game.MobilityOf(army);
+            if (!TerrainRules.CanStand(mobility, game.Map.Get(destination))) return null;
             var start = new Node(army.Position, 0, army.WorldMovesLeft);
 
             var best = new Dictionary<HexCoord, Node> { [army.Position] = start };
@@ -62,7 +64,7 @@ namespace Crucible.Core.Game
                 foreach (var next in current.Neighbors())
                 {
                     if (!IsEnterable(game, army, next)) continue;
-                    int cost = TerrainRules.LandStepCost(fromTile, game.Map.Get(next));
+                    int cost = TerrainRules.StepCost(mobility, fromTile, game.Map.Get(next));
                     if (cost == TerrainRules.Impassable) continue;
 
                     int nextLeft = Math.Max(0, left - cost);
@@ -82,7 +84,7 @@ namespace Crucible.Core.Game
         static bool IsEnterable(GameState game, Army army, HexCoord c)
         {
             var tile = game.Map.Get(c);
-            if (tile == null || !tile.IsPassableForLand) return false;
+            if (tile == null) return false;
             if (game.ArmyAt(c) is Army other && other != army) return false;
             if (game.CityAt(c) is Empire.City city && game.AtWar(city.OwnerId, army.OwnerId)) return false;
             return game.BattleCovering(c) == null;

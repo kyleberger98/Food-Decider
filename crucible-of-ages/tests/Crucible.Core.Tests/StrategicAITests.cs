@@ -51,7 +51,7 @@ namespace Crucible.Core.Tests
             var target = g.FoundCity(1, TestWorld.H(12, 6), "Veii", true);
             g.CreateArmy(0, TestWorld.H(5, 6), "swordsman", "swordsman", "archer");
 
-            var turns = new TurnManager(g, new StrategicAI());
+            var turns = new TurnManager(g, new StrategicAI { EarliestOffensiveTurn = 0, CitiesBeforeWar = 1 });
             turns.Start();
             bool sawSiege = false;
             for (int i = 0; i < 40 && !turns.IsGameOver; i++)

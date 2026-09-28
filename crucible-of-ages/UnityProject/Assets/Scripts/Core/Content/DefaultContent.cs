@@ -58,6 +58,7 @@ namespace Crucible.Core.Content
             T("pottery", "Pottery", Era.Ancient, 35, 0, "agriculture");
             T("writing", "Writing", Era.Ancient, 55, 0, "pottery");
             T("calendar", "Calendar", Era.Ancient, 70, 0, "pottery");
+            T("sailing", "Sailing", Era.Ancient, 55, 0, "pottery");
             T("animal_husbandry", "Animal Husbandry", Era.Ancient, 35, 0, "agriculture");
             T("archery", "Archery", Era.Ancient, 35, 0, "agriculture");
             T("mining", "Mining", Era.Ancient, 35, 0, "agriculture");
@@ -70,24 +71,51 @@ namespace Crucible.Core.Content
             T("mathematics", "Mathematics", Era.Classical, 105, 0, "the_wheel", "archery");
             T("construction", "Construction", Era.Classical, 105, 0, "masonry", "the_wheel");
             T("currency", "Currency", Era.Classical, 105, 0, "bronze_working");
+            T("optics", "Optics", Era.Classical, 105, 0, "sailing");
+            T("philosophy", "Philosophy", Era.Classical, 175, 0, "writing", "calendar");
+            T("drama", "Drama and Poetry", Era.Classical, 175, 0, "philosophy");
             T("military_tactics", "Military Tactics", Era.Classical, 175, 1, "iron_working", "horseback_riding");
 
             T("steel", "Steel", Era.Medieval, 485, 0, "iron_working");
             T("machinery", "Machinery", Era.Medieval, 485, 0, "mathematics", "construction");
             T("chivalry", "Chivalry", Era.Medieval, 485, 1, "military_tactics");
+            T("education", "Education", Era.Medieval, 485, 0, "philosophy");
+            T("astronomy", "Astronomy", Era.Medieval, 485, 0, "optics", "education");
+            T("theology", "Theology", Era.Medieval, 485, 0, "philosophy", "calendar");
+            T("physics", "Physics", Era.Medieval, 485, 0, "machinery");
+            T("guilds", "Guilds", Era.Medieval, 485, 0, "currency");
 
             T("gunpowder", "Gunpowder", Era.Renaissance, 1150, 0, "steel", "machinery");
             T("metallurgy", "Metallurgy", Era.Renaissance, 1600, 0, "gunpowder");
+            T("navigation", "Navigation", Era.Renaissance, 1150, 0, "astronomy");
+            T("banking", "Banking", Era.Renaissance, 1150, 0, "currency", "education");
+            T("printing_press", "Printing Press", Era.Renaissance, 1150, 0, "machinery", "education");
+            T("economics", "Economics", Era.Renaissance, 1600, 0, "banking", "printing_press");
 
             T("military_science", "Military Science", Era.Industrial, 2350, 1, "metallurgy", "chivalry");
             T("rifling", "Rifling", Era.Industrial, 2350, 0, "gunpowder");
+            T("steam_power", "Steam Power", Era.Industrial, 2350, 0, "navigation", "metallurgy");
+            T("industrialization", "Industrialization", Era.Industrial, 2350, 0, "steam_power", "banking");
+            T("electricity", "Electricity", Era.Industrial, 2600, 0, "industrialization");
+            T("scientific_theory", "Scientific Theory", Era.Industrial, 2350, 0, "printing_press", "astronomy");
 
             T("replaceable_parts", "Replaceable Parts", Era.Modern, 3100, 0, "rifling", "military_science");
             T("combustion", "Combustion", Era.Modern, 3100, 0, "replaceable_parts");
+            T("radio", "Radio", Era.Modern, 3100, 0, "electricity");
+            T("flight", "Flight", Era.Modern, 3400, 0, "combustion", "radio");
+            T("refrigeration", "Refrigeration", Era.Modern, 3100, 0, "electricity", "scientific_theory");
 
             T("combined_arms", "Combined Arms", Era.Atomic, 4600, 1, "combustion");
+            T("radar", "Radar", Era.Atomic, 4600, 0, "flight");
+            T("rocketry", "Rocketry", Era.Atomic, 4600, 0, "radar");
+            T("nuclear_fission", "Nuclear Fission", Era.Atomic, 5200, 0, "rocketry");
+            T("mass_media", "Mass Media", Era.Atomic, 4600, 0, "radio");
 
             T("robotics", "Robotics", Era.Information, 6200, 0, "combined_arms");
+            T("computers", "Computers", Era.Information, 6200, 0, "radar", "combined_arms");
+            T("satellites", "Satellites", Era.Information, 7000, 0, "computers", "rocketry");
+            T("the_internet", "The Internet", Era.Information, 7000, 0, "computers", "mass_media");
+            T("nanotechnology", "Nanotechnology", Era.Information, 7500, 0, "robotics", "satellites");
         }
 
         static void AddUnits(ContentDatabase db)
@@ -136,8 +164,22 @@ namespace Crucible.Core.Content
             U("landship", "Landship", UnitClass.Armor, Era.Modern, 60, 350, "combustion", battleMp: 4, worldMp: 4, resource: "oil");
             // Atomic
             U("tank", "Tank", UnitClass.Armor, Era.Atomic, 70, 375, "combined_arms", battleMp: 5, worldMp: 5, resource: "oil");
+            U("rocket_artillery", "Rocket Artillery", UnitClass.Siege, Era.Atomic, 45, 425, "rocketry", rs: 60, range: 3, indirect: true);
             // Information
             U("mech_infantry", "Mechanized Infantry", UnitClass.Gunpowder, Era.Information, 90, 375, "robotics", battleMp: 3, worldMp: 3);
+
+            // Navy (GDD §4.7)
+            var trireme = U("trireme", "Trireme", UnitClass.NavalMelee, Era.Ancient, 10, 40, "sailing", battleMp: 3, worldMp: 3);
+            trireme.CoastOnly = true;
+            U("frigate", "Frigate", UnitClass.NavalRanged, Era.Renaissance, 25, 185, "navigation", rs: 28, range: 2, battleMp: 4, worldMp: 5);
+            U("ironclad", "Ironclad", UnitClass.NavalMelee, Era.Industrial, 45, 250, "steam_power", battleMp: 4, worldMp: 4);
+            U("destroyer", "Destroyer", UnitClass.NavalMelee, Era.Modern, 55, 320, "combustion", battleMp: 5, worldMp: 6, resource: "oil");
+            U("battleship", "Battleship", UnitClass.NavalRanged, Era.Modern, 55, 375, "electricity", rs: 65, range: 3, battleMp: 4, worldMp: 5, resource: "oil");
+
+            // Air (based in cities; Range = operational radius, RangedStrength = strike strength)
+            U("fighter", "Fighter", UnitClass.Fighter, Era.Modern, 20, 300, "flight", rs: 45, range: 8, resource: "oil");
+            U("bomber", "Bomber", UnitClass.Bomber, Era.Atomic, 25, 320, "radar", rs: 65, range: 10, resource: "oil");
+            U("jet_fighter", "Jet Fighter", UnitClass.Fighter, Era.Information, 30, 375, "computers", rs: 70, range: 10);
 
             // Not buildable: spawned by besieged cities (GDD §4.6).
             U(MilitiaUnit, "Militia", UnitClass.Melee, Era.Ancient, 6, 0, null);
@@ -213,6 +255,19 @@ namespace Crucible.Core.Content
             B("colosseum", "Colosseum", Era.Classical, 100, "construction", 1, new Yields(), happiness: 3);
             B("workshop", "Workshop", Era.Medieval, 120, "machinery", 2, new Yields(production: 3));
             B("castle", "Castle", Era.Medieval, 160, "chivalry", 2, new Yields(), walls: 1);
+            B("harbor", "Harbor", Era.Ancient, 80, "sailing", 1, new Yields(food: 2, gold: 1));
+            db.Building("harbor").RequiresCoast = true;
+            B("university", "University", Era.Medieval, 160, "education", 2, new Yields(science: 5));
+            B("bank", "Bank", Era.Renaissance, 200, "banking", 0, new Yields(gold: 4));
+            B("factory", "Factory", Era.Industrial, 300, "industrialization", 3, new Yields(production: 6));
+            B("stadium", "Stadium", Era.Modern, 350, "radio", 3, new Yields(), happiness: 4);
+            B("research_lab", "Research Lab", Era.Information, 400, "computers", 3, new Yields(science: 8));
+            B("amphitheater", "Amphitheater", Era.Classical, 100, "drama", 1, new Yields(culture: 3));
+            B("temple", "Temple", Era.Medieval, 100, "theology", 1, new Yields(culture: 1), happiness: 2);
+            B("stock_exchange", "Stock Exchange", Era.Renaissance, 250, "economics", 0, new Yields(gold: 5));
+            B("public_school", "Public School", Era.Industrial, 300, "scientific_theory", 3, new Yields(science: 5));
+            B("broadcast_tower", "Broadcast Tower", Era.Atomic, 350, "mass_media", 3, new Yields(culture: 5));
+            B("data_center", "Data Center", Era.Information, 400, "the_internet", 3, new Yields(science: 5, gold: 3));
         }
     }
 }

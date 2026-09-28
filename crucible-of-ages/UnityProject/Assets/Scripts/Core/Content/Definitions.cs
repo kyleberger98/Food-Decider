@@ -35,6 +35,14 @@ namespace Crucible.Core.Content
         Missile,
     }
 
+    /// <summary>Where a unit lives: land armies, fleets on water, or aircraft based in cities.</summary>
+    public enum UnitDomain
+    {
+        Land,
+        Naval,
+        Air,
+    }
+
     /// <summary>Static data for a unit type. Instances in play are <see cref="Units.Unit"/>.</summary>
     [Serializable]
     public sealed class UnitDef
@@ -81,8 +89,31 @@ namespace Crucible.Core.Content
         /// <summary>Multiplier on damage dealt to walls: siege weapons ×2, rams ×3.</summary>
         public double WallDamageMultiplier = 1.0;
 
-        public bool IsRanged => RangedStrength > 0 && Range > 0;
+        /// <summary>Naval unit that cannot leave coastal waters (triremes).</summary>
+        public bool CoastOnly;
+
+        public bool IsRanged => RangedStrength > 0 && Range > 0 && Domain != UnitDomain.Air;
         public bool IsMilitary => Class != UnitClass.Civilian;
+
+        public UnitDomain Domain
+        {
+            get
+            {
+                switch (Class)
+                {
+                    case UnitClass.NavalMelee:
+                    case UnitClass.NavalRanged:
+                    case UnitClass.Carrier:
+                        return UnitDomain.Naval;
+                    case UnitClass.Fighter:
+                    case UnitClass.Bomber:
+                    case UnitClass.Missile:
+                        return UnitDomain.Air;
+                    default:
+                        return UnitDomain.Land;
+                }
+            }
+        }
     }
 
     [Serializable]
@@ -105,6 +136,9 @@ namespace Crucible.Core.Content
 
         /// <summary>Wall tiers added to the city centre (see GDD §4.6).</summary>
         public int WallTiers;
+
+        /// <summary>Only coastal cities can build it (harbours).</summary>
+        public bool RequiresCoast;
     }
 
     /// <summary>A social policy (GDD §3). Trees are linear: each policy needs the previous one.</summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Crucible.Core.Content;
 using Crucible.Core.Empire;
 using Crucible.Core.Hex;
 using Crucible.Core.Random;
@@ -116,6 +117,75 @@ namespace Crucible.Core.Combat
             }
         }
 
+        // ------------------------------------------------------------------ air support (GDD §4.7)
+
+        readonly Dictionary<BattleSideId, List<Unit>> _air = new Dictionary<BattleSideId, List<Unit>>
+        {
+            [BattleSideId.Attacker] = new List<Unit>(),
+            [BattleSideId.Defender] = new List<Unit>(),
+        };
+        readonly Dictionary<BattleSideId, int> _airStrikeRound = new Dictionary<BattleSideId, int>
+        {
+            [BattleSideId.Attacker] = 0,
+            [BattleSideId.Defender] = 0,
+        };
+        readonly HashSet<int> _interceptedThisRound = new HashSet<int>();
+        int _interceptRound;
+
+        /// <summary>Aircraft supporting a side this round (set by the game from city hangars in range).</summary>
+        public void SetAirSupport(BattleSideId side, IEnumerable<Unit> aircraft) =>
+            _air[side] = aircraft.Where(u => u.IsAlive && u.Def.Domain == UnitDomain.Air).ToList();
+
+        public IReadOnlyList<Unit> AirSupport(BattleSideId side) => _air[side];
+
+        /// <summary>
+        /// Each supporting aircraft strikes once per round, at its side's first turn: the enemy's fighters
+        /// may intercept it first (each fighter once per round). Survivors hit the ground unit they
+        /// expect to hurt most.
+        /// </summary>
+        void RunAirStrikes(BattleSideId side)
+        {
+            if (_airStrikeRound[side] == Round) return;
+            _airStrikeRound[side] = Round;
+            if (_interceptRound != Round)
+            {
+                _interceptedThisRound.Clear();
+                _interceptRound = Round;
+            }
+
+            var enemy = side == BattleSideId.Attacker ? BattleSideId.Defender : BattleSideId.Attacker;
+            foreach (var plane in _air[side].Where(u => u.IsAlive).ToList())
+            {
+                var interceptor = _air[enemy].FirstOrDefault(f => f.IsAlive && f.Def.Class == UnitClass.Fighter && !_interceptedThisRound.Contains(f.Id));
+                if (interceptor != null)
+                {
+                    _interceptedThisRound.Add(interceptor.Id);
+                    int dmg = CombatResolver.RollDamage(interceptor.Def.RangedStrength - CombatResolver.WoundPenalty(interceptor) - plane.Def.CombatStrength, _rng);
+                    plane.TakeDamage(dmg);
+                    Log.Add($"{interceptor} intercepts {plane}: {dmg} dmg" + (plane.IsAlive ? "." : " — shot down!"));
+                    if (!plane.IsAlive) continue;
+                }
+
+                var target = DeployedUnits(enemy)
+                    .OrderByDescending(t => Math.Min(t.Hp, CombatResolver.ExpectedDamage(AirStrikeDelta(plane, t))) + (CombatResolver.ExpectedDamage(AirStrikeDelta(plane, t)) >= t.Hp ? 50 : 0))
+                    .ThenBy(t => t.Id)
+                    .FirstOrDefault();
+                if (target == null) break;
+                int hit = CombatResolver.RollDamage(AirStrikeDelta(plane, target), _rng);
+                target.TakeDamage(hit);
+                Log.Add($"{plane} strikes {target} for {hit}.");
+                if (!target.IsAlive) RemoveFromField(target);
+            }
+            CheckElimination();
+        }
+
+        int AirStrikeDelta(Unit plane, Unit target)
+        {
+            int attack = plane.Def.RangedStrength - CombatResolver.WoundPenalty(plane);
+            int defence = target.Def.CombatStrength - CombatResolver.WoundPenalty(target) + (target.Fortified ? CombatResolver.FortifiedBonus : 0);
+            return attack - defence;
+        }
+
         // ------------------------------------------------------------------ walls (GDD §4.6)
 
         public const int WallHpPerTier = 50;
@@ -155,7 +225,7 @@ namespace Crucible.Core.Combat
                 int range = unit.Def.Range + (Map.Get(from).Elevation > Map.Get(Objective.Value).Elevation ? 1 : 0);
                 return dist >= 1 && dist <= range && (unit.Def.IndirectFire || TerrainRules.HasLineOfSight(Map, from, Objective.Value));
             }
-            return dist == 1;
+            return dist == 1 && unit.Def.Domain == UnitDomain.Land;
         }
 
         public double ExpectedWallDamage(Unit unit)
@@ -306,7 +376,7 @@ namespace Crucible.Core.Combat
                 if (slots <= 0) break;
                 var entry = _entryPoints[unit.Id];
                 var hex = _tiles
-                    .Where(t => !_occupants.ContainsKey(t))
+                    .Where(t => !_occupants.ContainsKey(t) && CanStand(unit, t))
                     .OrderBy(t => IsAdjacentToEnemy(t, side.Id) ? 1 : 0)
                     .ThenBy(t => t.DistanceTo(entry)).ThenBy(t => t.Q).ThenBy(t => t.R)
                     .Select(t => (HexCoord?)t)
@@ -322,7 +392,7 @@ namespace Crucible.Core.Combat
             // In an assault the garrison's best non-ranged unit holds the city centre behind the walls.
             if (side.Id == BattleSideId.Defender && Objective.HasValue && slots > 0 && !_occupants.ContainsKey(Objective.Value))
             {
-                var holder = side.Reserve.Where(u => u.IsAlive && !_entryPoints.ContainsKey(u.Id))
+                var holder = side.Reserve.Where(u => u.IsAlive && !_entryPoints.ContainsKey(u.Id) && CanStand(u, Objective.Value))
                     .OrderBy(u => u.Def.IsRanged ? 1 : 0).ThenByDescending(u => u.Def.CombatStrength).ThenBy(u => u.Id)
                     .FirstOrDefault();
                 if (holder != null)
@@ -334,9 +404,11 @@ namespace Crucible.Core.Combat
                 }
             }
 
+            // Front-liners take the zone hexes nearest the enemy, ranged units the ones behind. Each unit
+            // only takes hexes of its own domain (ships on water, troops on land); if its zone has none
+            // left, it takes the nearest free hex of its domain on its own half of the field.
             var enemyOrigin = Opponent(side.Id).Origin;
-            var freeTiles = side.DeploymentZone
-                .Where(t => !_occupants.ContainsKey(t))
+            var zoneOrder = side.DeploymentZone
                 .OrderBy(t => t.DistanceTo(enemyOrigin)).ThenBy(t => t.Q).ThenBy(t => t.R)
                 .ToList();
             var queue = side.Reserve
@@ -344,11 +416,19 @@ namespace Crucible.Core.Combat
                 .OrderBy(u => IsBackline(u) ? 1 : 0)
                 .ToList();
 
-            int tileIndex = 0;
             foreach (var unit in queue)
             {
-                if (slots <= 0 || tileIndex >= freeTiles.Count) break;
-                Place(unit, freeTiles[tileIndex++]);
+                if (slots <= 0) break;
+                HexCoord? hex = zoneOrder.Where(t => !_occupants.ContainsKey(t) && CanStand(unit, t))
+                    .Select(t => (HexCoord?)t).FirstOrDefault();
+                if (!hex.HasValue)
+                    hex = _tiles.Where(t => !_occupants.ContainsKey(t) && CanStand(unit, t) &&
+                                            t.DistanceTo(side.Origin) <= t.DistanceTo(enemyOrigin))
+                        .OrderBy(t => IsAdjacentToEnemy(t, side.Id) ? 1 : 0)
+                        .ThenBy(t => t.DistanceTo(side.Origin)).ThenBy(t => t.Q).ThenBy(t => t.R)
+                        .Select(t => (HexCoord?)t).FirstOrDefault();
+                if (!hex.HasValue) continue;
+                Place(unit, hex.Value);
                 side.Reserve.Remove(unit);
                 unit.Fortified = false;
                 slots--;
@@ -357,6 +437,11 @@ namespace Crucible.Core.Combat
         }
 
         static bool IsBackline(Unit u) => u.Def.IsRanged;
+
+        /// <summary>Battle movement: ships on water, troops on land. No embarking mid-battle.</summary>
+        public static Mobility MobilityOf(Unit u) => u.Def.Domain == UnitDomain.Naval ? Mobility.Ship : Mobility.Land;
+
+        bool CanStand(Unit u, HexCoord c) => TerrainRules.CanStand(MobilityOf(u), Map.Get(c));
 
         // ------------------------------------------------------------------ queries
 
@@ -412,7 +497,7 @@ namespace Crucible.Core.Combat
                     if (!_tiles.Contains(next)) continue;
                     if (_occupants.TryGetValue(next, out var occ) && _sideOf[occ.Id] != side) continue;
 
-                    int cost = TerrainRules.LandStepCost(Map.Get(current), Map.Get(next));
+                    int cost = TerrainRules.StepCost(MobilityOf(unit), Map.Get(current), Map.Get(next));
                     if (cost == TerrainRules.Impassable || BlockedByWalls(unit, current, next)) continue;
                     // A unit with any MP left may always take one step (Civ V rule).
                     if (cost > mpHere && mpHere < unit.Def.BattleMovement) continue;
@@ -454,8 +539,8 @@ namespace Crucible.Core.Combat
                 return unit.Def.IndirectFire || TerrainRules.HasLineOfSight(Map, from, target);
             }
 
-            // Melee: adjacent, and the step onto the target's hex must not be a cliff.
-            return dist == 1 && TerrainRules.LandStepCost(fromTile, targetTile) != TerrainRules.Impassable;
+            // Melee: adjacent, and the attacker could step onto the target's hex (no cliffs, same domain).
+            return dist == 1 && TerrainRules.StepCost(MobilityOf(unit), fromTile, targetTile) != TerrainRules.Impassable;
         }
 
         /// <summary>Builds the combat situation for an attack from <paramref name="from"/> (actual or hypothetical).</summary>
@@ -625,6 +710,11 @@ namespace Crucible.Core.Combat
         {
             RemoveDeadFromField();
             DeployReserves(side);
+            if (TurnInRound == 1)
+            {
+                RunAirStrikes(side.Id);
+                if (Status != BattleStatus.InProgress) return;
+            }
             _moveLocked.RemoveWhere(id => _sideOf[id] == side.Id);
             foreach (var u in DeployedUnits(side.Id))
             {

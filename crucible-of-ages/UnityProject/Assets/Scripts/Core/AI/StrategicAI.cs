@@ -26,6 +26,13 @@ namespace Crucible.Core.AI
         public double AttackRatio = 1.3;
         public int SiegePatience = 5;
 
+        /// <summary>No offensives before this turn: expand and build up first.</summary>
+        public int EarliestOffensiveTurn = 30;
+
+        /// <summary>…and not before having this many cities, unless the game has gone on this long.</summary>
+        public int CitiesBeforeWar = 2;
+        public int WarAnywayTurn = 60;
+
         sealed class Memory
         {
             public int TargetCityId = -1;
@@ -39,9 +46,43 @@ namespace Crucible.Core.AI
 
             PlanEconomy(game, player);
             SplitGarrisons(game, player);
+            SplitCivilians(game, player);
+            EnsureGarrisons(game, player);
             foreach (var army in OwnArmies(game, player).Where(IsSettlerArmy).ToList()) ManageSettler(game, player, army);
             Defend(game, player);
             Offense(game, player, memory);
+            SpendGold(game, player);
+        }
+
+        /// <summary>Gold kept in reserve for emergencies.</summary>
+        public int GoldReserve = 60;
+
+        /// <summary>
+        /// Buys with surplus gold: defenders first for threatened cities, then soldiers while under the
+        /// military target, then whatever each city is building (cheapest first).
+        /// </summary>
+        void SpendGold(GameState game, Player player)
+        {
+            var cities = game.Cities.Where(c => c.OwnerId == player.Id && !c.IsBesieged).ToList();
+            bool Threatened(City c) => game.Armies.Any(a => game.AtWar(a.OwnerId, player.Id) && HasMilitary(a) && a.Position.DistanceTo(c.Position) <= 4);
+
+            for (int guard = 0; guard < 6; guard++)
+            {
+                if (player.Gold <= GoldReserve) return;
+                bool bought = false;
+                foreach (var city in cities.OrderByDescending(Threatened).ThenBy(c => EconomyRules.CityYields(game, c).Production).ThenBy(c => c.Id))
+                {
+                    ProductionItem? want;
+                    if (Threatened(city) || EconomyRules.MilitaryUnitCount(game, player) < player.AIMilitaryTarget)
+                        want = CityGovernor.BestUnit(game, city);
+                    else
+                        want = city.CurrentProduction ?? CityGovernor.ChooseProduction(game, city);
+                    if (!want.HasValue) continue;
+                    if (EconomyRules.PurchaseCost(game, city, want.Value) > player.Gold - GoldReserve) continue;
+                    if (game.Purchase(city, want.Value)) { bought = true; break; }
+                }
+                if (!bought) return;
+            }
         }
 
         // ------------------------------------------------------------------ economy plan
@@ -135,6 +176,53 @@ namespace Crucible.Core.AI
             }
         }
 
+        /// <summary>Every city keeps a real garrison: an empty city pulls one unit from the nearest field army.</summary>
+        void EnsureGarrisons(GameState game, Player player)
+        {
+            foreach (var city in game.Cities.Where(c => c.OwnerId == player.Id).ToList())
+            {
+                var here = game.ArmyAt(city.Position);
+                if (here != null && here.OwnerId == player.Id && HasMilitary(here)) continue;
+                if (here != null) continue; // occupied by someone else (e.g. an enemy we can't displace)
+                if (FieldArmies(game, player).Any(a => a.Destination == city.Position)) continue; // already coming
+
+                var source = FieldArmies(game, player)
+                    .Where(a => !game.IsEmbarked(a))
+                    .OrderBy(a => a.Position.DistanceTo(city.Position)).ThenBy(a => a.Id)
+                    .FirstOrDefault();
+                if (source == null) continue;
+
+                if (source.Count == 1 || source.Position.DistanceTo(city.Position) <= 1)
+                {
+                    if (source.Count == 1) game.OrderMove(source, city.Position);
+                    else
+                    {
+                        var guard = source.Units.OrderBy(u => u.Def.IsRanged ? 1 : 0).ThenByDescending(u => u.Def.CombatStrength).First();
+                        game.SplitArmy(source, new[] { guard }, city.Position);
+                    }
+                    continue;
+                }
+
+                var defender = source.Units.OrderBy(u => u.Def.IsRanged ? 1 : 0).ThenByDescending(u => u.Def.CombatStrength).First();
+                var hex = FreeNeighbor(game, source.Position);
+                if (!hex.HasValue) continue;
+                var detached = game.SplitArmy(source, new[] { defender }, hex.Value);
+                if (detached != null) detached.Destination = city.Position; // marches next turn
+            }
+        }
+
+        /// <summary>Settlers and workers travelling inside a field army go their own way.</summary>
+        static void SplitCivilians(GameState game, Player player)
+        {
+            foreach (var army in OwnArmies(game, player).Where(a => !a.InBattle && game.CityAt(a.Position) == null).ToList())
+            {
+                var civilians = army.Units.Where(u => !u.Def.IsMilitary).ToList();
+                if (civilians.Count == 0 || civilians.Count == army.Count) continue;
+                var hex = FreeNeighbor(game, army.Position);
+                if (hex.HasValue) game.SplitArmy(army, civilians, hex.Value);
+            }
+        }
+
         static HexCoord? FreeNeighbor(GameState game, HexCoord c) =>
             c.Neighbors()
                 .Where(n => game.Map.Get(n) is Tile t && t.IsPassableForLand && game.ArmyAt(n) == null &&
@@ -153,6 +241,21 @@ namespace Crucible.Core.AI
                             ownCities.Any(c => c.Position.DistanceTo(a.Position) <= 3))
                 .ToList();
 
+            // Recall: field armies near a threatened city come back to fight in front of its walls.
+            foreach (var raider in raiders)
+            {
+                var threatened = ownCities.OrderBy(c => c.Position.DistanceTo(raider.Position)).First();
+                foreach (var army in FieldArmies(game, player).Where(a => a.Position.DistanceTo(threatened.Position) <= 8 &&
+                                                                          a.Position.DistanceTo(raider.Position) > 1))
+                {
+                    var meet = raider.Position.Neighbors()
+                        .Where(n => TerrainRules.CanStand(game.MobilityOf(army), game.Map.Get(n)) && game.ArmyAt(n) == null && game.CityAt(n) == null)
+                        .OrderBy(n => n.DistanceTo(army.Position)).ThenBy(n => n.Q).ThenBy(n => n.R)
+                        .Select(n => (HexCoord?)n).FirstOrDefault();
+                    if (meet.HasValue) game.OrderMove(army, meet.Value);
+                }
+            }
+
             foreach (var raider in raiders)
             {
                 var responder = OwnArmies(game, player)
@@ -168,6 +271,9 @@ namespace Crucible.Core.AI
 
         void Offense(GameState game, Player player, Memory memory)
         {
+            int cities = game.Cities.Count(c => c.OwnerId == player.Id);
+            if (game.Turn < EarliestOffensiveTurn || (cities < CitiesBeforeWar && game.Turn < WarAnywayTurn)) return;
+
             var target = game.City(memory.TargetCityId);
             if (target == null || !game.AtWar(target.OwnerId, player.Id)) target = PickTarget(game, player);
             memory.TargetCityId = target?.Id ?? -1;

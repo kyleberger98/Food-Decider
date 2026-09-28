@@ -60,6 +60,7 @@ namespace Crucible.View
             _markers.Init(map);
             _game.BattleStarted += b => _message = $"Battle! Round {b.Round}. Your units deploy in the tinted zone.";
             _game.BattleEnded += b => _message = $"Battle over: {b.Status}.";
+            _game.ArmySunk += a => _message = $"An embarked army ({a.Count} units) was sunk at sea!";
         }
 
         Player Human => _turns.ActivePlayer;
@@ -443,6 +444,9 @@ namespace Crucible.View
             GUILayout.Label($"Borders: {city.CultureStored}/{EconomyRules.BorderGrowthThreshold(city)} culture");
             GUILayout.Label("Buildings: " + (city.Buildings.Count == 0 ? "none" :
                 string.Join(", ", city.Buildings.Select(b => _game.Content.Building(b).Name))));
+            if (city.AirUnits.Count > 0)
+                GUILayout.Label($"Hangar {city.AirUnits.Count}/{City.AirCapacity}: " +
+                                string.Join(", ", city.AirUnits.Select(u => $"{u.Def.Name} {u.Hp}hp")));
 
             if (city.CurrentProduction.HasValue)
             {
@@ -461,8 +465,15 @@ namespace Crucible.View
                 .OrderBy(i => i.Kind).ThenBy(i => EconomyRules.Cost(_game, i));
             foreach (var item in options)
             {
+                GUILayout.BeginHorizontal();
                 if (GUILayout.Button($"{EconomyRules.NameOf(_game, item)}  ({EconomyRules.Cost(_game, item)})"))
                     _game.SetProduction(city, item);
+                int price = EconomyRules.PurchaseCost(_game, city, item);
+                GUI.enabled = Human.Gold >= price && !city.IsBesieged;
+                if (GUILayout.Button($"Buy {price}g", GUILayout.Width(80)))
+                    _message = _game.Purchase(city, item) ? $"Bought {EconomyRules.NameOf(_game, item)}." : "Couldn't buy that (no room to place it?).";
+                GUI.enabled = true;
+                GUILayout.EndHorizontal();
             }
             GUILayout.EndScrollView();
             if (GUILayout.Button("Close")) _selectedCity = null;

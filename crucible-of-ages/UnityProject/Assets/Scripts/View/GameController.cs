@@ -109,6 +109,10 @@ namespace Crucible.View
             Game.BattleStarted += b => Post($"Battle: {b.Attacker.Player.Name} vs {b.Defender.Player.Name}.", NoticeKind.War);
             Game.BattleEnded += b => Post($"Battle over — {Describe(b)}.", b.Winner.HasValue && Side(b, b.Winner.Value).Player == HumanPlayer ? NoticeKind.Good : NoticeKind.Bad);
             Game.ArmySunk += a => Post($"An embarked army ({a.Count} units) was sunk at sea!", NoticeKind.Bad);
+            Game.ExplorationFinished += a =>
+            {
+                if (a.OwnerId == Human.Id) Post($"{(a.IsNaval ? "A fleet" : "An explorer")} has nothing left to explore nearby and awaits orders.");
+            };
             Game.GreatPersonBorn += (p, u) => { if (!p.IsAI) Post($"A {u.Def.Name} is born! Select them to use their gift.", NoticeKind.Good); };
             Game.ReligionFounded += r => Post($"{r.Name} has been founded by {Game.Player(r.FounderId).Name}.");
             Game.WarDeclared += (a, b) => Post($"War: {a.Name} against {b.Name}!", NoticeKind.War);
@@ -204,6 +208,7 @@ namespace Crucible.View
             else if (Input.GetKeyDown(KeyCode.L)) TogglePanel(HudPanel.Diplomacy);
             else if (Input.GetKeyDown(KeyCode.I)) Improve();
             else if (Input.GetKeyDown(KeyCode.U)) ToggleAutomate();
+            else if (Input.GetKeyDown(KeyCode.O)) ToggleExplore();
             else if (Input.GetKeyDown(KeyCode.G)) Besiege();
             else if (Input.GetKeyDown(KeyCode.V)) UseGreatPerson();
             else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) EndTurn();
@@ -318,11 +323,43 @@ namespace Crucible.View
                 Post("Nothing to build here (needs your territory, the right tech and terrain).", NoticeKind.Bad);
         }
 
+        /// <summary>Auto-improve: the worker picks, walks to and builds the best improvement each turn.</summary>
         public void ToggleAutomate()
         {
             if (SelectedArmy == null || !WorkerAutomation.HasWorker(SelectedArmy)) return;
             SelectedArmy.AutomatedWorkers = !SelectedArmy.AutomatedWorkers;
-            Post(SelectedArmy.AutomatedWorkers ? "Workers automated." : "Workers under manual control.");
+            if (SelectedArmy.AutomatedWorkers)
+            {
+                SelectedArmy.AutoExplore = false;
+                WorkerAutomation.Run(Game, Human.Id); // start working this turn, not next
+                Post(SelectedArmy.BuildOrder != ImprovementType.None
+                    ? $"Auto-improve on: building a {SelectedArmy.BuildOrder}."
+                    : "Auto-improve on: the worker picks its own jobs each turn.");
+            }
+            else Post("Auto-improve off: the worker awaits orders.");
+        }
+
+        /// <summary>Auto-explore for scouts, military armies and fleets.</summary>
+        public void ToggleExplore()
+        {
+            if (SelectedArmy == null) return;
+            if (!Exploration.CanExplore(SelectedArmy))
+            {
+                Post("Only scouts, military armies and fleets can explore.", NoticeKind.Bad);
+                return;
+            }
+            SelectedArmy.AutoExplore = !SelectedArmy.AutoExplore;
+            if (SelectedArmy.AutoExplore)
+            {
+                SelectedArmy.Destination = null;
+                SelectedArmy.AutomatedWorkers = false;
+                if (Exploration.Step(Game, SelectedArmy)) Post("Exploring: the army scouts on its own each turn (O to stop).");
+            }
+            else
+            {
+                SelectedArmy.Destination = null;
+                Post("Stopped exploring.");
+            }
         }
 
         public void Besiege()
@@ -469,6 +506,7 @@ namespace Crucible.View
             if (clickedCity != null && clickedCity.OwnerId == Human.Id && SelectedArmy.Position == hex) { OpenCity(clickedCity); return; }
             var path = Game.OrderMove(SelectedArmy, hex);
             if (path == null) Post("No route there (water, mountains, cliffs, borders or blocked).", NoticeKind.Bad);
+            else SelectedArmy.AutoExplore = false; // a manual order takes the army off auto-explore
             ClearRoute();
         }
 

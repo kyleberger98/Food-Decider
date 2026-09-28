@@ -22,8 +22,11 @@ namespace Crucible.Core.Units
         /// <summary>Improvement this army's worker is building on its hex (cleared when it moves).</summary>
         public Crucible.Core.World.ImprovementType BuildOrder { get; set; }
 
-        /// <summary>Workers in this army pick their own jobs each turn.</summary>
+        /// <summary>Workers in this army pick their own jobs each turn (auto-improve).</summary>
         public bool AutomatedWorkers { get; set; }
+
+        /// <summary>The army explores on its own each turn until nothing reachable is left unseen.</summary>
+        public bool AutoExplore { get; set; }
 
         /// <summary>Id of the battle this army is currently locked into, or -1.</summary>
         public int BattleId { get; set; } = -1;

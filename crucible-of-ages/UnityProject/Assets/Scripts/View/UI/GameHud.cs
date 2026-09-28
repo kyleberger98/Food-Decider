@@ -343,7 +343,7 @@ namespace Crucible.View.UI
             var route = _c.HoverRoute;
             string sig = battle != null
                 ? $"b|{stamp}|{unit?.Id}|{unit?.Hp}|{unit?.BattleMovesLeft}|{unit?.HasAttacked}|{battle.Status}|{battle.TurnInRound}"
-                : $"w|{stamp}|{army?.Id}|{army?.Count}|{army?.WorldMovesLeft}|{army?.Destination}|{army?.BuildOrder}|{army?.AutomatedWorkers}|" +
+                : $"w|{stamp}|{army?.Id}|{army?.Count}|{army?.WorldMovesLeft}|{army?.Destination}|{army?.BuildOrder}|{army?.AutomatedWorkers}|{army?.AutoExplore}|" +
                   $"{string.Join(",", army?.Units.Select(u => u.Hp) ?? Enumerable.Empty<int>())}|{route?.Steps.Count}|{route?.Turns}";
             if (!Changed("selection", sig)) return;
             _selection.Clear();
@@ -368,7 +368,8 @@ namespace Crucible.View.UI
             titleCol.Put(Ui.Heading(kind));
             titleCol.Put(Ui.Text($"{army.Units.Count(u => u.Def.GreatPerson != GreatPersonType.General)}/{Me.ArmyCap} units  ·  {army.WorldMovesLeft}/{G.WorldMovementOf(army)} moves" +
                                  (army.Destination.HasValue ? "  ·  marching" : "") +
-                                 (army.BuildOrder != ImprovementType.None ? $"  ·  building {army.BuildOrder}" : ""), 11, Theme.Muted));
+                                 (army.BuildOrder != ImprovementType.None ? $"  ·  building {army.BuildOrder}" : "") +
+                                 (army.AutoExplore ? "  ·  exploring" : army.AutomatedWorkers ? "  ·  auto-improving" : ""), 11, Theme.Muted));
             _selection.Put(Ui.Divider());
 
             var list = _selection.Put(Ui.Col(5));
@@ -403,8 +404,12 @@ namespace Crucible.View.UI
             {
                 var best = Improvements.Best(Me, G.Map.Get(army.Position));
                 actions.Put(Ui.Btn(best != ImprovementType.None ? $"Build {best}  (I)" : "Nothing to build", _c.Improve, ButtonStyle.Normal, best != ImprovementType.None));
-                actions.Put(Ui.Btn(army.AutomatedWorkers ? "Stop automating  (U)" : "Automate  (U)", _c.ToggleAutomate));
+                actions.Put(Ui.Btn(army.AutomatedWorkers ? "Stop auto-improve  (U)" : "Auto-improve  (U)", _c.ToggleAutomate,
+                                   army.AutomatedWorkers ? ButtonStyle.Primary : ButtonStyle.Normal));
             }
+            if (Exploration.CanExplore(army))
+                actions.Put(Ui.Btn(army.AutoExplore ? "Stop exploring  (O)" : "Explore  (O)", _c.ToggleExplore,
+                                   army.AutoExplore ? ButtonStyle.Primary : ButtonStyle.Normal));
             var gp = _c.GreatPersonInSelection();
             if (gp != null) actions.Put(Ui.Btn($"Use {gp.Def.Name}  (V)", _c.UseGreatPerson, ButtonStyle.Primary));
             var enemyCity = _c.AdjacentEnemyCityOfSelection();
@@ -437,7 +442,7 @@ namespace Crucible.View.UI
         void UpdateEndTurn(string stamp, Battle battle)
         {
             int idle = G.Armies.Count(a => a.OwnerId == Me.Id && !a.InBattle && a.WorldMovesLeft > 0 && !a.Destination.HasValue &&
-                                           a.BuildOrder == ImprovementType.None && !a.AutomatedWorkers && G.CityAt(a.Position) == null);
+                                           a.BuildOrder == ImprovementType.None && !a.AutomatedWorkers && !a.AutoExplore && G.CityAt(a.Position) == null);
             int unset = G.Cities.Count(c => c.OwnerId == Me.Id && !c.CurrentProduction.HasValue);
             if (!Changed("endturn", $"{stamp}|{battle != null}|{idle}|{unset}|{G.Victory != null}")) return;
             _endTurn.Clear();

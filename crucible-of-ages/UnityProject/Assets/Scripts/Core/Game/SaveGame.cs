@@ -22,7 +22,7 @@ namespace Crucible.Core.Game
     public static class SaveGame
     {
         const string Magic = "CRUCIBLE";
-        public const int Version = 3; // 2: diplomacy between majors; 3: natural wonders
+        public const int Version = 4; // 2: diplomacy between majors; 3: natural wonders; 4: auto-explore
 
         public static byte[] Save(GameState game, TurnManager turns)
         {
@@ -160,7 +160,7 @@ namespace Crucible.Core.Game
             foreach (var a in _armies.Values)
             {
                 w.Int(a.Id); w.Int(a.OwnerId); w.Hex(a.Position); w.Int(a.WorldMovesLeft); w.OptHex(a.Destination);
-                w.Int((int)a.BuildOrder); w.Bool(a.AutomatedWorkers); w.Int(a.BattleId);
+                w.Int((int)a.BuildOrder); w.Bool(a.AutomatedWorkers); w.Bool(a.AutoExplore); w.Int(a.BattleId);
                 w.Int(a.Count);
                 foreach (var u in a.Units) WriteUnit(u);
             }
@@ -271,7 +271,7 @@ namespace Crucible.Core.Game
                 var a = new Army(r.Int(), r.Int(), r.Hex())
                 {
                     WorldMovesLeft = r.Int(), Destination = r.OptHex(), BuildOrder = (ImprovementType)r.Int(),
-                    AutomatedWorkers = r.Bool(), BattleId = r.Int(),
+                    AutomatedWorkers = r.Bool(), AutoExplore = r.Bool(), BattleId = r.Int(),
                 };
                 for (int k = r.Int(); k > 0; k--) a.RestoreUnit(ReadUnit());
                 g._armies[a.Id] = a;

@@ -370,6 +370,11 @@ namespace Crucible.Core.Game
 
         public event Action<Army> ArmySunk;
 
+        /// <summary>An auto-exploring army found nothing left to explore and stopped.</summary>
+        public event Action<Army> ExplorationFinished;
+
+        internal void RaiseExplorationFinished(Army army) => ExplorationFinished?.Invoke(army);
+
         /// <summary>
         /// Aircraft based in each side's cities within their operating range of the battle join it
         /// (GDD §4.7). Refreshed at the start of every round.
@@ -576,6 +581,7 @@ namespace Crucible.Core.Game
                 foreach (var plane in c.AirUnits) plane.Heal(20); // repairs in the hangar
             foreach (var army in _armies.Values.Where(a => a.OwnerId == player.Id && a.Destination.HasValue).ToList())
                 ContinueMoveOrder(army);
+            Exploration.Run(this, player.Id);
             WorkerAutomation.Run(this, player.Id);
             RefreshVisibility(player.Id);
 

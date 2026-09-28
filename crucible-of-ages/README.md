@@ -70,7 +70,7 @@ The HUD is built with UI Toolkit entirely in code (no assets to set up):
 - **Top bar:** gold, science, culture, faith, happiness, tourism, free strategic resources, a research button with a progress bar, and Policies / Diplomacy buttons that light up when something needs you. Save and Load are here too.
 - **Notifications** slide in on the left: green for good news, red for bad, orange for war.
 - **Right panel:** city screen (yields, growth, borders, build list with turns and **Buy**), research picker (what each tech unlocks), policy trees, diplomacy (treaties, opinion bars, proposals), city-states and siege camp.
-- **Selection card** (bottom-left): the army's units with health bars and context buttons (Found city, Build farm, Automate, Besiege, Use great person…).
+- **Selection card** (bottom-left): the army's units with health bars and context buttons (Found city, Build farm, Auto-improve, Explore, Besiege, Use great person…).
 - **End turn** (bottom-right) warns about idle cities and armies that can still move.
 - **Battles:** a banner with round/turn pips, walls and air support, an action bar, and a **combat preview** card listing every modifier and the expected damage (with KILL markers).
 - **On the map:** city banners (population, growth and production bars), army flags with unit counts, flags and health bars over units in battle, and a tooltip for the hex under the cursor (including natural wonders and their yields).
@@ -83,7 +83,8 @@ The HUD is built with UI Toolkit entirely in code (no assets to set up):
 | Cities | Click your city for its panel (growth, borders, production); pick what to build from the list, or **Buy** it with gold. **F** founds a city with a selected settler. **T** cycles research. **P** opens social policies. |
 | Diplomacy | **L** opens the leaders screen: war and peace, open borders, defensive pacts, AI opinion, and proposals waiting for your answer. At peace you can't enter another civ's land without open borders. |
 | Great people & city-states | With a great person selected, **V** uses their gift (Great Generals lead armies instead: merge them in). Click a city-state to see influence and gift gold. |
-| Workers | With a worker selected: **I** builds the best improvement on its hex (moving cancels), **U** toggles automation. |
+| Workers | With a worker selected: **I** builds the best improvement on its hex (moving cancels), **U** toggles **auto-improve**: the worker picks, walks to and builds the best improvement in your land every turn, starting right away. |
+| Exploring | With a scout, military army or fleet selected, **O** toggles **auto-explore**: each turn it heads for the nearest spot that reveals the most unexplored land, keeps clear of enemies at war, and stops (with a notice) when nothing reachable is left. Giving it a move order also stops it. |
 | Deployment | Click a unit, then a blue hex of your zone (swaps with friends). **Space** confirms. |
 | Battle | Click a unit, then a green hex to move or a red enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats, **X** auto-resolves the round, **B** batters the walls with the selected unit. |
 | Reinforce | With an army next to an ongoing battle selected, click a battlefield hex to join it. |

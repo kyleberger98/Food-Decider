@@ -28,17 +28,19 @@ namespace Crucible.Core.Economy
             {
                 if (army.BuildOrder != ImprovementType.None) continue;
 
-                var target = BestTarget(game, army, claimed);
-                if (!target.HasValue) continue;
-                claimed.Add(target.Value);
-
-                if (army.Position != target.Value && game.OrderMove(army, target.Value) == null) continue;
-                if (army.Position == target.Value)
-                    game.StartImprovement(army, Improvements.Best(player, game.Map.Get(target.Value)));
+                // Walk to the best reachable site; an unreachable one (across water, say) must not stall the worker.
+                foreach (var target in Targets(game, army, claimed).Take(6))
+                {
+                    if (army.Position != target && game.OrderMove(army, target) == null) continue;
+                    claimed.Add(target);
+                    if (army.Position == target)
+                        game.StartImprovement(army, Improvements.Best(player, game.Map.Get(target)));
+                    break;
+                }
             }
         }
 
-        static HexCoord? BestTarget(GameState game, Army army, HashSet<HexCoord> claimed)
+        static IEnumerable<HexCoord> Targets(GameState game, Army army, HashSet<HexCoord> claimed)
         {
             var player = game.Player(army.OwnerId);
             return game.Map.Tiles
@@ -48,8 +50,7 @@ namespace Crucible.Core.Economy
                 .Where(x => x.imp != ImprovementType.None)
                 .OrderByDescending(x => Value(x.tile, x.imp) - 0.5 * x.tile.Coord.DistanceTo(army.Position))
                 .ThenBy(x => x.tile.Coord.Q).ThenBy(x => x.tile.Coord.R)
-                .Select(x => (HexCoord?)x.tile.Coord)
-                .FirstOrDefault();
+                .Select(x => x.tile.Coord);
         }
 
         static double Value(Tile t, ImprovementType imp)

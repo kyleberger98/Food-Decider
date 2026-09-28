@@ -34,10 +34,11 @@ namespace Crucible.Core.World
         /// <summary>Whether a mover with this mobility may stand on the tile at all.</summary>
         public static bool CanStand(Mobility m, Tile t)
         {
-            if (t == null) return false;
-            if (m.Naval) return t.IsWater && (t.Terrain == TerrainType.Coast || m.OceanGoing);
+            if (t == null || t.IsIce) return false;
+            bool shallow = t.Terrain == TerrainType.Coast || t.Terrain == TerrainType.Lake;
+            if (m.Naval) return t.IsWater && (shallow || m.OceanGoing);
             if (!t.IsWater) return t.IsPassableForLand;
-            return m.CanEmbark && (t.Terrain == TerrainType.Coast || m.OceanGoing);
+            return m.CanEmbark && (shallow || m.OceanGoing);
         }
 
         /// <summary>Movement cost for any mover between adjacent tiles, or <see cref="Impassable"/>.</summary>

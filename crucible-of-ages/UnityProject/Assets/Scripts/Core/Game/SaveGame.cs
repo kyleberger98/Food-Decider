@@ -22,7 +22,7 @@ namespace Crucible.Core.Game
     public static class SaveGame
     {
         const string Magic = "CRUCIBLE";
-        public const int Version = 2; // 2: diplomacy between majors
+        public const int Version = 3; // 2: diplomacy between majors; 3: natural wonders
 
         public static byte[] Save(GameState game, TurnManager turns)
         {
@@ -125,6 +125,7 @@ namespace Crucible.Core.Game
                 w.Int((int)t.Terrain); w.Int((int)t.Feature); w.Int(t.Elevation); w.Int(t.RiverEdges); w.Int(t.WallTier);
                 w.Int(t.OwnerPlayerId); w.Int(t.OwnerCityId); w.Int(t.CityId);
                 w.Int((int)t.Resource); w.Int((int)t.Improvement); w.Int((int)t.ImprovementInProgress); w.Int(t.ImprovementProgress);
+                w.Int((int)t.Wonder);
             }
 
             // Players
@@ -225,6 +226,7 @@ namespace Crucible.Core.Game
                 t.OwnerPlayerId = r.Int(); t.OwnerCityId = r.Int(); t.CityId = r.Int();
                 t.Resource = (ResourceType)r.Int(); t.Improvement = (ImprovementType)r.Int();
                 t.ImprovementInProgress = (ImprovementType)r.Int(); t.ImprovementProgress = r.Int();
+                t.Wonder = (NaturalWonder)r.Int();
             }
 
             var g = new GameState(content, map, 0);

@@ -19,12 +19,25 @@ namespace Crucible.Core.Economy
         public const int MinCityDistance = 4;
 
         /// <summary>What a tile yields when worked, before city-centre minimums.</summary>
+        public static Yields WonderYields(NaturalWonder w)
+        {
+            switch (w)
+            {
+                case NaturalWonder.EmberfallGeyser: return new Yields(science: 2, faith: 2);
+                case NaturalWonder.GlassDunes: return new Yields(gold: 3, culture: 2);
+                case NaturalWonder.Worldspine: return new Yields(culture: 2, faith: 3);
+                default: return new Yields();
+            }
+        }
+
         public static Yields TileYields(Tile t, WorldMap map)
         {
-            if (t == null || t.IsMountain) return new Yields();
+            if (t == null || t.IsIce) return new Yields();
+            if (t.IsMountain) return WonderYields(t.Wonder); // only a wonder makes a peak worth working
             Yields y;
             switch (t.Terrain)
             {
+                case TerrainType.Lake: y = new Yields(food: 2, gold: 1); break;
                 case TerrainType.Ocean: y = new Yields(food: 1); break;
                 case TerrainType.Coast: y = new Yields(food: 1, gold: 1); break;
                 case TerrainType.Grassland: y = new Yields(food: 2); break;
@@ -42,11 +55,13 @@ namespace Crucible.Core.Economy
                 case FeatureType.Jungle: y = new Yields(food: 1); break;
                 case FeatureType.Marsh: y.Food = Math.Max(0, y.Food - 1); break;
                 case FeatureType.Floodplain: y.Food += 2; break;
+                case FeatureType.Oasis: y = new Yields(food: 3, gold: 1); break;
             }
 
             if (!t.IsWater && t.RiverEdges != 0) y.Gold += 1;
             y += Improvements.ResourceYields(t.Resource);
             y += Improvements.ImprovementYields(t.Improvement);
+            y += WonderYields(t.Wonder);
             return y;
         }
 
@@ -121,7 +136,8 @@ namespace Crucible.Core.Economy
             int luxuries = Improvements.ConnectedLuxuries(game, player.Id).Count() * Improvements.HappinessPerLuxury;
             // Follower belief: +1 happiness per own city following any religion.
             int faithful = cities.Count(c => c.ReligionId >= 0);
-            return BaseHappiness + buildings + policies + luxuries + faithful + game.CityStateHappiness(player)
+            int wonders = game.Map.Tiles.Count(t => t.OwnerPlayerId == player.Id && t.Wonder != NaturalWonder.None); // natural wonders inspire
+            return BaseHappiness + buildings + policies + luxuries + faithful + wonders + game.CityStateHappiness(player)
                    - UnhappinessPerCity * cities.Count
                    - UnhappinessPerCitizen * cities.Sum(c => c.Population);
         }

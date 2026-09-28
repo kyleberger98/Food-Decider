@@ -12,6 +12,9 @@ namespace Crucible.Core.World
         Desert,
         Tundra,
         Snow,
+
+        /// <summary>Inland fresh water: 2 food, 1 gold; ships treat it like coast.</summary>
+        Lake,
     }
 
     public enum FeatureType
@@ -21,6 +24,21 @@ namespace Crucible.Core.World
         Jungle,
         Marsh,
         Floodplain,
+
+        /// <summary>Desert spring: 3 food, 1 gold.</summary>
+        Oasis,
+
+        /// <summary>Polar pack ice: impassable to ships and embarked armies.</summary>
+        Ice,
+    }
+
+    /// <summary>One-of-a-kind natural wonders (GDD §2.3): big yields and +1 happiness to their owner.</summary>
+    public enum NaturalWonder
+    {
+        None,
+        EmberfallGeyser,
+        GlassDunes,
+        Worldspine,
     }
 
     public enum ResourceType
@@ -81,6 +99,7 @@ namespace Crucible.Core.World
 
         public ResourceType Resource { get; set; }
         public ImprovementType Improvement { get; set; }
+        public NaturalWonder Wonder { get; set; }
 
         /// <summary>Improvement a worker is currently building here, and turns of work done on it.</summary>
         public ImprovementType ImprovementInProgress { get; set; }
@@ -91,7 +110,8 @@ namespace Crucible.Core.World
             Coord = coord;
         }
 
-        public bool IsWater => Terrain == TerrainType.Ocean || Terrain == TerrainType.Coast;
+        public bool IsWater => Terrain == TerrainType.Ocean || Terrain == TerrainType.Coast || Terrain == TerrainType.Lake;
+        public bool IsIce => Feature == FeatureType.Ice;
         public bool IsMountain => !IsWater && Elevation >= MountainElevation;
         public bool IsPassableForLand => !IsWater && !IsMountain;
         public bool IsRoughTerrain => Feature == FeatureType.Forest || Feature == FeatureType.Jungle;
@@ -105,6 +125,7 @@ namespace Crucible.Core.World
 
         public override string ToString() =>
             $"{Coord} {Terrain}/{Feature} elev {Elevation}" +
+            (Wonder != NaturalWonder.None ? $" <{Wonder}>" : "") +
             (Resource != ResourceType.None ? $" [{Resource}]" : "") +
             (Improvement != ImprovementType.None ? $" +{Improvement}" : "") +
             (ImprovementInProgress != ImprovementType.None ? $" (building {ImprovementInProgress} {ImprovementProgress})" : "");

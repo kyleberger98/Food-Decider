@@ -146,6 +146,8 @@ namespace Crucible.Core.Economy
         /// <summary>The most valuable improvement this player can build on the tile, or None.</summary>
         public static ImprovementType Best(Player player, Tile t)
         {
+            // Never tear down a finished improvement (workers would otherwise swap pasture and farm forever).
+            if (t.Improvement != ImprovementType.None) return ImprovementType.None;
             var resourceImp = ImprovementFor(t.Resource);
             if (resourceImp != ImprovementType.None && CanBuild(player, t, resourceImp)) return resourceImp;
             foreach (var i in new[] { ImprovementType.Mine, ImprovementType.Farm })

@@ -5,7 +5,7 @@ using Crucible.Core.World;
 
 namespace Crucible.Core.Game
 {
-    /// <summary>Creates new games. Today: a two-faction skirmish on a generated continent.</summary>
+    /// <summary>Creates new games. Today: a two-faction skirmish on a generated world.</summary>
     public static class GameSetup
     {
         /// <param name="allAI">True for AI-vs-AI games (autoplay, balance testing).</param>
@@ -57,18 +57,65 @@ namespace Crucible.Core.Game
         }
 
         /// <summary>Two good start tiles (low, dry land with room around it) as far apart as possible.</summary>
+        /// <summary>
+        /// Two capitals on the largest landmass (so a skirmish can always be won on foot), on good
+        /// temperate land with food nearby, as far apart as possible.
+        /// </summary>
         static (HexCoord a, HexCoord b) PickStarts(WorldMap map)
         {
+            var mainland = LargestLandmass(map);
             bool Good(Tile t) =>
-                t.IsPassableForLand && t.Elevation <= 2 && t.Terrain != TerrainType.Snow &&
+                mainland.Contains(t.Coord) && t.Elevation <= 2 && !t.IsMountain &&
+                (t.Terrain == TerrainType.Grassland || t.Terrain == TerrainType.Plains) &&
                 map.NeighborsOf(t.Coord).Count(n => n.IsPassableForLand) >= 5;
 
-            var candidates = map.Tiles.Where(Good).Select(t => t.Coord).ToList();
-            if (candidates.Count < 2) candidates = map.Tiles.Where(t => t.IsPassableForLand).Select(t => t.Coord).ToList();
+            var candidates = map.Tiles.Where(Good).ToList();
+            if (candidates.Count >= 2)
+            {
+                // Keep the better half of the sites by what a capital could work.
+                var scored = candidates.Select(t => (t.Coord, score: SiteScore(map, t.Coord))).OrderByDescending(x => x.score)
+                    .ThenBy(x => x.Coord.Q).ThenBy(x => x.Coord.R).ToList();
+                candidates = scored.Take(System.Math.Max(2, scored.Count / 2)).Select(x => map.Get(x.Coord)).ToList();
+            }
+            else candidates = map.Tiles.Where(t => t.IsPassableForLand).ToList();
 
-            var first = candidates.OrderBy(c => c.ToOffset().col).ThenBy(c => c.R).First();
-            var second = candidates.OrderByDescending(c => c.DistanceTo(first)).ThenBy(c => c.Q).ThenBy(c => c.R).First();
+            var coords = candidates.Select(t => t.Coord).ToList();
+            var first = coords.OrderBy(c => c.ToOffset().col).ThenBy(c => c.R).First();
+            var second = coords.OrderByDescending(c => c.DistanceTo(first)).ThenBy(c => c.Q).ThenBy(c => c.R).First();
             return (first, second);
+        }
+
+        static int SiteScore(WorldMap map, HexCoord c)
+        {
+            int score = 0;
+            foreach (var h in c.Range(2))
+            {
+                var t = map.Get(h);
+                if (t == null) continue;
+                var y = Economy.EconomyRules.TileYields(t, map);
+                score += y.Food * 2 + y.Production + y.Gold;
+                if (t.Resource != ResourceType.None) score += 2;
+            }
+            return score;
+        }
+
+        static System.Collections.Generic.HashSet<HexCoord> LargestLandmass(WorldMap map)
+        {
+            var seen = new System.Collections.Generic.HashSet<HexCoord>();
+            var best = new System.Collections.Generic.HashSet<HexCoord>();
+            foreach (var start in map.Tiles)
+            {
+                if (!start.IsPassableForLand || seen.Contains(start.Coord)) continue;
+                var mass = new System.Collections.Generic.HashSet<HexCoord> { start.Coord };
+                var queue = new System.Collections.Generic.Queue<HexCoord>();
+                queue.Enqueue(start.Coord);
+                seen.Add(start.Coord);
+                while (queue.Count > 0)
+                    foreach (var n in map.NeighborsOf(queue.Dequeue()))
+                        if (n.IsPassableForLand && seen.Add(n.Coord)) { mass.Add(n.Coord); queue.Enqueue(n.Coord); }
+                if (mass.Count > best.Count) best = mass;
+            }
+            return best;
         }
     }
 }

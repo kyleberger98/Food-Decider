@@ -29,7 +29,7 @@ namespace Crucible.Core.Tests
             Assert.Contains(ResourceKind.Bonus, kinds);
             Assert.Contains(ResourceKind.Strategic, kinds);
             Assert.Contains(ResourceKind.Luxury, kinds);
-            Assert.All(map.Tiles.Where(t => t.Resource == ResourceType.Fish), t => Assert.Equal(TerrainType.Coast, t.Terrain));
+            Assert.All(map.Tiles.Where(t => t.Resource == ResourceType.Fish), t => Assert.True(t.Terrain == TerrainType.Coast || t.Terrain == TerrainType.Lake));
             Assert.All(map.Tiles.Where(t => t.Resource != ResourceType.None), t => Assert.False(t.IsMountain));
         }
 
@@ -178,7 +178,7 @@ namespace Crucible.Core.Tests
             var g = new GameState(TestWorld.Content, map, 5);
             var a = g.AddPlayer("A", DefaultContent.Aurel, true);
             var b = g.AddPlayer("B", DefaultContent.Khaganate, true);
-            var land = map.Tiles.Where(t => t.IsPassableForLand && t.Elevation <= 2).Select(t => t.Coord).ToList();
+            var land = map.Tiles.Where(t => t.IsPassableForLand && t.Elevation <= 2 && (t.Terrain == TerrainType.Grassland || t.Terrain == TerrainType.Plains)).Select(t => t.Coord).ToList();
             g.FoundCity(a.Id, land.First(), "A", true);
             g.FoundCity(b.Id, land.OrderByDescending(c => c.DistanceTo(land.First())).First(), "B", true);
 
@@ -189,7 +189,7 @@ namespace Crucible.Core.Tests
             foreach (var p in g.Players)
             {
                 Assert.True(map.Tiles.Count(t => t.OwnerPlayerId == p.Id && t.Improvement != ImprovementType.None) >= 3,
-                    $"{p.Name} improvements");
+                    $"{p.Name} improvements turn {g.Turn} cities {g.Cities.Count(c => c.OwnerId == p.Id)} armies {g.Armies.Count(x => x.OwnerId == p.Id)} city {map.Get(g.Cities.First(c => c.OwnerId == p.Id).Position)} pop {g.Cities.First(c => c.OwnerId == p.Id).Population} units {string.Join(',', g.Armies.Where(x => x.OwnerId == p.Id).SelectMany(x => x.Units).Select(u => u.Def.Id))}");
                 Assert.True(p.Policies.Count >= 2, $"{p.Name} policies {p.Policies.Count}");
             }
         }

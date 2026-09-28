@@ -1,250 +1,238 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Crucible.Core.Combat;
+using Crucible.Core.Content;
 using Crucible.Core.Economy;
 using Crucible.Core.Empire;
 using Crucible.Core.Game;
 using Crucible.Core.Hex;
 using Crucible.Core.Units;
+using Crucible.Core.World;
 using UnityEngine;
 
 namespace Crucible.View
 {
+    public enum HudPanel
+    {
+        None,
+        City,
+        CityState,
+        Siege,
+        Diplomacy,
+        Policies,
+        Tech,
+    }
+
+    public enum NoticeKind
+    {
+        Info,
+        Good,
+        Bad,
+        War,
+    }
+
+    public sealed class Notice
+    {
+        public string Text;
+        public NoticeKind Kind;
+        public int Turn;
+        public float Time;
+    }
+
     /// <summary>
-    /// Input + HUD. World mode: click your army, then click a hex to march there, an adjacent enemy to
-    /// attack, or a hex of an ongoing battle to reinforce it. Deployment: click a unit, then a hex of
-    /// your zone. Battle: click a unit, then a green hex to move or a red enemy to attack; hover an
-    /// enemy for the combat breakdown.
-    /// Keys: Enter = end world turn, Space = confirm deployment / end battle turn, R = retreat,
-    /// X = auto-resolve the current round, B = batter walls, G = besiege, F = found city, T = research,
-    /// P = policies, L = diplomacy, I/U = worker improve/automate, V = use great person, F5/F9 = quick save/load.
+    /// Input and game actions. Every action is a public method so the HUD's buttons and the keyboard
+    /// shortcuts share one code path; the HUD (<see cref="GameHud"/>) only reads state and calls these.
+    /// World: click your army, then a hex to march, an adjacent enemy to attack, or a battlefield hex to
+    /// reinforce. Battle: click a unit, then a green hex to move or a red enemy to attack.
+    /// Keys: Enter end turn · Space confirm deployment / end battle turn · R retreat · X auto-resolve ·
+    /// B batter walls · G besiege · F found city · T research · P policies · L diplomacy · I/U improve /
+    /// automate · V use great person · Esc close panel / deselect · F5/F9 quick save/load.
     /// (WASD/QE belong to the camera.)
     /// </summary>
     public sealed class GameController : MonoBehaviour
     {
-        GameState _game;
-        TurnManager _turns;
         HexMapRenderer _map;
         CameraRig _rig;
         MarkerLayer _markers;
         MeshCollider _mapCollider;
-
-        Army _selectedArmy;
-        City _selectedCity;
-        Unit _selectedUnit;
-        int _mapVersion = -1;
-        Vector2 _cityScroll;
-        bool _showPolicies;
-        Player _selectedCityState;
-        bool _showDiplomacy;
-
-        /// <summary>Screen areas drawn by OnGUI last frame; clicks there don't reach the map.</summary>
-        readonly System.Collections.Generic.List<Rect> _uiRects = new System.Collections.Generic.List<Rect>();
-
-        bool MouseOverUI()
-        {
-            var p = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-            return _uiRects.Any(r => r.Contains(p));
-        }
-        HexCoord? _hover;
-        ArmyPath _hoverPath;
-        HexCoord? _hoverPathFor;
         int _fogVersion = -1;
-        string _message = "Select your army (blue) and click a hex to move. Enter ends the turn.";
+        int _mapVersion = -1;
+        HexCoord? _routeFor;
+
+        public GameState Game { get; private set; }
+        public TurnManager Turns { get; private set; }
+        public HexMapRenderer MapRenderer => _map;
+        public Camera Camera => _rig != null ? _rig.Camera : null;
+
+        public Army SelectedArmy { get; private set; }
+        public City SelectedCity { get; private set; }
+        public Unit SelectedUnit { get; private set; }
+        public Player SelectedCityState { get; private set; }
+        public HudPanel OpenPanel { get; private set; }
+        public HexCoord? HoverHex { get; private set; }
+        public ArmyPath HoverRoute { get; private set; }
+
+        /// <summary>Newest last. The HUD shows the most recent few.</summary>
+        public List<Notice> Notices { get; } = new List<Notice>();
+
+        /// <summary>Set by the HUD: true while the pointer is over a UI element (clicks then don't reach the map).</summary>
+        public Func<bool> IsPointerOverUi = () => false;
+
+        /// <summary>Raised when a game is loaded, so views can rebuild.</summary>
+        public event Action GameReplaced;
+
+        public Player Human => Turns.ActivePlayer;
+
+        /// <summary>Fog is drawn from the (single) human player's point of view.</summary>
+        public PlayerVisibility Viewer => Game.Visibility(Game.Players.FirstOrDefault(p => !p.IsAI)?.Id ?? 0);
+
+        /// <summary>A battle waiting on a human decision, if any.</summary>
+        public Battle HumanBattle => Game.Battles.FirstOrDefault(b => b.AwaitingAction && !b.Active.Player.IsAI);
 
         public void Init(GameState game, TurnManager turns, HexMapRenderer map, CameraRig rig)
         {
-            _game = game;
-            _turns = turns;
+            Game = game;
+            Turns = turns;
             _map = map;
             _rig = rig;
             _mapCollider = map.GetComponent<MeshCollider>();
             _markers = new GameObject("Markers").AddComponent<MarkerLayer>();
             _markers.Init(map);
+            rig.BlockZoom = () => IsPointerOverUi();
             HookEvents();
+            Post("Select your army and click a hex to march. End the turn with the button or Enter.");
         }
 
         void HookEvents()
         {
-            _game.BattleStarted += b => _message = $"Battle! Round {b.Round}. Your units deploy in the tinted zone.";
-            _game.BattleEnded += b => _message = $"Battle over: {b.Status}.";
-            _game.ArmySunk += a => _message = $"An embarked army ({a.Count} units) was sunk at sea!";
-            _game.GreatPersonBorn += (p, u) => { if (!p.IsAI) _message = $"A {u.Def.Name} is born! Select them and press V to use their gift."; };
-            _game.ReligionFounded += r => _message = $"{r.Name} has been founded by {_game.Player(r.FounderId).Name}.";
-            _game.WarDeclared += (a, b) => _message = $"WAR: {a.Name} declares war on {b.Name}!";
-            _game.PeaceMade += (a, b) => _message = $"Peace between {a.Name} and {b.Name}.";
+            Game.BattleStarted += b => Post($"Battle begins: {b.Attacker.Player.Name} attacks {b.Defender.Player.Name}.", NoticeKind.War);
+            Game.BattleEnded += b => Post($"Battle over — {Describe(b)}.", b.Winner.HasValue && Side(b, b.Winner.Value).Player == HumanPlayer ? NoticeKind.Good : NoticeKind.Bad);
+            Game.ArmySunk += a => Post($"An embarked army ({a.Count} units) was sunk at sea!", NoticeKind.Bad);
+            Game.GreatPersonBorn += (p, u) => { if (!p.IsAI) Post($"A {u.Def.Name} is born! Select them to use their gift.", NoticeKind.Good); };
+            Game.ReligionFounded += r => Post($"{r.Name} has been founded by {Game.Player(r.FounderId).Name}.");
+            Game.WarDeclared += (a, b) => Post($"{a.Name} declares war on {b.Name}!", NoticeKind.War);
+            Game.PeaceMade += (a, b) => Post($"Peace between {a.Name} and {b.Name}.", NoticeKind.Good);
         }
 
-        static string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "quicksave.crucible");
+        Player HumanPlayer => Game.Players.FirstOrDefault(p => !p.IsAI);
+        static BattleSide Side(Battle b, BattleSideId id) => id == BattleSideId.Attacker ? b.Attacker : b.Defender;
 
-        void QuickSave()
+        static string Describe(Battle b)
         {
-            System.IO.File.WriteAllBytes(SavePath, SaveGame.Save(_game, _turns));
-            _message = $"Game saved ({SavePath}).";
-        }
-
-        void QuickLoad()
-        {
-            if (!System.IO.File.Exists(SavePath)) { _message = "No quicksave yet (F5 to save)."; return; }
-            try
+            switch (b.Status)
             {
-                var (game, turns) = SaveGame.Load(System.IO.File.ReadAllBytes(SavePath), new Crucible.Core.AI.StrategicAI());
-                _game = game;
-                _turns = turns;
-                _map.Build(game.Map);
-                Destroy(_markers.gameObject);
-                _markers = new GameObject("Markers").AddComponent<MarkerLayer>();
-                _markers.Init(_map);
-                _selectedArmy = null; _selectedCity = null; _selectedUnit = null; _selectedCityState = null;
-                _fogVersion = -1; _mapVersion = -1;
-                ClearRoutePreview();
-                HookEvents();
-                _message = $"Loaded turn {game.Turn}.";
-            }
-            catch (System.IO.InvalidDataException e)
-            {
-                _message = $"Couldn't load: {e.Message}";
+                case BattleStatus.AttackerWon: return $"{b.Attacker.Player.Name} wins" + (b.Objective.HasValue ? " and takes the city" : "");
+                case BattleStatus.DefenderWon: return $"{b.Defender.Player.Name} holds";
+                case BattleStatus.AttackerRetreated: return $"{b.Attacker.Player.Name} retreats";
+                case BattleStatus.DefenderRetreated: return $"{b.Defender.Player.Name} retreats";
+                default: return b.Status.ToString();
             }
         }
 
-        Player Human => _turns.ActivePlayer;
+        public void Post(string text, NoticeKind kind = NoticeKind.Info)
+        {
+            Notices.Add(new Notice { Text = text, Kind = kind, Turn = Game?.Turn ?? 0, Time = UnityEngine.Time.time });
+            if (Notices.Count > 50) Notices.RemoveAt(0);
+        }
 
-        /// <summary>Fog is drawn from the (single) human player's point of view.</summary>
-        PlayerVisibility Viewer => _game.Visibility(_game.Players.FirstOrDefault(p => !p.IsAI)?.Id ?? 0);
-
-        /// <summary>A battle waiting on a human decision, if any.</summary>
-        Battle HumanBattle => _game.Battles.FirstOrDefault(b => b.AwaitingAction && !b.Active.Player.IsAI);
+        // ------------------------------------------------------------------ frame
 
         void Update()
         {
-            if (_game == null) return;
+            if (Game == null) return;
             var battle = HumanBattle;
-            _hover = PickHex(out var h) ? h : (HexCoord?)null;
+            HoverHex = PickHex(out var h) ? h : (HexCoord?)null;
+            HandleKeys(battle);
+            if (Game == null) return; // a load may have replaced the game this frame
 
-            if (Input.GetKeyDown(KeyCode.F5) && battle == null) QuickSave();
-            if (Input.GetKeyDown(KeyCode.F9)) { QuickLoad(); return; }
-
-            if (!_turns.IsGameOver)
+            if (!Turns.IsGameOver && Input.GetMouseButtonDown(0) && HoverHex.HasValue && !IsPointerOverUi())
             {
-                if (Input.GetMouseButtonDown(0) && _hover.HasValue && !MouseOverUI())
-                {
-                    ClearRoutePreview();
-                    if (battle != null) BattleClick(battle, _hover.Value);
-                    else WorldClick(_hover.Value);
-                }
-
-                if (battle != null)
-                {
-                    bool deploying = battle.Status == BattleStatus.Deploying;
-                    if (Input.GetKeyDown(KeyCode.Space))
-                    {
-                        if (deploying) battle.ConfirmDeployment();
-                        else battle.EndTurn();
-                        _selectedUnit = null;
-                        AfterBattleAction(battle);
-                    }
-                    else if (Input.GetKeyDown(KeyCode.R) && !deploying) { battle.Retreat(); AfterBattleAction(battle); }
-                    else if (Input.GetKeyDown(KeyCode.B) && !deploying && _selectedUnit != null)
-                    {
-                        int dmg = battle.TryAttackWalls(_selectedUnit);
-                        _message = dmg < 0 ? "Can't reach the walls (range, line of sight, or no moves)."
-                            : battle.WallsIntact ? $"Walls hit for {dmg}." : "The walls are breached!";
-                        AfterBattleAction(battle);
-                    }
-                    else if (Input.GetKeyDown(KeyCode.X))
-                    {
-                        _game.AutoResolveRound(battle);
-                        _selectedUnit = null;
-                        _message = battle.IsFinished ? $"Auto-resolved: {battle.Status}." : "Round auto-resolved.";
-                    }
-                }
-                else if (Input.GetKeyDown(KeyCode.F) && _selectedArmy != null)
-                {
-                    var city = _game.FoundCityWithSettler(_selectedArmy);
-                    _message = city != null
-                        ? $"Founded {city.Name}!"
-                        : "Can't settle here: need a settler with moves, land, 4+ hexes from other cities, not in foreign borders.";
-                    if (city != null) _selectedCity = city;
-                }
-                else if (Input.GetKeyDown(KeyCode.T))
-                {
-                    CycleResearch();
-                }
-                else if (Input.GetKeyDown(KeyCode.P))
-                {
-                    _showPolicies = !_showPolicies;
-                }
-                else if (Input.GetKeyDown(KeyCode.L))
-                {
-                    _showDiplomacy = !_showDiplomacy;
-                }
-                else if (Input.GetKeyDown(KeyCode.I) && _selectedArmy != null)
-                {
-                    var tile = _game.Map.Get(_selectedArmy.Position);
-                    var imp = Improvements.Best(Human, tile);
-                    _message = imp != Crucible.Core.World.ImprovementType.None && _game.StartImprovement(_selectedArmy, imp)
-                        ? $"Building a {imp} ({Improvements.BuildTurns(imp) - tile.ImprovementProgress} turns). Moving cancels."
-                        : "Nothing to build here (needs a worker, your territory, the right tech and terrain).";
-                }
-                else if (Input.GetKeyDown(KeyCode.V) && _selectedArmy != null)
-                {
-                    var person = _selectedArmy.Units.FirstOrDefault(u => u.Def.GreatPerson != Crucible.Core.Content.GreatPersonType.None &&
-                                                                          u.Def.GreatPerson != Crucible.Core.Content.GreatPersonType.General);
-                    _message = person == null ? "No great person here (Great Generals lead armies: merge them into one)."
-                        : _game.UseGreatPerson(_selectedArmy, person) ?? "They can't do that right now.";
-                }
-                else if (Input.GetKeyDown(KeyCode.U) && _selectedArmy != null && WorkerAutomation.HasWorker(_selectedArmy))
-                {
-                    _selectedArmy.AutomatedWorkers = !_selectedArmy.AutomatedWorkers;
-                    _message = _selectedArmy.AutomatedWorkers ? "Workers automated." : "Workers under manual control.";
-                }
-                else if (Input.GetKeyDown(KeyCode.G) && _selectedArmy != null)
-                {
-                    var target = AdjacentEnemyCity(_selectedArmy);
-                    _message = target != null && _game.DeclareSiege(_selectedArmy, target)
-                        ? $"{target.Name} is under siege. Siege progress builds engines each turn."
-                        : "Stand next to an enemy city (not already besieged) to declare a siege.";
-                }
-                else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-                {
-                    _selectedArmy = null;
-                    ClearRoutePreview();
-                    _turns.EndTurn();
-                    _message = _turns.IsGameOver ? $"Game over — {_game.Victory}" : $"Turn {_game.Turn}.";
-                }
+                if (battle != null) BattleClick(battle, HoverHex.Value);
+                else WorldClick(HoverHex.Value);
             }
 
-            if (_selectedArmy != null && _game.Army(_selectedArmy.Id) == null) _selectedArmy = null;
-            if (_selectedCity != null && _selectedCity.OwnerId != Human.Id) _selectedCity = null;
-            if (_selectedUnit != null && !_selectedUnit.IsAlive) _selectedUnit = null;
+            if (SelectedArmy != null && Game.Army(SelectedArmy.Id) == null) SelectedArmy = null;
+            if (SelectedCity != null && SelectedCity.OwnerId != Human.Id) { SelectedCity = null; if (OpenPanel == HudPanel.City) OpenPanel = HudPanel.None; }
+            if (SelectedUnit != null && !SelectedUnit.IsAlive) SelectedUnit = null;
+            if (OpenPanel == HudPanel.Siege && BesiegedBySelection() == null) OpenPanel = HudPanel.None;
 
             var viewer = Viewer;
-            if (viewer.Version != _fogVersion || _game.MapVersion != _mapVersion)
+            if (viewer.Version != _fogVersion || Game.MapVersion != _mapVersion)
             {
                 _map.ApplyFog(viewer, MarkerLayer.ColorOf);
-                _markers.SyncTerrainMarkers(_game, viewer);
+                _markers.SyncTerrainMarkers(Game, viewer);
                 _fogVersion = viewer.Version;
-                _mapVersion = _game.MapVersion;
+                _mapVersion = Game.MapVersion;
             }
 
-            // Path preview for the selected army (A* is cheap at this map size; cache per hovered hex).
-            if (battle == null && _selectedArmy != null && _hover.HasValue)
+            // Route preview for the selected army (cached per hovered hex).
+            if (battle == null && SelectedArmy != null && HoverHex.HasValue && !IsPointerOverUi())
             {
-                if (_hoverPathFor != _hover)
+                if (_routeFor != HoverHex)
                 {
-                    _hoverPath = Pathfinder.Find(_game, _selectedArmy, _hover.Value);
-                    _hoverPathFor = _hover;
+                    HoverRoute = Pathfinder.Find(Game, SelectedArmy, HoverHex.Value);
+                    _routeFor = HoverHex;
                 }
             }
-            else ClearRoutePreview();
+            else ClearRoute();
 
-            var shown = battle ?? _game.Battles.FirstOrDefault(b => b.Attacker.Player == Human || b.Defender.Player == Human);
-            _markers.Sync(_game, viewer, shown, _selectedArmy, _selectedUnit);
-            _markers.ShowHighlights(battle != null ? BattleHighlights(battle) : Enumerable.Empty<(HexCoord, Color)>());
+            var shown = battle ?? Game.Battles.FirstOrDefault(b => b.Attacker.Player == Human || b.Defender.Player == Human);
+            _markers.Sync(Game, viewer, shown, SelectedArmy, SelectedUnit);
+            _markers.ShowHighlights(battle != null ? BattleHighlights(battle) : RouteHighlights());
+        }
+
+        void HandleKeys(Battle battle)
+        {
+            if (Input.GetKeyDown(KeyCode.F5)) QuickSave();
+            if (Input.GetKeyDown(KeyCode.F9)) { QuickLoad(); return; }
+            if (Input.GetKeyDown(KeyCode.Escape)) { if (OpenPanel != HudPanel.None) ClosePanel(); else Deselect(); }
+            if (Turns.IsGameOver) return;
+
+            if (battle != null)
+            {
+                if (Input.GetKeyDown(KeyCode.Space)) BattleEndTurn();
+                else if (Input.GetKeyDown(KeyCode.R)) BattleRetreat();
+                else if (Input.GetKeyDown(KeyCode.B)) BattleBatterWalls();
+                else if (Input.GetKeyDown(KeyCode.X)) BattleAutoResolve();
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.F)) FoundCity();
+            else if (Input.GetKeyDown(KeyCode.T)) TogglePanel(HudPanel.Tech);
+            else if (Input.GetKeyDown(KeyCode.P)) TogglePanel(HudPanel.Policies);
+            else if (Input.GetKeyDown(KeyCode.L)) TogglePanel(HudPanel.Diplomacy);
+            else if (Input.GetKeyDown(KeyCode.I)) Improve();
+            else if (Input.GetKeyDown(KeyCode.U)) ToggleAutomate();
+            else if (Input.GetKeyDown(KeyCode.G)) Besiege();
+            else if (Input.GetKeyDown(KeyCode.V)) UseGreatPerson();
+            else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) EndTurn();
+        }
+
+        bool PickHex(out HexCoord hex)
+        {
+            hex = default;
+            if (Camera == null) return false;
+            var ray = Camera.ScreenPointToRay(Input.mousePosition);
+            if (!_mapCollider.Raycast(ray, out var hit, 2000f)) return false;
+            hex = _map.WorldToHex(hit.point);
+            return Game.Map.InBounds(hex);
+        }
+
+        void ClearRoute()
+        {
+            HoverRoute = null;
+            _routeFor = null;
+        }
+
+        IEnumerable<(HexCoord, Color)> RouteHighlights()
+        {
+            if (HoverRoute == null) yield break;
+            foreach (var (step, turn) in HoverRoute.Steps.Zip(HoverRoute.TurnOfStep, (s, t) => (s, t)))
+                yield return (step, turn == 0 ? new Color(0.95f, 0.95f, 0.95f, 0.35f) : new Color(0.6f, 0.75f, 1f, 0.28f));
         }
 
         /// <summary>Deployment zone while deploying; reachable hexes (green) and targets (red) for the selected unit.</summary>
-        System.Collections.Generic.IEnumerable<(HexCoord, Color)> BattleHighlights(Battle battle)
+        IEnumerable<(HexCoord, Color)> BattleHighlights(Battle battle)
         {
             if (battle.Status == BattleStatus.Deploying)
             {
@@ -253,433 +241,349 @@ namespace Crucible.View
             }
             if (battle.Objective.HasValue)
                 yield return (battle.Objective.Value, battle.WallsIntact ? new Color(1f, 0.85f, 0.2f, 0.45f) : new Color(1f, 0.85f, 0.2f, 0.2f));
-            if (_selectedUnit == null || battle.PositionOf(_selectedUnit) == null) yield break;
+            if (SelectedUnit == null || battle.PositionOf(SelectedUnit) == null) yield break;
 
-            var from = battle.PositionOf(_selectedUnit).Value;
-            foreach (var h in battle.ReachableHexes(_selectedUnit).Keys) yield return (h, new Color(0.3f, 1f, 0.4f, 0.35f));
+            var from = battle.PositionOf(SelectedUnit).Value;
+            foreach (var h in battle.ReachableHexes(SelectedUnit).Keys) yield return (h, new Color(0.3f, 1f, 0.4f, 0.35f));
             foreach (var enemy in battle.DeployedUnits(battle.Opponent(battle.ActiveSide).Id))
             {
                 var pos = battle.PositionOf(enemy).Value;
-                bool meleeReady = _selectedUnit.Def.IsRanged || _selectedUnit.BattleMovesLeft > 0;
-                if (meleeReady && battle.CanAttackFrom(_selectedUnit, from, pos)) yield return (pos, new Color(1f, 0.25f, 0.2f, 0.5f));
+                bool ready = SelectedUnit.Def.IsRanged || SelectedUnit.BattleMovesLeft > 0;
+                if (ready && battle.CanAttackFrom(SelectedUnit, from, pos)) yield return (pos, new Color(1f, 0.25f, 0.2f, 0.5f));
             }
         }
 
-        void ClearRoutePreview()
+        // ------------------------------------------------------------------ selection & panels
+
+        public void TogglePanel(HudPanel panel) => OpenPanel = OpenPanel == panel ? HudPanel.None : panel;
+
+        public void ClosePanel()
         {
-            _hoverPath = null;
-            _hoverPathFor = null;
+            if (OpenPanel == HudPanel.City) SelectedCity = null;
+            if (OpenPanel == HudPanel.CityState) SelectedCityState = null;
+            OpenPanel = HudPanel.None;
         }
 
-        bool PickHex(out HexCoord hex)
+        public void Deselect()
         {
-            hex = default;
-            if (_rig == null || _rig.Camera == null) return false;
-            var ray = _rig.Camera.ScreenPointToRay(Input.mousePosition);
-            if (!_mapCollider.Raycast(ray, out var hit, 2000f)) return false;
-            hex = _map.WorldToHex(hit.point);
-            return _game.Map.InBounds(hex);
+            SelectedArmy = null;
+            SelectedUnit = null;
+            ClearRoute();
         }
 
-        // ------------------------------------------------------------------ world map
+        public void SelectArmy(Army army)
+        {
+            SelectedArmy = army;
+            if (BesiegedBySelection() != null) OpenPanel = HudPanel.Siege;
+        }
+
+        void OpenCity(City city)
+        {
+            SelectedCity = city;
+            OpenPanel = HudPanel.City;
+        }
+
+        // ------------------------------------------------------------------ world actions
+
+        public void EndTurn()
+        {
+            if (HumanBattle != null) { Post("Finish your battle first.", NoticeKind.Bad); return; }
+            Deselect();
+            Turns.EndTurn();
+            if (Turns.IsGameOver) Post($"Game over — {Game.Victory}", NoticeKind.War);
+        }
+
+        public void FoundCity()
+        {
+            if (SelectedArmy == null) return;
+            var city = Game.FoundCityWithSettler(SelectedArmy);
+            if (city == null)
+            {
+                Post("Can't settle here: needs a settler with moves, open land 4+ hexes from other cities, outside foreign borders.", NoticeKind.Bad);
+                return;
+            }
+            Post($"Founded {city.Name}!", NoticeKind.Good);
+            OpenCity(city);
+        }
+
+        public void Improve()
+        {
+            if (SelectedArmy == null || !WorkerAutomation.HasWorker(SelectedArmy)) return;
+            var tile = Game.Map.Get(SelectedArmy.Position);
+            var imp = Improvements.Best(Human, tile);
+            if (imp != ImprovementType.None && Game.StartImprovement(SelectedArmy, imp))
+                Post($"Building a {imp} ({Improvements.BuildTurns(imp) - tile.ImprovementProgress} turns). Moving cancels.");
+            else
+                Post("Nothing to build here (needs your territory, the right tech and terrain).", NoticeKind.Bad);
+        }
+
+        public void ToggleAutomate()
+        {
+            if (SelectedArmy == null || !WorkerAutomation.HasWorker(SelectedArmy)) return;
+            SelectedArmy.AutomatedWorkers = !SelectedArmy.AutomatedWorkers;
+            Post(SelectedArmy.AutomatedWorkers ? "Workers automated." : "Workers under manual control.");
+        }
+
+        public void Besiege()
+        {
+            if (SelectedArmy == null) return;
+            var target = AdjacentEnemyCity(SelectedArmy);
+            if (target != null && Game.DeclareSiege(SelectedArmy, target))
+            {
+                Post($"{target.Name} is under siege. Siege progress builds engines each turn.", NoticeKind.War);
+                OpenPanel = HudPanel.Siege;
+            }
+            else Post("Stand next to an enemy city (not already besieged) to declare a siege.", NoticeKind.Bad);
+        }
+
+        public Unit GreatPersonInSelection() =>
+            SelectedArmy?.Units.FirstOrDefault(u => u.Def.GreatPerson != GreatPersonType.None && u.Def.GreatPerson != GreatPersonType.General);
+
+        public void UseGreatPerson()
+        {
+            var person = GreatPersonInSelection();
+            if (person == null) return;
+            var result = Game.UseGreatPerson(SelectedArmy, person);
+            Post(result ?? "They can't do that right now.", result != null ? NoticeKind.Good : NoticeKind.Bad);
+        }
+
+        public void BuildSiegeEngine(UnitDef engine)
+        {
+            var city = BesiegedBySelection();
+            if (city == null) return;
+            Post(Game.BuildSiegeEngine(city, SelectedArmy, engine.Id) != null ? $"{engine.Name} joins the army." : "No room in this army (army cap).",
+                NoticeKind.Info);
+        }
+
+        public void SetResearch(string techId)
+        {
+            if (!Human.Tech.CanResearch(techId)) return;
+            Human.Tech.SetResearch(techId);
+            Post($"Researching {Game.Content.Tech(techId).Name}.");
+        }
+
+        public void SetProduction(City city, ProductionItem item)
+        {
+            if (Game.SetProduction(city, item)) Post($"{city.Name} will build {EconomyRules.NameOf(Game, item)}.");
+        }
+
+        public void Buy(City city, ProductionItem item)
+        {
+            bool ok = Game.Purchase(city, item);
+            Post(ok ? $"Bought {EconomyRules.NameOf(Game, item)} in {city.Name}." : "Couldn't buy that (not enough gold, or no room to place it).",
+                ok ? NoticeKind.Good : NoticeKind.Bad);
+        }
+
+        public void AdoptPolicy(PolicyDef policy)
+        {
+            if (Game.AdoptPolicy(Human, policy.Id)) Post($"Adopted {policy.Name}.", NoticeKind.Good);
+        }
+
+        public void DeclareWar(Player target)
+        {
+            if (!Game.DeclareWar(Human, target)) Post(Game.CannotDeclareWar(Human, target) ?? "Can't declare war.", NoticeKind.Bad);
+        }
+
+        public void Propose(Player target, Treaty kind)
+        {
+            bool ok = Game.Propose(Human, target, kind);
+            Post(ok ? $"{target.Name} agrees: {kind}." : $"{target.Name} refuses {kind}.", ok ? NoticeKind.Good : NoticeKind.Bad);
+        }
+
+        public void Answer(Proposal proposal, bool accept)
+        {
+            if (Game.Answer(proposal, accept)) Post($"{proposal.Kind} with {Game.Player(proposal.FromId).Name} agreed.", NoticeKind.Good);
+        }
+
+        public void Gift(Player cityState, int gold)
+        {
+            if (Game.GiftGold(Human, cityState, gold))
+                Post($"{cityState.Name}: influence {Game.InfluenceOf(cityState, Human.Id)} ({Game.StatusWith(cityState, Human.Id)}).", NoticeKind.Good);
+        }
 
         City AdjacentEnemyCity(Army army) =>
-            army.Position.Neighbors().Select(_game.CityAt)
-                .FirstOrDefault(c => c != null && _game.AtWar(c.OwnerId, army.OwnerId));
+            army.Position.Neighbors().Select(Game.CityAt)
+                .FirstOrDefault(c => c != null && Game.AtWar(c.OwnerId, army.OwnerId));
+
+        public City AdjacentEnemyCityOfSelection() => SelectedArmy == null ? null : AdjacentEnemyCity(SelectedArmy);
 
         /// <summary>The city the selected army is currently besieging, if any.</summary>
-        City BesiegedBySelection() =>
-            _selectedArmy == null ? null :
-            _selectedArmy.Position.Neighbors().Select(_game.CityAt)
-                .FirstOrDefault(c => c != null && c.IsBesieged && c.BesiegerId == _selectedArmy.OwnerId);
-
-        void CycleResearch()
-        {
-            var options = Human.Tech.Available().OrderBy(t => t.ScienceCost).ThenBy(t => t.Id).ToList();
-            if (options.Count == 0) return;
-            int i = options.FindIndex(t => t.Id == Human.Tech.CurrentResearch);
-            var next = options[(i + 1) % options.Count];
-            Human.Tech.SetResearch(next.Id);
-            _message = $"Researching {next.Name} ({next.ScienceCost} science).";
-        }
+        public City BesiegedBySelection() =>
+            SelectedArmy == null ? null :
+            SelectedArmy.Position.Neighbors().Select(Game.CityAt)
+                .FirstOrDefault(c => c != null && c.IsBesieged && c.BesiegerId == SelectedArmy.OwnerId);
 
         void WorldClick(HexCoord hex)
         {
-            var clickedCity = _game.CityAt(hex);
-            if (clickedCity != null && clickedCity.OwnerId == Human.Id) _selectedCity = clickedCity;
-            else if (_selectedArmy == null) _selectedCity = null;
-            _selectedCityState = clickedCity != null && _game.Player(clickedCity.OwnerId).IsCityState ? _game.Player(clickedCity.OwnerId) : null;
+            var clickedCity = Game.CityAt(hex);
+            var army = Game.ArmyAt(hex);
 
-            var army = _game.ArmyAt(hex);
             if (army != null && army.OwnerId == Human.Id)
             {
-                _selectedArmy = army;
-                _message = $"{army.Count}/{Human.ArmyCap} units, {army.WorldMovesLeft} moves left.";
+                SelectArmy(army);
+                if (clickedCity != null && clickedCity.OwnerId == Human.Id) OpenCity(clickedCity);
                 return;
             }
-            if (_selectedArmy == null) return;
+            if (SelectedArmy == null)
+            {
+                if (clickedCity != null && clickedCity.OwnerId == Human.Id) OpenCity(clickedCity);
+                else if (clickedCity != null && Game.Player(clickedCity.OwnerId).IsCityState)
+                {
+                    SelectedCityState = Game.Player(clickedCity.OwnerId);
+                    OpenPanel = HudPanel.CityState;
+                }
+                return;
+            }
 
-            var ongoing = _game.BattleCovering(hex);
+            var ongoing = Game.BattleCovering(hex);
             if (ongoing != null)
             {
-                _message = _game.JoinBattle(_selectedArmy, ongoing)
-                    ? "Reinforcing! Your units march in from this side at the start of your next battle turn."
-                    : "Can't join: stand next to the battlefield with moves left.";
+                bool joined = Game.JoinBattle(SelectedArmy, ongoing);
+                Post(joined ? "Reinforcing! Your units march in from this side next battle turn." : "Can't join: stand next to the battlefield with moves left.",
+                    joined ? NoticeKind.War : NoticeKind.Bad);
                 return;
             }
 
-            var city = _game.CityAt(hex);
-            int foreignOwner = army != null && army.OwnerId != Human.Id ? army.OwnerId : city != null && city.OwnerId != Human.Id ? city.OwnerId : -1;
-            if (foreignOwner >= 0 && !_game.Player(foreignOwner).IsCityState && !_game.AtWar(foreignOwner, Human.Id))
+            int foreignOwner = army != null && army.OwnerId != Human.Id ? army.OwnerId
+                : clickedCity != null && clickedCity.OwnerId != Human.Id ? clickedCity.OwnerId : -1;
+            if (foreignOwner >= 0 && Game.Player(foreignOwner).IsCityState)
             {
-                _message = $"You are at peace with {_game.Player(foreignOwner).Name}. Open diplomacy (L) to declare war.";
+                SelectedCityState = Game.Player(foreignOwner);
+                OpenPanel = HudPanel.CityState;
                 return;
             }
-            bool enemyThere = (army != null && _game.AtWar(army.OwnerId, Human.Id)) ||
-                              (city != null && _game.AtWar(city.OwnerId, Human.Id));
-            if (enemyThere)
+            if (foreignOwner >= 0 && !Game.AtWar(foreignOwner, Human.Id))
             {
-                if (_selectedArmy.Position.DistanceTo(hex) != 1) { _message = "Move next to the enemy first."; return; }
-                var battle = _game.Attack(_selectedArmy, hex);
-                if (battle == null) _message = "Can't attack (no moves left, or already fighting).";
+                Post($"You are at peace with {Game.Player(foreignOwner).Name}. Declare war from Diplomacy (L) first.", NoticeKind.Bad);
+                return;
+            }
+            if (foreignOwner >= 0)
+            {
+                if (SelectedArmy.Position.DistanceTo(hex) != 1) { Post("Move next to the enemy first.", NoticeKind.Bad); return; }
+                if (Game.Attack(SelectedArmy, hex) == null && Game.Army(SelectedArmy.Id) != null)
+                    Post("Can't attack (no moves left, embarked, or already fighting).", NoticeKind.Bad);
                 return;
             }
 
-            var path = _game.OrderMove(_selectedArmy, hex);
-            if (path == null) _message = "No route there (water, mountains, cliffs or blocked).";
-            else if (_selectedArmy.Position == hex) _message = "Arrived.";
-            else _message = $"Marching: arrives in {path.Turns} turn(s). The order continues automatically.";
+            if (clickedCity != null && clickedCity.OwnerId == Human.Id && SelectedArmy.Position == hex) { OpenCity(clickedCity); return; }
+            var path = Game.OrderMove(SelectedArmy, hex);
+            if (path == null) Post("No route there (water, mountains, cliffs, borders or blocked).", NoticeKind.Bad);
+            ClearRoute();
         }
 
-        // ------------------------------------------------------------------ tactical battle
+        // ------------------------------------------------------------------ battle actions
 
         void BattleClick(Battle battle, HexCoord hex)
         {
             var unit = battle.UnitAt(hex);
             if (battle.Status == BattleStatus.Deploying)
             {
-                if (_selectedUnit != null && battle.Redeploy(_selectedUnit, hex)) _message = "Redeployed.";
-                else if (unit != null && battle.SideOf(unit) == battle.ActiveSide) _selectedUnit = unit;
+                if (SelectedUnit != null && battle.Redeploy(SelectedUnit, hex)) return;
+                if (unit != null && battle.SideOf(unit) == battle.ActiveSide) SelectedUnit = unit;
                 return;
             }
             if (unit != null && battle.SideOf(unit) == battle.ActiveSide)
             {
-                _selectedUnit = unit;
-                _message = $"{unit.Def.Name}: {unit.Hp} HP, {unit.BattleMovesLeft} MP{(unit.HasAttacked ? ", attacked" : "")}.";
+                SelectedUnit = unit;
                 return;
             }
-            if (_selectedUnit == null) return;
+            if (SelectedUnit == null) return;
 
             if (unit != null)
             {
-                var result = battle.TryAttack(_selectedUnit, hex);
-                _message = result == null
-                    ? "Out of range, no line of sight, or no moves left."
-                    : $"Hit for {result.DamageToDefender}" + (result.DamageToAttacker > 0 ? $", took {result.DamageToAttacker}." : ".");
+                var result = battle.TryAttack(SelectedUnit, hex);
+                if (result == null) Post("Out of range, no line of sight, or no moves left.", NoticeKind.Bad);
+                else Post($"{SelectedUnit.Def.Name} hits {unit.Def.Name} for {result.DamageToDefender}" +
+                          (result.DamageToAttacker > 0 ? $", takes {result.DamageToAttacker}" : "") +
+                          (result.DefenderKilled ? " — destroyed!" : "."), NoticeKind.War);
             }
-            else if (!battle.TryMove(_selectedUnit, hex))
-            {
-                _message = "Can't move there.";
-            }
+            else if (!battle.TryMove(SelectedUnit, hex)) Post("Can't move there.", NoticeKind.Bad);
             AfterBattleAction(battle);
+        }
+
+        public void BattleEndTurn()
+        {
+            var battle = HumanBattle;
+            if (battle == null) return;
+            if (battle.Status == BattleStatus.Deploying) battle.ConfirmDeployment();
+            else battle.EndTurn();
+            SelectedUnit = null;
+            AfterBattleAction(battle);
+        }
+
+        public void BattleRetreat()
+        {
+            var battle = HumanBattle;
+            if (battle == null || battle.Status != BattleStatus.InProgress) return;
+            battle.Retreat();
+            AfterBattleAction(battle);
+        }
+
+        public void BattleBatterWalls()
+        {
+            var battle = HumanBattle;
+            if (battle == null || SelectedUnit == null || battle.Status != BattleStatus.InProgress) return;
+            int dmg = battle.TryAttackWalls(SelectedUnit);
+            Post(dmg < 0 ? "Can't reach the walls (range, line of sight, or no moves)."
+                : battle.WallsIntact ? $"Walls hit for {dmg}." : "The walls are breached!", dmg < 0 ? NoticeKind.Bad : NoticeKind.War);
+            AfterBattleAction(battle);
+        }
+
+        public void BattleAutoResolve()
+        {
+            var battle = HumanBattle;
+            if (battle == null) return;
+            Game.AutoResolveRound(battle);
+            SelectedUnit = null;
+            if (!battle.IsFinished) Post("Round auto-resolved.");
         }
 
         void AfterBattleAction(Battle battle)
         {
             // Hands control to the AI side if it is now active, and applies the result when the battle ends.
-            _game.AdvanceAIBattleTurns(battle);
-            if (battle.IsFinished) _game.ResolveBattle(battle);
+            Game.AdvanceAIBattleTurns(battle);
+            if (battle.IsFinished) Game.ResolveBattle(battle);
             if (battle.Status == BattleStatus.AwaitingNextRound)
-                _message = $"Round {battle.Round} over. The next round starts on the attacker's next turn.";
+                Post($"Round {battle.Round} over. The next round starts on the attacker's next turn.");
         }
 
-        // ------------------------------------------------------------------ HUD
+        // ------------------------------------------------------------------ save / load
 
-        void OnGUI()
+        static string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "quicksave.crucible");
+
+        public bool HasQuickSave => System.IO.File.Exists(SavePath);
+
+        public void QuickSave()
         {
-            if (_game == null) return;
-            if (Event.current.type == EventType.Layout) _uiRects.Clear();
-            var sb = new StringBuilder();
-            sb.AppendLine($"Turn {_game.Turn}  —  {Human.Name} ({Human.Faction.Name})  —  army cap {Human.ArmyCap}");
-            if (_turns.IsGameOver) sb.AppendLine($"GAME OVER: {_game.Victory}");
-
-            var income = EconomyRules.EmpireIncome(_game, Human);
-            var research = Human.Tech.CurrentResearch != null ? _game.Content.Tech(Human.Tech.CurrentResearch) : null;
-            sb.AppendLine($"Gold {Human.Gold} ({income.Gold:+#;-#;0})   Science +{income.Science}   Culture +{income.Culture}   Happiness {EconomyRules.Happiness(_game, Human)}");
-            sb.AppendLine(research != null
-                ? $"Research: {research.Name} {Human.Tech.Progress}/{research.ScienceCost}  (T to change)"
-                : "Research: none (T to choose)");
-            int policyCost = EconomyRules.PolicyCost(_game, Human);
-            string Strategic(Crucible.Core.World.ResourceType r) =>
-                $"{r} {Improvements.StrategicUsed(_game, Human.Id, r)}/{Improvements.StrategicAvailable(_game, Human.Id, r)}";
-            sb.AppendLine($"{Strategic(Crucible.Core.World.ResourceType.Horses)}  {Strategic(Crucible.Core.World.ResourceType.Iron)}  " +
-                          $"{Strategic(Crucible.Core.World.ResourceType.Oil)}   Luxuries {Improvements.ConnectedLuxuries(_game, Human.Id).Count()}");
-            sb.AppendLine($"Policies {Human.Policies.Count}: culture {Human.PolicyCulture}/{policyCost}" +
-                          (Human.PolicyCulture >= policyCost ? "  — P: adopt a policy!" : "  (P to view)"));
-            string religion = Human.FoundedReligionId >= 0
-                ? $"{_game.Religions[Human.FoundedReligionId].Name} ({_game.FollowerCities(Human)} cities)"
-                : "none founded";
-            sb.AppendLine($"Faith {Human.Faith}/{GameState.ProphetThreshold(Human)}   Religion: {religion}   Tourism +{Human.Tourism}");
-            int pending = _game.Diplomacy.Pending.Count(p => p.ToId == Human.Id);
-            if (pending > 0) sb.AppendLine($"Diplomacy: {pending} proposal(s) waiting — press L");
-            sb.AppendLine(_game.WorldCongressFounded
-                ? $"World Congress: next vote turn {_game.NextWorldLeaderVoteTurn}, your delegates {(_game.Delegates().TryGetValue(Human.Id, out var d) ? d : 0)}/{_game.VotesNeeded} needed"
-                : "World Congress: not yet founded (Globalization)");
-            if (Human.CompletedProjects.ContainsKey("apollo_program"))
-                sb.AppendLine($"Spaceship: {Human.SpaceshipPartsBuilt}/{GameState.SpaceshipParts} parts" +
-                              (Human.SpaceshipArrivalTurn >= 0 ? $", lands on turn {Human.SpaceshipArrivalTurn}" : ""));
-
-            var battle = HumanBattle;
-            if (battle != null)
-            {
-                if (battle.Status == BattleStatus.Deploying)
-                {
-                    sb.AppendLine($"DEPLOYMENT ({battle.ActiveSide}): click a unit, then a blue hex. Space confirms.");
-                }
-                else
-                {
-                    sb.AppendLine($"BATTLE  round {battle.Round}/{Battle.MaxRounds}, turn {battle.TurnInRound}/{Battle.TurnsPerRound}, {battle.ActiveSide} to act");
-                    sb.AppendLine("Space: end battle turn   R: retreat   X: auto-resolve round");
-                    if (battle.HasWalls)
-                        sb.AppendLine(battle.WallsIntact
-                            ? $"Walls {battle.WallHp}/{battle.MaxWallHp} — melee can't enter the centre (yellow) without a siege tower. B: batter walls"
-                            : "Walls breached!");
-                }
-                sb.AppendLine($"Reserves: you {battle.Active.Reserve.Count} / enemy {battle.Opponent(battle.ActiveSide).Reserve.Count}");
-                AppendPreview(sb, battle);
-            }
-            else
-            {
-                sb.AppendLine("Enter: end turn   WASD: pan   Q/E: rotate   Wheel: zoom   F5/F9: quick save/load");
-                if (_selectedArmy != null)
-                {
-                    sb.AppendLine($"Army: {_selectedArmy.Count}/{Human.ArmyCap} units, {_selectedArmy.WorldMovesLeft} moves" +
-                                  (_selectedArmy.Destination.HasValue ? $", marching to {_selectedArmy.Destination.Value}" : ""));
-                    if (_hoverPath != null) sb.AppendLine($"Route: {_hoverPath.Steps.Count} hexes, {_hoverPath.Turns} turn(s)");
-                    if (_selectedArmy.Units.Any(u => u.Def.Id == Crucible.Core.Content.DefaultContent.SettlerUnit))
-                        sb.AppendLine("F: found a city here");
-                    if (WorkerAutomation.HasWorker(_selectedArmy))
-                        sb.AppendLine($"I: improve this hex   U: {(_selectedArmy.AutomatedWorkers ? "stop automating" : "automate")}" +
-                                      (_selectedArmy.BuildOrder != Crucible.Core.World.ImprovementType.None ? $"   (building {_selectedArmy.BuildOrder})" : ""));
-                    if (AdjacentEnemyCity(_selectedArmy) is City enemyCity && !enemyCity.IsBesieged)
-                        sb.AppendLine($"G: besiege {enemyCity.Name}   (click it to assault)");
-                }
-            }
-
-            if (_hover.HasValue && _game.Map.Get(_hover.Value) is Crucible.Core.World.Tile t)
-                sb.AppendLine($"Hex {t}");
-            sb.AppendLine(_message);
-
-            var hud = new Rect(10, 10, 520, 24 + 18 * sb.ToString().Split('\n').Length);
-            if (Event.current.type == EventType.Layout) _uiRects.Add(hud);
-            GUI.Box(hud, GUIContent.none);
-            GUI.Label(new Rect(20, 16, 500, 800), sb.ToString());
-
-            if (_showDiplomacy && battle == null) DrawDiplomacyPanel();
-            else if (_selectedCityState != null && battle == null) DrawCityStatePanel(_selectedCityState);
-            else if (_showPolicies && battle == null) DrawPolicyPanel();
-            else if (_selectedCity != null && battle == null) DrawCityPanel(_selectedCity);
-            else if (battle == null && BesiegedBySelection() is City siege) DrawSiegePanel(siege);
+            System.IO.File.WriteAllBytes(SavePath, SaveGame.Save(Game, Turns));
+            Post("Game saved.", NoticeKind.Good);
         }
 
-        /// <summary>Siege camp: progress, starvation clock and engine purchases (GDD §4.6).</summary>
-        void DrawSiegePanel(City city)
+        public void QuickLoad()
         {
-            const float width = 300f;
-            var area = new Rect(Screen.width - width - 10, 10, width, 260);
-            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
-            GUI.Box(area, GUIContent.none);
-            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
-            GUILayout.Label($"<b>Siege of {city.Name}</b>", Rich());
-            GUILayout.Label($"Turn {_game.Turn - city.BesiegedSinceTurn + 1} of the siege; starvation from turn {Crucible.Core.Economy.EconomyProcessor.SiegeStarvationDelay}.");
-            GUILayout.Label($"Siege progress: {city.SiegeProgress}   Engines: {city.SiegeEnginesBuilt}/{City.MaxSiegeEngines}");
-            GUILayout.Label($"Walls: tier {_game.Map.Get(city.Position).WallTier}   Militia: {city.MilitiaCount}");
-            foreach (var engine in _game.AvailableSiegeEngines(city))
+            if (!HasQuickSave) { Post("No quicksave yet (F5 to save).", NoticeKind.Bad); return; }
+            try
             {
-                GUI.enabled = city.SiegeProgress >= engine.SiegeProgressCost;
-                if (GUILayout.Button($"Build {engine.Name} ({engine.SiegeProgressCost})"))
-                    _message = _game.BuildSiegeEngine(city, _selectedArmy, engine.Id) != null
-                        ? $"{engine.Name} joins the army."
-                        : "No room in this army (army cap).";
-                GUI.enabled = true;
+                var (game, turns) = SaveGame.Load(System.IO.File.ReadAllBytes(SavePath), new Crucible.Core.AI.StrategicAI());
+                Game = game;
+                Turns = turns;
+                _map.Build(game.Map);
+                Destroy(_markers.gameObject);
+                _markers = new GameObject("Markers").AddComponent<MarkerLayer>();
+                _markers.Init(_map);
+                SelectedArmy = null; SelectedCity = null; SelectedUnit = null; SelectedCityState = null;
+                OpenPanel = HudPanel.None;
+                _fogVersion = -1; _mapVersion = -1;
+                ClearRoute();
+                Notices.Clear();
+                HookEvents();
+                Post($"Loaded turn {game.Turn}.", NoticeKind.Good);
+                GameReplaced?.Invoke();
             }
-            GUILayout.EndArea();
-        }
-
-        /// <summary>City screen: growth, production and a clickable build list.</summary>
-        void DrawCityPanel(City city)
-        {
-            const float width = 300f;
-            var area = new Rect(Screen.width - width - 10, 10, width, Mathf.Min(560, Screen.height - 20));
-            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
-            GUI.Box(area, GUIContent.none);
-            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
-
-            var y = EconomyRules.CityYields(_game, city);
-            int surplus = EconomyRules.FoodSurplus(_game, city, y);
-            GUILayout.Label($"<b>{city.Name}</b>  pop {city.Population}" + (city.IsBesieged ? "  (BESIEGED)" : ""), Rich());
-            GUILayout.Label($"Yields: {y}");
-            GUILayout.Label($"Food {city.FoodStored}/{EconomyRules.GrowthThreshold(city.Population)} ({surplus:+#;-#;0}/turn)");
-            GUILayout.Label($"Borders: {city.CultureStored}/{EconomyRules.BorderGrowthThreshold(city)} culture");
-            GUILayout.Label("Buildings: " + (city.Buildings.Count == 0 ? "none" :
-                string.Join(", ", city.Buildings.Select(b => _game.Content.Building(b).Name))));
-            if (city.AirUnits.Count > 0)
-                GUILayout.Label($"Hangar {city.AirUnits.Count}/{City.AirCapacity}: " +
-                                string.Join(", ", city.AirUnits.Select(u => $"{u.Def.Name} {u.Hp}hp")));
-
-            if (city.CurrentProduction.HasValue)
+            catch (System.IO.InvalidDataException e)
             {
-                var item = city.CurrentProduction.Value;
-                int cost = EconomyRules.Cost(_game, item);
-                int turns = y.Production > 0 ? Mathf.CeilToInt(Mathf.Max(0, cost - city.ProductionStored) / (float)y.Production) : 99;
-                GUILayout.Label($"Building: {EconomyRules.NameOf(_game, item)} {city.ProductionStored}/{cost} ({turns} turns)");
+                Post($"Couldn't load: {e.Message}", NoticeKind.Bad);
             }
-            else GUILayout.Label($"Building: nothing ({city.ProductionStored} stored)");
-
-            GUILayout.Label("Choose production:");
-            _cityScroll = GUILayout.BeginScrollView(_cityScroll);
-            var options = _game.Content.Buildings.Select(b => ProductionItem.Building(b.Id))
-                .Concat(_game.Content.Units.Select(u => ProductionItem.Unit(u.Id)))
-                .Concat(_game.Content.Projects.Select(p => ProductionItem.Project(p.Id)))
-                .Where(i => EconomyRules.CanBuild(_game, city, i))
-                .OrderBy(i => i.Kind).ThenBy(i => EconomyRules.Cost(_game, i));
-            foreach (var item in options)
-            {
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button($"{EconomyRules.NameOf(_game, item)}  ({EconomyRules.Cost(_game, item)})"))
-                    _game.SetProduction(city, item);
-                int price = EconomyRules.PurchaseCost(_game, city, item);
-                GUI.enabled = Human.Gold >= price && !city.IsBesieged;
-                if (GUILayout.Button($"Buy {price}g", GUILayout.Width(80)))
-                    _message = _game.Purchase(city, item) ? $"Bought {EconomyRules.NameOf(_game, item)}." : "Couldn't buy that (no room to place it?).";
-                GUI.enabled = true;
-                GUILayout.EndHorizontal();
-            }
-            GUILayout.EndScrollView();
-            if (GUILayout.Button("Close")) _selectedCity = null;
-            GUILayout.EndArea();
-        }
-
-        /// <summary>Leaders screen: war and peace, treaties, opinion, and proposals awaiting an answer.</summary>
-        void DrawDiplomacyPanel()
-        {
-            var area = new Rect(Screen.width - 450, 10, 440, Mathf.Min(520, Screen.height - 20));
-            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
-            GUI.Box(area, GUIContent.none);
-            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
-            GUILayout.Label("<b>Diplomacy</b>", Rich());
-
-            foreach (var proposal in _game.Diplomacy.Pending.Where(p => p.ToId == Human.Id).ToList())
-            {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"{_game.Player(proposal.FromId).Name} proposes {proposal.Kind}");
-                if (GUILayout.Button("Accept", GUILayout.Width(70))) _game.Answer(proposal, true);
-                if (GUILayout.Button("Decline", GUILayout.Width(70))) _game.Answer(proposal, false);
-                GUILayout.EndHorizontal();
-            }
-
-            foreach (var other in _game.MajorPlayers.Where(p => p != Human && !p.IsEliminated))
-            {
-                var rel = _game.Diplomacy.Get(Human.Id, other.Id);
-                string state = rel.AtWar ? $"AT WAR since turn {rel.WarStartedTurn}"
-                    : _game.Turn < rel.PeaceUntilTurn ? $"peace treaty until turn {rel.PeaceUntilTurn}" : "at peace";
-                string treaties = (rel.OpenBorders ? " · open borders" : "") + (rel.DefensivePact ? " · defensive pact" : "");
-                GUILayout.Label($"<b>{other.Name}</b> ({other.Faction.Name}) — {state}{treaties}", Rich());
-                GUILayout.Label($"Their opinion of you: {_game.Opinion(other, Human)}");
-                GUILayout.BeginHorizontal();
-                if (!rel.AtWar)
-                {
-                    GUI.enabled = _game.CannotDeclareWar(Human, other) == null;
-                    if (GUILayout.Button("Declare war")) _game.DeclareWar(Human, other);
-                    GUI.enabled = _game.CanPropose(Human, other, Treaty.OpenBorders);
-                    if (GUILayout.Button("Open borders"))
-                        _message = _game.Propose(Human, other, Treaty.OpenBorders) ? "Open borders agreed." : $"{other.Name} refuses.";
-                    GUI.enabled = _game.CanPropose(Human, other, Treaty.DefensivePact);
-                    if (GUILayout.Button("Defensive pact"))
-                        _message = _game.Propose(Human, other, Treaty.DefensivePact) ? "Defensive pact signed." : $"{other.Name} refuses.";
-                }
-                else
-                {
-                    GUI.enabled = _game.CanPropose(Human, other, Treaty.Peace);
-                    if (GUILayout.Button(GUI.enabled ? "Propose peace" : $"Peace possible from turn {rel.WarStartedTurn + Diplomacy.MinWarTurnsBeforePeace}"))
-                        _message = _game.Propose(Human, other, Treaty.Peace) ? "Peace!" : $"{other.Name} fights on.";
-                }
-                GUI.enabled = true;
-                GUILayout.EndHorizontal();
-            }
-            if (GUILayout.Button("Close")) _showDiplomacy = false;
-            GUILayout.EndArea();
-        }
-
-        /// <summary>City-state diplomacy: influence, status and gold gifts.</summary>
-        void DrawCityStatePanel(Player cs)
-        {
-            var area = new Rect(Screen.width - 310, 10, 300, 230);
-            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
-            GUI.Box(area, GUIContent.none);
-            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
-            GUILayout.Label($"<b>{cs.Name}</b> ({cs.CityStateType} city-state)", Rich());
-            int ally = _game.AllyOf(cs);
-            GUILayout.Label($"Your influence: {_game.InfluenceOf(cs, Human.Id)} — {_game.StatusWith(cs, Human.Id)}");
-            GUILayout.Label($"Ally: {(ally >= 0 ? _game.Player(ally).Name : "none")}   (friend {GameState.FriendInfluence}, ally {GameState.AllyInfluence})");
-            GUILayout.Label(cs.CityStateType == CityStateType.Maritime ? "Friends: +1 food in capital (allies +3)"
-                : cs.CityStateType == CityStateType.Cultured ? "Friends: +2 culture (allies +5)"
-                : cs.CityStateType == CityStateType.Mercantile ? "Friends: +2 happiness (allies +4)"
-                : "Allies: a gifted unit every 15 turns");
-            GUILayout.Label("Allies also get its World Congress delegate.");
-            foreach (int gift in new[] { 50, 100, 250 })
-            {
-                GUI.enabled = Human.Gold >= gift;
-                if (GUILayout.Button($"Gift {gift} gold (+{gift / GameState.GoldPerInfluence} influence)"))
-                    _game.GiftGold(Human, cs, gift);
-                GUI.enabled = true;
-            }
-            if (GUILayout.Button("Close")) _selectedCityState = null;
-            GUILayout.EndArea();
-        }
-
-        /// <summary>Social policies: one column per tree, adoptable ones as buttons.</summary>
-        void DrawPolicyPanel()
-        {
-            var area = new Rect(Screen.width - 430, 10, 420, 360);
-            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
-            GUI.Box(area, GUIContent.none);
-            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
-            int cost = EconomyRules.PolicyCost(_game, Human);
-            GUILayout.Label($"<b>Social policies</b>  culture {Human.PolicyCulture}/{cost}", Rich());
-            foreach (var tree in _game.Content.Policies.GroupBy(p => p.Tree))
-            {
-                GUILayout.Label($"<b>{tree.Key}</b>", Rich());
-                foreach (var policy in tree)
-                {
-                    bool adopted = Human.Policies.Contains(policy.Id);
-                    GUI.enabled = !adopted && EconomyRules.CanAdopt(_game, Human, policy) && Human.PolicyCulture >= cost;
-                    string label = (adopted ? "✓ " : "") + $"{policy.Name}: {policy.Description}";
-                    if (GUILayout.Button(label) && _game.AdoptPolicy(Human, policy.Id)) _message = $"Adopted {policy.Name}.";
-                    GUI.enabled = true;
-                }
-            }
-            if (GUILayout.Button("Close")) _showPolicies = false;
-            GUILayout.EndArea();
-        }
-
-        static GUIStyle Rich() => new GUIStyle(GUI.skin.label) { richText = true };
-
-        void AppendPreview(StringBuilder sb, Battle battle)
-        {
-            if (_selectedUnit == null || !_hover.HasValue) return;
-            var target = battle.UnitAt(_hover.Value);
-            var from = battle.PositionOf(_selectedUnit);
-            if (target == null || from == null || battle.SideOf(target) == battle.SideOf(_selectedUnit)) return;
-            if (!battle.CanAttackFrom(_selectedUnit, from.Value, _hover.Value))
-            {
-                sb.AppendLine("Target not attackable from here.");
-                return;
-            }
-            var p = battle.PreviewAttack(_selectedUnit, from.Value, target);
-            sb.AppendLine($"You: {p.Attacker}");
-            sb.AppendLine($"Them: {p.Defender}");
-            sb.AppendLine($"Expected: deal {p.ExpectedDamageToDefender:0}, take {p.ExpectedDamageToAttacker:0}");
         }
     }
 }

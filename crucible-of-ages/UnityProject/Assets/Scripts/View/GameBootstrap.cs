@@ -37,6 +37,7 @@ namespace Crucible.View
             var turns = new TurnManager(game, new Crucible.Core.AI.StrategicAI());
             var controller = gameObject.AddComponent<GameController>();
             controller.Init(game, turns, mapRenderer, rig);
+            UI.GameHud.Create(controller);
             turns.Start();
         }
     }

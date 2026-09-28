@@ -15,6 +15,9 @@ namespace Crucible.View
         Camera _camera;
         float _distance = 18f;
 
+        /// <summary>When true (pointer over the HUD), the mouse wheel scrolls the UI instead of zooming.</summary>
+        public System.Func<bool> BlockZoom = () => false;
+
         public Camera Camera => _camera;
 
         public static CameraRig Create(Vector3 focus)
@@ -46,7 +49,7 @@ namespace Crucible.View
             if (rotate != 0f) transform.Rotate(0f, rotate * rotateSpeed * Time.deltaTime, 0f, Space.World);
 
             float scroll = Input.mouseScrollDelta.y;
-            if (Mathf.Abs(scroll) > 0.01f)
+            if (Mathf.Abs(scroll) > 0.01f && !BlockZoom())
             {
                 _distance = Mathf.Clamp(_distance - scroll * zoomSpeed * 0.5f, minDistance, maxDistance);
                 ApplyZoom();

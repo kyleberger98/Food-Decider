@@ -34,6 +34,18 @@ army caps, and the victory conditions.
    (the scaffold uses the legacy `Input` API).
 5. For player builds, add `Crucible/VertexColorLit` to *Graphics → Always Included Shaders*.
 
+### Interface
+
+The HUD is built with UI Toolkit entirely in code (no assets to set up):
+
+- **Top bar:** gold, science, culture, faith, happiness, tourism, free strategic resources, a research button with a progress bar, and Policies / Diplomacy buttons that light up when something needs you. Save and Load are here too.
+- **Notifications** slide in on the left: green for good news, red for bad, orange for war.
+- **Right panel:** city screen (yields, growth, borders, build list with turns and **Buy**), research picker (what each tech unlocks), policy trees, diplomacy (treaties, opinion bars, proposals), city-states and siege camp.
+- **Selection card** (bottom-left): the army's units with health bars and context buttons (Found city, Build farm, Automate, Besiege, Use great person…).
+- **End turn** (bottom-right) warns about idle cities and armies that can still move.
+- **Battles:** a banner with round/turn pips, walls and air support, an action bar, and a **combat preview** card listing every modifier and the expected damage (with KILL markers).
+- **On the map:** city banners (population, growth and production bars), army badges with unit counts, health bars over units in battle, and a tooltip for the hex under the cursor.
+
 ### Controls
 
 | Mode | Input |
@@ -47,7 +59,7 @@ army caps, and the victory conditions.
 | Battle | Click a unit, then a green hex to move or a red enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats, **X** auto-resolves the round, **B** batters the walls with the selected unit. |
 | Reinforce | With an army next to an ongoing battle selected, click a battlefield hex to join it. |
 | Siege | Next to an enemy city, **G** declares a siege (militia rise, the city stops growing). The siege panel spends siege progress on rams, siege towers and catapults. Click the city to assault it. |
-| Camera | WASD/arrows pan, Q/E rotate, mouse wheel zooms |
+| Camera | WASD/arrows pan, Q/E rotate, mouse wheel zooms (scrolls panels when over the HUD) · **Esc** closes a panel or deselects |
 | Saving | **F5** quick-saves, **F9** quick-loads (`quicksave.crucible` in Unity's persistent data folder) |
 
 ## Status

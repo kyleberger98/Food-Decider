@@ -38,6 +38,9 @@ namespace Crucible.Core.Empire
         /// <summary>Military units the AI wants in play; governors build toward it while gold allows.</summary>
         public int AIMilitaryTarget { get; set; }
 
+        /// <summary>City the AI's current offensive is aimed at, or -1. Kept here so it is saved with the game.</summary>
+        public int AITargetCityId { get; set; } = -1;
+
         /// <summary>Adopted social policies, and culture banked toward the next one.</summary>
         public HashSet<string> Policies { get; } = new HashSet<string>();
         public int PolicyCulture { get; set; }
@@ -52,8 +55,8 @@ namespace Crucible.Core.Empire
         public Dictionary<int, int> Influence { get; } = new Dictionary<int, int>();
 
         // --- Great people & religion (M8) ---
-        public Dictionary<Content.GreatPersonType, int> GreatPersonPoints { get; } = new Dictionary<Content.GreatPersonType, int>();
-        public Dictionary<Content.GreatPersonType, int> GreatPeopleBorn { get; } = new Dictionary<Content.GreatPersonType, int>();
+        public SortedDictionary<Content.GreatPersonType, int> GreatPersonPoints { get; } = new SortedDictionary<Content.GreatPersonType, int>();
+        public SortedDictionary<Content.GreatPersonType, int> GreatPeopleBorn { get; } = new SortedDictionary<Content.GreatPersonType, int>();
 
         /// <summary>Points toward the next Great General, earned in battle.</summary>
         public int GeneralPoints { get; set; }

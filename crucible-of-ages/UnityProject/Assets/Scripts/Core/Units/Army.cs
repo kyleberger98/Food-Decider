@@ -65,6 +65,9 @@ namespace Crucible.Core.Units
 
         public bool Remove(Unit unit) => _units.Remove(unit);
 
+        /// <summary>Save-game restore: re-adds a unit without cap or domain checks.</summary>
+        internal void RestoreUnit(Unit unit) => _units.Add(unit);
+
         public int RemoveDead() => _units.RemoveAll(u => !u.IsAlive);
 
         public override string ToString() => $"Army#{Id} P{OwnerId} @{Position} [{string.Join(", ", _units)}]";

@@ -33,13 +33,6 @@ namespace Crucible.Core.AI
         public int CitiesBeforeWar = 2;
         public int WarAnywayTurn = 60;
 
-        sealed class Memory
-        {
-            public int TargetCityId = -1;
-        }
-
-        readonly Dictionary<int, Memory> _memory = new Dictionary<int, Memory>();
-
         public void TakeTurn(GameState game, Player player)
         {
             if (player.IsCityState)
@@ -49,7 +42,6 @@ namespace Crucible.Core.AI
                 player.AIMilitaryTarget = 2;
                 return;
             }
-            if (!_memory.TryGetValue(player.Id, out var memory)) _memory[player.Id] = memory = new Memory();
 
             PlanEconomy(game, player);
             SplitGarrisons(game, player);
@@ -57,7 +49,7 @@ namespace Crucible.Core.AI
             EnsureGarrisons(game, player);
             foreach (var army in OwnArmies(game, player).Where(IsSettlerArmy).ToList()) ManageSettler(game, player, army);
             Defend(game, player);
-            Offense(game, player, memory);
+            Offense(game, player);
             UseGreatPeople(game, player);
             CourtCityStates(game, player);
             SpendGold(game, player);
@@ -313,14 +305,14 @@ namespace Crucible.Core.AI
 
         // ------------------------------------------------------------------ offence
 
-        void Offense(GameState game, Player player, Memory memory)
+        void Offense(GameState game, Player player)
         {
             int cities = game.Cities.Count(c => c.OwnerId == player.Id);
             if (game.Turn < EarliestOffensiveTurn || (cities < CitiesBeforeWar && game.Turn < WarAnywayTurn)) return;
 
-            var target = game.City(memory.TargetCityId);
+            var target = game.City(player.AITargetCityId);
             if (target == null || !game.AtWar(target.OwnerId, player.Id)) target = PickTarget(game, player);
-            memory.TargetCityId = target?.Id ?? -1;
+            player.AITargetCityId = target?.Id ?? -1;
             if (target == null) return;
 
             var field = FieldArmies(game, player);

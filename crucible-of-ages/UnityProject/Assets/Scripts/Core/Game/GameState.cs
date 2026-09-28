@@ -23,9 +23,11 @@ namespace Crucible.Core.Game
         public const int DefaultTurnLimit = 500;
 
         readonly List<Player> _players = new List<Player>();
-        readonly Dictionary<int, Army> _armies = new Dictionary<int, Army>();
-        readonly Dictionary<int, City> _cities = new Dictionary<int, City>();
-        readonly Dictionary<int, Battle> _battles = new Dictionary<int, Battle>();
+        // Sorted by id so iteration order never depends on hash-table history: a loaded save and the
+        // original game then evolve identically (see SaveGame).
+        readonly SortedDictionary<int, Army> _armies = new SortedDictionary<int, Army>();
+        readonly SortedDictionary<int, City> _cities = new SortedDictionary<int, City>();
+        readonly SortedDictionary<int, Battle> _battles = new SortedDictionary<int, Battle>();
         readonly Dictionary<int, PlayerVisibility> _visibility = new Dictionary<int, PlayerVisibility>();
         int _nextUnitId = 1, _nextArmyId = 1, _nextCityId = 1, _nextBattleId = 1;
 

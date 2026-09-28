@@ -47,6 +47,15 @@ namespace Crucible.Core.Game
             return sight;
         }
 
+        /// <summary>Save-game restore.</summary>
+        internal void Restore(IEnumerable<HexCoord> explored, IEnumerable<HexCoord> visible, int version)
+        {
+            _explored.Clear();
+            foreach (var c in explored) _explored.Add(c);
+            _visible = new HashSet<HexCoord>(visible);
+            Version = version;
+        }
+
         /// <summary>Recomputes what is visible from the given (position, radius) sources.</summary>
         internal void Recompute(WorldMap map, IEnumerable<(HexCoord from, int radius)> sources)
         {

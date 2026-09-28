@@ -16,7 +16,8 @@ namespace Crucible.View
     /// your zone. Battle: click a unit, then a green hex to move or a red enemy to attack; hover an
     /// enemy for the combat breakdown.
     /// Keys: Enter = end world turn, Space = confirm deployment / end battle turn, R = retreat,
-    /// X = auto-resolve the current round, B = batter walls, G = besiege, F = found city, T = research.
+    /// X = auto-resolve the current round, B = batter walls, G = besiege, F = found city, T = research,
+    /// P = policies, I/U = worker improve/automate, V = use great person, F5/F9 = quick save/load.
     /// (WASD/QE belong to the camera.)
     /// </summary>
     public sealed class GameController : MonoBehaviour
@@ -59,11 +60,48 @@ namespace Crucible.View
             _mapCollider = map.GetComponent<MeshCollider>();
             _markers = new GameObject("Markers").AddComponent<MarkerLayer>();
             _markers.Init(map);
+            HookEvents();
+        }
+
+        void HookEvents()
+        {
             _game.BattleStarted += b => _message = $"Battle! Round {b.Round}. Your units deploy in the tinted zone.";
             _game.BattleEnded += b => _message = $"Battle over: {b.Status}.";
             _game.ArmySunk += a => _message = $"An embarked army ({a.Count} units) was sunk at sea!";
-            _game.GreatPersonBorn += (p, u) => { if (!p.IsAI) _message = $"A {u.Def.Name} is born! Select them and press E to use their gift."; };
+            _game.GreatPersonBorn += (p, u) => { if (!p.IsAI) _message = $"A {u.Def.Name} is born! Select them and press V to use their gift."; };
             _game.ReligionFounded += r => _message = $"{r.Name} has been founded by {_game.Player(r.FounderId).Name}.";
+        }
+
+        static string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "quicksave.crucible");
+
+        void QuickSave()
+        {
+            System.IO.File.WriteAllBytes(SavePath, SaveGame.Save(_game, _turns));
+            _message = $"Game saved ({SavePath}).";
+        }
+
+        void QuickLoad()
+        {
+            if (!System.IO.File.Exists(SavePath)) { _message = "No quicksave yet (F5 to save)."; return; }
+            try
+            {
+                var (game, turns) = SaveGame.Load(System.IO.File.ReadAllBytes(SavePath), new Crucible.Core.AI.StrategicAI());
+                _game = game;
+                _turns = turns;
+                _map.Build(game.Map);
+                Destroy(_markers.gameObject);
+                _markers = new GameObject("Markers").AddComponent<MarkerLayer>();
+                _markers.Init(_map);
+                _selectedArmy = null; _selectedCity = null; _selectedUnit = null; _selectedCityState = null;
+                _fogVersion = -1; _mapVersion = -1;
+                ClearRoutePreview();
+                HookEvents();
+                _message = $"Loaded turn {game.Turn}.";
+            }
+            catch (System.IO.InvalidDataException e)
+            {
+                _message = $"Couldn't load: {e.Message}";
+            }
         }
 
         Player Human => _turns.ActivePlayer;
@@ -79,6 +117,9 @@ namespace Crucible.View
             if (_game == null) return;
             var battle = HumanBattle;
             _hover = PickHex(out var h) ? h : (HexCoord?)null;
+
+            if (Input.GetKeyDown(KeyCode.F5) && battle == null) QuickSave();
+            if (Input.GetKeyDown(KeyCode.F9)) { QuickLoad(); return; }
 
             if (!_turns.IsGameOver)
             {
@@ -138,7 +179,7 @@ namespace Crucible.View
                         ? $"Building a {imp} ({Improvements.BuildTurns(imp) - tile.ImprovementProgress} turns). Moving cancels."
                         : "Nothing to build here (needs a worker, your territory, the right tech and terrain).";
                 }
-                else if (Input.GetKeyDown(KeyCode.E) && _selectedArmy != null)
+                else if (Input.GetKeyDown(KeyCode.V) && _selectedArmy != null)
                 {
                     var person = _selectedArmy.Units.FirstOrDefault(u => u.Def.GreatPerson != Crucible.Core.Content.GreatPersonType.None &&
                                                                           u.Def.GreatPerson != Crucible.Core.Content.GreatPersonType.General);
@@ -394,7 +435,7 @@ namespace Crucible.View
             }
             else
             {
-                sb.AppendLine("Enter: end turn   WASD: pan   Q/E: rotate   Wheel: zoom");
+                sb.AppendLine("Enter: end turn   WASD: pan   Q/E: rotate   Wheel: zoom   F5/F9: quick save/load");
                 if (_selectedArmy != null)
                 {
                     sb.AppendLine($"Army: {_selectedArmy.Count}/{Human.ArmyCap} units, {_selectedArmy.WorldMovesLeft} moves" +

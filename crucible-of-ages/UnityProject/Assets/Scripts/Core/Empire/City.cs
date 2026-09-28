@@ -93,12 +93,16 @@ namespace Crucible.Core.Empire
         /// <summary>Great works created here by Great Artists (tourism and culture).</summary>
         public int GreatWorks { get; set; }
 
-        public City(int id, string name, int ownerId, HexCoord position)
+        public City(int id, string name, int ownerId, HexCoord position) : this(id, name, ownerId, position, ownerId)
+        {
+        }
+
+        internal City(int id, string name, int ownerId, HexCoord position, int founderId)
         {
             Id = id;
             Name = name;
             OwnerId = ownerId;
-            FounderId = ownerId;
+            FounderId = founderId;
             Position = position;
         }
 

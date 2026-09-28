@@ -117,6 +117,62 @@ namespace Crucible.Core.Combat
             }
         }
 
+        // ------------------------------------------------------------------ save / load
+
+        /// <summary>Writes everything that changes during a battle (the rest is rebuilt from the constructor).</summary>
+        internal void WriteState(Game.SaveWriter w)
+        {
+            w.Int(Round); w.Int(TurnInRound); w.Int((int)ActiveSide); w.Int((int)Status); w.Bool(Started);
+            w.Int(WallTier); w.Int(MaxWallHp); w.Int(WallHp);
+            foreach (var side in new[] { Attacker, Defender })
+            {
+                w.Ints(side.Armies.Select(a => a.Id));
+                w.Hexes(side.DeploymentZone);
+                w.Ints(side.Reserve.Select(u => u.Id));
+            }
+            w.Int(_positions.Count);
+            foreach (var kv in _positions.OrderBy(kv => kv.Key)) { w.Int(kv.Key); w.Hex(kv.Value); }
+            w.Int(_sideOf.Count);
+            foreach (var kv in _sideOf.OrderBy(kv => kv.Key)) { w.Int(kv.Key); w.Int((int)kv.Value); }
+            w.Ints(_moveLocked.OrderBy(x => x));
+            w.Int(_entryPoints.Count);
+            foreach (var kv in _entryPoints.OrderBy(kv => kv.Key)) { w.Int(kv.Key); w.Hex(kv.Value); }
+            foreach (var side in new[] { BattleSideId.Attacker, BattleSideId.Defender })
+            {
+                w.Ints(_air[side].Select(u => u.Id));
+                w.Int(_airStrikeRound[side]);
+                w.Int(_damageDealt[side]);
+            }
+            w.Ints(_interceptedThisRound.OrderBy(x => x));
+            w.Int(_interceptRound);
+            w.Strings(Log);
+        }
+
+        internal void ReadState(Game.SaveReader r, Func<int, Unit> unit, Func<int, Army> army)
+        {
+            Round = r.Int(); TurnInRound = r.Int(); ActiveSide = (BattleSideId)r.Int(); Status = (BattleStatus)r.Int(); Started = r.Bool();
+            WallTier = r.Int(); MaxWallHp = r.Int(); WallHp = r.Int();
+            foreach (var side in new[] { Attacker, Defender })
+            {
+                foreach (var id in r.Ints()) side.Armies.Add(army(id));
+                side.DeploymentZone = r.Hexes();
+                foreach (var id in r.Ints()) side.Reserve.Add(unit(id));
+            }
+            for (int i = r.Int(); i > 0; i--) Place(unit(r.Int()), r.Hex());
+            for (int i = r.Int(); i > 0; i--) _sideOf[r.Int()] = (BattleSideId)r.Int();
+            foreach (var id in r.Ints()) _moveLocked.Add(id);
+            for (int i = r.Int(); i > 0; i--) _entryPoints[r.Int()] = r.Hex();
+            foreach (var side in new[] { BattleSideId.Attacker, BattleSideId.Defender })
+            {
+                _air[side] = r.Ints().Select(unit).Where(u => u != null).ToList();
+                _airStrikeRound[side] = r.Int();
+                _damageDealt[side] = r.Int();
+            }
+            foreach (var id in r.Ints()) _interceptedThisRound.Add(id);
+            _interceptRound = r.Int();
+            Log.AddRange(r.Strings());
+        }
+
         // ------------------------------------------------------------------ air support (GDD §4.7)
 
         readonly Dictionary<BattleSideId, List<Unit>> _air = new Dictionary<BattleSideId, List<Unit>>
@@ -193,8 +249,8 @@ namespace Crucible.Core.Combat
         /// <summary>City whose centre is <see cref="Objective"/>; its militia fight only here.</summary>
         public int ObjectiveCityId { get; }
 
-        public int WallTier { get; }
-        public int MaxWallHp { get; }
+        public int WallTier { get; private set; }
+        public int MaxWallHp { get; private set; }
         public int WallHp { get; private set; }
         public bool HasWalls => MaxWallHp > 0;
         public bool WallsIntact => WallHp > 0;
@@ -446,7 +502,7 @@ namespace Crucible.Core.Combat
         // ------------------------------------------------------------------ queries
 
         public IEnumerable<Unit> DeployedUnits(BattleSideId side) =>
-            _positions.Keys.Select(FindUnit).Where(u => u != null && _sideOf[u.Id] == side);
+            _positions.Keys.OrderBy(id => id).Select(FindUnit).Where(u => u != null && _sideOf[u.Id] == side);
 
         public IEnumerable<Unit> AllDeployedUnits => _occupants.Values;
 

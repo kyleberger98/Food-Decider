@@ -42,6 +42,12 @@ namespace Crucible.Core.Game
             RunAIPlayers();
         }
 
+        /// <summary>Continues a loaded game on the saved player's turn (their turn-start work already happened).</summary>
+        public void Resume(int activePlayerIndex)
+        {
+            ActivePlayerIndex = activePlayerIndex;
+        }
+
         /// <summary>
         /// The active (human) player ends their turn and the AI players take theirs. In an all-AI game
         /// each call plays exactly one round, and the active AI always gets its turn (never skipped).

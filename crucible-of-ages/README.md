@@ -40,13 +40,14 @@ army caps, and the victory conditions.
 |---|---|
 | World | Click your army (blue), hover a hex to see the route and turns, and click to march there (multi-turn orders continue automatically). Click an adjacent enemy or city to attack. **Enter** ends the turn. |
 | Cities | Click your city for its panel (growth, borders, production); pick what to build from the list, or **Buy** it with gold. **F** founds a city with a selected settler. **T** cycles research. **P** opens social policies. |
-| Great people & city-states | With a great person selected, **E** uses their gift (Great Generals lead armies instead: merge them in). Click a city-state to see influence and gift gold. |
+| Great people & city-states | With a great person selected, **V** uses their gift (Great Generals lead armies instead: merge them in). Click a city-state to see influence and gift gold. |
 | Workers | With a worker selected: **I** builds the best improvement on its hex (moving cancels), **U** toggles automation. |
 | Deployment | Click a unit, then a blue hex of your zone (swaps with friends). **Space** confirms. |
 | Battle | Click a unit, then a green hex to move or a red enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats, **X** auto-resolves the round, **B** batters the walls with the selected unit. |
 | Reinforce | With an army next to an ongoing battle selected, click a battlefield hex to join it. |
 | Siege | Next to an enemy city, **G** declares a siege (militia rise, the city stops growing). The siege panel spends siege progress on rams, siege towers and catapults. Click the city to assault it. |
 | Camera | WASD/arrows pan, Q/E rotate, mouse wheel zooms |
+| Saving | **F5** quick-saves, **F9** quick-loads (`quicksave.crucible` in Unity's persistent data folder) |
 
 ## Status
 

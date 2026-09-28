@@ -58,6 +58,15 @@ namespace Crucible.Core.Empire
             if (CurrentResearch == techId) CurrentResearch = null;
         }
 
+        /// <summary>Save-game restore (bypasses prerequisite checks).</summary>
+        internal void Restore(IEnumerable<string> researched, string current, int progress)
+        {
+            _researched.Clear();
+            foreach (var id in researched) _researched.Add(id);
+            CurrentResearch = current;
+            Progress = progress;
+        }
+
         public int ArmyCapBonus => _researched.Sum(id => _content.Tech(id).ArmyCapBonus);
     }
 }

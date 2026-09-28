@@ -144,9 +144,11 @@ namespace Crucible.Core.Tests
         public void Skirmish_setup_builds_a_playable_game()
         {
             var g = GameSetup.NewSkirmish(2024);
-            Assert.Equal(2, g.Players.Count);
-            Assert.Equal(2, g.Cities.Count());
-            Assert.Equal(2, g.Armies.Count());
+            Assert.Equal(2, g.MajorPlayers.Count());
+            Assert.Equal(2, g.Players.Count(p => p.IsCityState));
+            Assert.Equal(4, g.Cities.Count());
+            Assert.Equal(2, g.Cities.Count(c => c.IsOriginalCapital)); // city-states never count for domination
+            Assert.Equal(4, g.Armies.Count());
             Assert.All(g.Armies, a => Assert.True(g.Map.Get(a.Position).IsPassableForLand));
         }
     }

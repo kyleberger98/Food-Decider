@@ -38,7 +38,7 @@ namespace Crucible.Core.Tests
             var turns = new TurnManager(g, new StrategicAI());
             turns.Start();
             for (int i = 0; i < 120; i++) turns.EndTurn();
-            Assert.All(g.Players, p => Assert.True(g.Cities.Count(c => c.FounderId == p.Id) >= 2, $"{p.Name} founded too few cities"));
+            Assert.All(g.MajorPlayers, p => Assert.True(g.Cities.Count(c => c.FounderId == p.Id) >= 2, $"{p.Name} founded too few cities"));
             Assert.All(g.Cities.Where(c => !c.IsOriginalCapital), c =>
                 Assert.All(g.Cities.Where(o => o != c), o => Assert.True(o.Position.DistanceTo(c.Position) >= 4)));
         }

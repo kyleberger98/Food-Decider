@@ -73,6 +73,15 @@ namespace Crucible.Core.Economy
                 if (IsCapital(game, city)) total += policy.CapitalYields;
             }
             total.Science += city.Population; // Civ V BNW: 1 science per citizen
+            total.Culture += 2 * city.GreatWorks;
+            if (IsCapital(game, city))
+            {
+                var owner = game.Player(city.OwnerId);
+                total += game.CityStateBonusYields(owner);
+                // Founder belief: +1 gold and +1 culture per 2 cities following the faith, anywhere.
+                int followers = game.FollowerCities(owner);
+                total += new Yields(gold: followers / 2, culture: followers / 2);
+            }
 
             if (city.IsBesieged) total.Production = total.Production * 3 / 4;
             return total;
@@ -110,7 +119,9 @@ namespace Crucible.Core.Economy
             int buildings = cities.Sum(c => c.Buildings.Sum(b => game.Content.Building(b).Happiness));
             int policies = player.Policies.Sum(p => game.Content.Policy(p).Happiness);
             int luxuries = Improvements.ConnectedLuxuries(game, player.Id).Count() * Improvements.HappinessPerLuxury;
-            return BaseHappiness + buildings + policies + luxuries
+            // Follower belief: +1 happiness per own city following any religion.
+            int faithful = cities.Count(c => c.ReligionId >= 0);
+            return BaseHappiness + buildings + policies + luxuries + faithful + game.CityStateHappiness(player)
                    - UnhappinessPerCity * cities.Count
                    - UnhappinessPerCitizen * cities.Sum(c => c.Population);
         }
@@ -158,6 +169,17 @@ namespace Crucible.Core.Economy
         public static bool CanBuild(GameState game, City city, ProductionItem item)
         {
             var player = game.Player(city.OwnerId);
+            if (item.Kind == ProductionKind.Unit && player.IsCityState && game.Content.Unit(item.Id).Id == DefaultContent.SettlerUnit) return false;
+            if (item.Kind == ProductionKind.Project)
+            {
+                var pr = game.Content.Project(item.Id);
+                int done = player.CompletedProjects.TryGetValue(pr.Id, out var n) ? n : 0;
+                return !player.IsCityState && done < pr.MaxCount && player.Tech.Has(pr.RequiredTech) &&
+                       (pr.RequiresProject == null || player.CompletedProjects.ContainsKey(pr.RequiresProject)) &&
+                       (pr.RequiredBuilding == null || city.Has(pr.RequiredBuilding)) &&
+                       !game.Cities.Any(c => c != city && c.OwnerId == player.Id && c.CurrentProduction.HasValue &&
+                                             c.CurrentProduction.Value.Equals(item) && done + 1 >= pr.MaxCount);
+            }
             if (item.Kind == ProductionKind.Building)
             {
                 var b = game.Content.Building(item.Id);
@@ -165,7 +187,7 @@ namespace Crucible.Core.Economy
             }
 
             var u = game.Content.Unit(item.Id);
-            if (u.Id == DefaultContent.MilitiaUnit || u.SiegeOnly || !player.Tech.Has(u.RequiredTech)) return false;
+            if (u.Id == DefaultContent.MilitiaUnit || u.SiegeOnly || u.GreatPerson != GreatPersonType.None || !player.Tech.Has(u.RequiredTech)) return false;
             if (u.FactionId != null && u.FactionId != player.Faction.Id) return false;
             // A faction's unique unit replaces the generic one.
             if (game.Content.Units.Any(x => x.FactionId == player.Faction.Id && x.Replaces == u.Id)) return false;
@@ -197,11 +219,13 @@ namespace Crucible.Core.Economy
             game.Map.NeighborsOf(city.Position).Any(t => t.IsWater);
 
         public static int Cost(GameState game, ProductionItem item) =>
-            item.Kind == ProductionKind.Building
-                ? game.Content.Building(item.Id).ProductionCost
-                : game.Content.Unit(item.Id).ProductionCost;
+            item.Kind == ProductionKind.Building ? game.Content.Building(item.Id).ProductionCost
+            : item.Kind == ProductionKind.Project ? game.Content.Project(item.Id).ProductionCost
+            : game.Content.Unit(item.Id).ProductionCost;
 
         public static string NameOf(GameState game, ProductionItem item) =>
-            item.Kind == ProductionKind.Building ? game.Content.Building(item.Id).Name : game.Content.Unit(item.Id).Name;
+            item.Kind == ProductionKind.Building ? game.Content.Building(item.Id).Name
+            : item.Kind == ProductionKind.Project ? game.Content.Project(item.Id).Name
+            : game.Content.Unit(item.Id).Name;
     }
 }

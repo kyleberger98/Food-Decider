@@ -8,6 +8,7 @@ namespace Crucible.Core.Empire
     {
         Unit,
         Building,
+        Project,
     }
 
     /// <summary>What a city is building: a unit or a building, by definition id.</summary>
@@ -25,6 +26,7 @@ namespace Crucible.Core.Empire
 
         public static ProductionItem Unit(string id) => new ProductionItem(ProductionKind.Unit, id);
         public static ProductionItem Building(string id) => new ProductionItem(ProductionKind.Building, id);
+        public static ProductionItem Project(string id) => new ProductionItem(ProductionKind.Project, id);
 
         public bool Equals(ProductionItem o) => Kind == o.Kind && Id == o.Id;
         public override bool Equals(object obj) => obj is ProductionItem p && Equals(p);
@@ -79,6 +81,17 @@ namespace Crucible.Core.Empire
         public List<Units.Unit> AirUnits { get; } = new List<Units.Unit>();
 
         public const int AirCapacity = 4;
+
+        // --- Religion & culture (M8) ---
+
+        /// <summary>Majority religion, or -1.</summary>
+        public int ReligionId { get; set; } = -1;
+
+        /// <summary>Accumulated religious pressure per religion id.</summary>
+        public Dictionary<int, int> ReligiousPressure { get; } = new Dictionary<int, int>();
+
+        /// <summary>Great works created here by Great Artists (tourism and culture).</summary>
+        public int GreatWorks { get; set; }
 
         public City(int id, string name, int ownerId, HexCoord position)
         {

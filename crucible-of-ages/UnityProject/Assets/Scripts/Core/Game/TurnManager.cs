@@ -72,6 +72,7 @@ namespace Crucible.Core.Game
                 {
                     ActivePlayerIndex = 0;
                     _game.Turn++;
+                    _game.ProcessWorldTurn();
                     _game.Victory = _game.Victory ?? VictoryChecker.Check(_game);
                 }
             } while (ActivePlayer.IsEliminated && !IsGameOver);

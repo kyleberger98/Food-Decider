@@ -561,6 +561,8 @@ namespace Crucible.Core.Combat
                     n != from && _occupants.TryGetValue(n, out var o) && o != attacker && _sideOf[o.Id] == side),
                 WallsBreached = HasWalls && !WallsIntact && Objective == target,
             };
+            if (HasGeneral(side)) s.AttackerExtras.Add(new CombatModifier("Great General", GeneralBonus));
+            if (HasGeneral(Opponent(side).Id)) s.DefenderExtras.Add(new CombatModifier("Great General", GeneralBonus));
             int atkPolicy = PolicyCombatBonus(Side(side).Player), defPolicy = PolicyCombatBonus(Opponent(side).Player);
             if (atkPolicy != 0) s.AttackerExtras.Add(new CombatModifier("Policies", atkPolicy));
             if (defPolicy != 0) s.DefenderExtras.Add(new CombatModifier("Policies", defPolicy));
@@ -568,6 +570,21 @@ namespace Crucible.Core.Combat
             if (Opponent(side).Player.IsVeryUnhappy) s.DefenderExtras.Add(new CombatModifier("Unhappiness", UnhappinessPenalty));
             return s;
         }
+
+        public const int GeneralBonus = 3;
+
+        /// <summary>A Great General rides with one of the side's armies.</summary>
+        public bool HasGeneral(BattleSideId side) =>
+            Side(side).Armies.Any(a => a.Units.Any(u => u.IsAlive && u.Def.GreatPerson == GreatPersonType.General));
+
+        readonly Dictionary<BattleSideId, int> _damageDealt = new Dictionary<BattleSideId, int>
+        {
+            [BattleSideId.Attacker] = 0,
+            [BattleSideId.Defender] = 0,
+        };
+
+        /// <summary>Total damage a side has inflicted on enemy units (feeds Great General points).</summary>
+        public int DamageDealt(BattleSideId side) => _damageDealt[side];
 
         /// <summary>Set by the game from content: policy id → CS bonus (keeps Battle free of the content DB).</summary>
         public Func<string, int> PolicyStrength { get; set; }
@@ -604,6 +621,8 @@ namespace Crucible.Core.Combat
 
             var defender = UnitAt(target);
             var result = CombatResolver.Resolve(BuildSituation(attacker, from, defender), _rng);
+            _damageDealt[SideOf(attacker)] += result.DamageToDefender;
+            _damageDealt[SideOf(defender)] += result.DamageToAttacker;
             Log.Add($"{attacker} → {defender}: {result.DamageToDefender} dmg" +
                     (result.DamageToAttacker > 0 ? $", takes {result.DamageToAttacker}" : "") +
                     $" [{result.Preview.Attacker.Total} vs {result.Preview.Defender.Total}]");

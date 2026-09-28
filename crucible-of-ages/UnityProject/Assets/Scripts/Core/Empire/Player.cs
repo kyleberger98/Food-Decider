@@ -4,6 +4,14 @@ using Crucible.Core.Content;
 
 namespace Crucible.Core.Empire
 {
+    public enum CityStateType
+    {
+        Maritime,
+        Cultured,
+        Mercantile,
+        Militaristic,
+    }
+
     [Serializable]
     public sealed class Player
     {
@@ -34,7 +42,34 @@ namespace Crucible.Core.Empire
         public HashSet<string> Policies { get; } = new HashSet<string>();
         public int PolicyCulture { get; set; }
 
-        // --- Victory progress (systems land in M8; the checker reads these today) ---
+        // --- City-states (GDD §3) ---
+
+        /// <summary>A minor civilisation: one city, never expands or wars, courted with gold.</summary>
+        public bool IsCityState { get; set; }
+        public CityStateType CityStateType { get; set; }
+
+        /// <summary>On a city-state: each major player's influence with it.</summary>
+        public Dictionary<int, int> Influence { get; } = new Dictionary<int, int>();
+
+        // --- Great people & religion (M8) ---
+        public Dictionary<Content.GreatPersonType, int> GreatPersonPoints { get; } = new Dictionary<Content.GreatPersonType, int>();
+        public Dictionary<Content.GreatPersonType, int> GreatPeopleBorn { get; } = new Dictionary<Content.GreatPersonType, int>();
+
+        /// <summary>Points toward the next Great General, earned in battle.</summary>
+        public int GeneralPoints { get; set; }
+
+        public int Faith { get; set; }
+        public int ProphetsBorn { get; set; }
+
+        /// <summary>Religion this player founded, or -1.</summary>
+        public int FoundedReligionId { get; set; } = -1;
+
+        // --- Victory progress ---
+        public Dictionary<string, int> CompletedProjects { get; } = new Dictionary<string, int>();
+        public int SpaceshipPartsBuilt { get; set; }
+
+        /// <summary>Turn the launched spaceship arrives, or -1 if none is in flight.</summary>
+        public int SpaceshipArrivalTurn { get; set; } = -1;
         public int SpaceshipPartsLanded { get; set; }
         public int Tourism { get; set; }
         public int LifetimeCulture { get; set; }

@@ -35,6 +35,39 @@ namespace Crucible.Core.Content
         Missile,
     }
 
+    public enum GreatPersonType
+    {
+        None,
+        Scientist,
+        Engineer,
+        Merchant,
+        Artist,
+        Prophet,
+        General,
+    }
+
+    /// <summary>One-off city projects: the Apollo Program and spaceship parts (GDD §5).</summary>
+    [Serializable]
+    public sealed class ProjectDef
+    {
+        public string Id;
+        public string Name;
+        public int ProductionCost;
+        public string RequiredTech;
+
+        /// <summary>Project the player must have completed first (parts need Apollo).</summary>
+        public string RequiresProject;
+
+        /// <summary>How many times one player may complete it.</summary>
+        public int MaxCount = 1;
+
+        /// <summary>Counts as a spaceship part.</summary>
+        public bool SpaceshipPart;
+
+        /// <summary>Only cities with this building may build it (parts need a Factory).</summary>
+        public string RequiredBuilding;
+    }
+
     /// <summary>Where a unit lives: land armies, fleets on water, or aircraft based in cities.</summary>
     public enum UnitDomain
     {
@@ -92,6 +125,9 @@ namespace Crucible.Core.Content
         /// <summary>Naval unit that cannot leave coastal waters (triremes).</summary>
         public bool CoastOnly;
 
+        /// <summary>Great people are civilians with a one-off (or, for generals, standing) ability.</summary>
+        public GreatPersonType GreatPerson;
+
         public bool IsRanged => RangedStrength > 0 && Range > 0 && Domain != UnitDomain.Air;
         public bool IsMilitary => Class != UnitClass.Civilian;
 
@@ -133,6 +169,10 @@ namespace Crucible.Core.Content
 
         /// <summary>Global happiness it provides.</summary>
         public int Happiness;
+
+        /// <summary>Great person points per turn and their type (libraries → scientists, …).</summary>
+        public GreatPersonType GreatPersonType;
+        public int GreatPersonPoints;
 
         /// <summary>Wall tiers added to the city centre (see GDD §4.6).</summary>
         public int WallTiers;

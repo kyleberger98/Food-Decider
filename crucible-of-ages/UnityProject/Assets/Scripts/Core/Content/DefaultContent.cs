@@ -15,6 +15,7 @@ namespace Crucible.Core.Content
         public const string MilitiaUnit = "militia";
         public const string SettlerUnit = "settler";
         public const string WorkerUnit = "worker";
+        public const string CityStateFaction = "city_state";
 
         public static ContentDatabase Create()
         {
@@ -24,6 +25,7 @@ namespace Crucible.Core.Content
             AddUnits(db);
             AddBuildings(db);
             AddPolicies(db);
+            AddGreatPeopleAndProjects(db);
             db.Validate();
             return db;
         }
@@ -46,6 +48,13 @@ namespace Crucible.Core.Content
                 AbilityName = "Endless Horizon",
                 AbilityText = "Mounted units +1 movement on the world map. Pillaging is free and yields double.",
                 MountedWorldMovementBonus = 1,
+            });
+            db.Add(new FactionDef
+            {
+                Id = CityStateFaction,
+                Name = "City-State",
+                AbilityName = "Independence",
+                AbilityText = "Neutral minor power. Befriend it with gold for bonuses and World Congress votes.",
             });
         }
 
@@ -116,6 +125,8 @@ namespace Crucible.Core.Content
             T("satellites", "Satellites", Era.Information, 7000, 0, "computers", "rocketry");
             T("the_internet", "The Internet", Era.Information, 7000, 0, "computers", "mass_media");
             T("nanotechnology", "Nanotechnology", Era.Information, 7500, 0, "robotics", "satellites");
+            T("globalization", "Globalization", Era.Information, 7500, 0, "the_internet");
+            T("space_flight", "Space Flight", Era.Information, 8000, 0, "satellites", "nanotechnology");
         }
 
         static void AddUnits(ContentDatabase db)
@@ -238,6 +249,49 @@ namespace Crucible.Core.Content
             P("Commerce", "protectionism", "Protectionism", "mercantilism", "+3 happiness.", happiness: 3);
         }
 
+        static void AddGreatPeopleAndProjects(ContentDatabase db)
+        {
+            void G(string id, string name, GreatPersonType type) =>
+                db.Add(new UnitDef { Id = id, Name = name, Class = UnitClass.Civilian, Era = Era.Ancient, GreatPerson = type, WorldMovement = 2 });
+            G("great_scientist", "Great Scientist", GreatPersonType.Scientist);
+            G("great_engineer", "Great Engineer", GreatPersonType.Engineer);
+            G("great_merchant", "Great Merchant", GreatPersonType.Merchant);
+            G("great_artist", "Great Artist", GreatPersonType.Artist);
+            G("great_prophet", "Great Prophet", GreatPersonType.Prophet);
+            G("great_general", "Great General", GreatPersonType.General);
+
+            // Buildings that attract great people (Civ V specialist slots, simplified to flat points).
+            void Gp(string building, GreatPersonType type, int points)
+            {
+                var b = db.Building(building);
+                b.GreatPersonType = type;
+                b.GreatPersonPoints = points;
+            }
+            Gp("library", GreatPersonType.Scientist, 2);
+            Gp("university", GreatPersonType.Scientist, 3);
+            Gp("research_lab", GreatPersonType.Scientist, 3);
+            Gp("workshop", GreatPersonType.Engineer, 2);
+            Gp("factory", GreatPersonType.Engineer, 3);
+            Gp("market", GreatPersonType.Merchant, 2);
+            Gp("bank", GreatPersonType.Merchant, 3);
+            Gp("stock_exchange", GreatPersonType.Merchant, 3);
+            Gp("amphitheater", GreatPersonType.Artist, 2);
+            Gp("broadcast_tower", GreatPersonType.Artist, 3);
+            Gp("monument", GreatPersonType.Artist, 1);
+
+            void P(string id, string name, int cost, string tech, string requires = null, int max = 1, bool part = false, string building = null) =>
+                db.Add(new ProjectDef
+                {
+                    Id = id, Name = name, ProductionCost = cost, RequiredTech = tech, RequiresProject = requires,
+                    MaxCount = max, SpaceshipPart = part, RequiredBuilding = building,
+                });
+            P("apollo_program", "Apollo Program", 1500, "space_flight");
+            P("ss_booster", "SS Booster", 1000, "space_flight", "apollo_program", max: 3, part: true, building: "factory");
+            P("ss_cockpit", "SS Cockpit", 1000, "space_flight", "apollo_program", part: true, building: "factory");
+            P("ss_stasis_chamber", "SS Stasis Chamber", 1000, "space_flight", "apollo_program", part: true, building: "factory");
+            P("ss_engine", "SS Engine", 1000, "space_flight", "apollo_program", part: true, building: "factory");
+        }
+
         static void AddBuildings(ContentDatabase db)
         {
             void B(string id, string name, Era era, int cost, string tech, int upkeep, Yields yields, int happiness = 0, int walls = 0) =>
@@ -263,7 +317,8 @@ namespace Crucible.Core.Content
             B("stadium", "Stadium", Era.Modern, 350, "radio", 3, new Yields(), happiness: 4);
             B("research_lab", "Research Lab", Era.Information, 400, "computers", 3, new Yields(science: 8));
             B("amphitheater", "Amphitheater", Era.Classical, 100, "drama", 1, new Yields(culture: 3));
-            B("temple", "Temple", Era.Medieval, 100, "theology", 1, new Yields(culture: 1), happiness: 2);
+            B("temple", "Temple", Era.Medieval, 100, "theology", 1, new Yields(culture: 1, faith: 3), happiness: 2);
+            B("shrine", "Shrine", Era.Ancient, 40, "pottery", 1, new Yields(faith: 1));
             B("stock_exchange", "Stock Exchange", Era.Renaissance, 250, "economics", 0, new Yields(gold: 5));
             B("public_school", "Public School", Era.Industrial, 300, "scientific_theory", 3, new Yields(science: 5));
             B("broadcast_tower", "Broadcast Tower", Era.Atomic, 350, "mass_media", 3, new Yields(culture: 5));

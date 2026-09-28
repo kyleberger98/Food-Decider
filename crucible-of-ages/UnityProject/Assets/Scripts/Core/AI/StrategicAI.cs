@@ -42,6 +42,13 @@ namespace Crucible.Core.AI
 
         public void TakeTurn(GameState game, Player player)
         {
+            if (player.IsCityState)
+            {
+                // Minor powers sit tight: build up the city and its garrison, never expand or attack.
+                player.AIWantsSettlers = false;
+                player.AIMilitaryTarget = 2;
+                return;
+            }
             if (!_memory.TryGetValue(player.Id, out var memory)) _memory[player.Id] = memory = new Memory();
 
             PlanEconomy(game, player);
@@ -51,7 +58,44 @@ namespace Crucible.Core.AI
             foreach (var army in OwnArmies(game, player).Where(IsSettlerArmy).ToList()) ManageSettler(game, player, army);
             Defend(game, player);
             Offense(game, player, memory);
+            UseGreatPeople(game, player);
+            CourtCityStates(game, player);
             SpendGold(game, player);
+        }
+
+        /// <summary>Great people act at once; generals ride with the largest field army.</summary>
+        void UseGreatPeople(GameState game, Player player)
+        {
+            foreach (var army in OwnArmies(game, player).Where(a => !a.InBattle).ToList())
+                foreach (var person in army.Units.Where(u => u.Def.GreatPerson != GreatPersonType.None &&
+                                                             u.Def.GreatPerson != GreatPersonType.General).ToList())
+                    if (game.Army(army.Id) != null) game.UseGreatPerson(army, person);
+
+            var spearhead = FieldArmies(game, player).Where(a => !a.Units.Any(IsGeneral))
+                .OrderByDescending(a => a.Count).ThenBy(a => a.Id).FirstOrDefault();
+            if (spearhead == null) return;
+            foreach (var generalArmy in OwnArmies(game, player).Where(a => !a.InBattle && a.Units.All(u => !u.Def.IsMilitary) && a.Units.Any(IsGeneral)).ToList())
+            {
+                if (generalArmy.Position.DistanceTo(spearhead.Position) <= 1) game.MergeArmies(generalArmy, spearhead);
+                else if (FreeNeighbor(game, spearhead.Position) is HexCoord meet) game.OrderMove(generalArmy, meet);
+            }
+        }
+
+        static bool IsGeneral(Unit u) => u.Def.GreatPerson == GreatPersonType.General;
+
+        /// <summary>
+        /// Gold for influence: keep the best-liked city-state as an ally, especially once the World Congress
+        /// sits (their delegates decide World Leader votes).
+        /// </summary>
+        void CourtCityStates(GameState game, Player player)
+        {
+            int budget = game.WorldCongressFounded ? 250 : 400;
+            if (player.Gold - GoldReserve < budget + 100) return;
+            var target = game.Players.Where(p => p.IsCityState && !p.IsEliminated)
+                .Where(cs => game.AllyOf(cs) != player.Id || game.InfluenceOf(cs, player.Id) < GameState.AllyInfluence + 15)
+                .OrderByDescending(cs => game.InfluenceOf(cs, player.Id)).ThenBy(cs => cs.Id)
+                .FirstOrDefault();
+            if (target != null) game.GiftGold(player, target, budget);
         }
 
         /// <summary>Gold kept in reserve for emergencies.</summary>

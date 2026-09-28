@@ -34,6 +34,7 @@ namespace Crucible.View
         int _mapVersion = -1;
         Vector2 _cityScroll;
         bool _showPolicies;
+        Player _selectedCityState;
 
         /// <summary>Screen areas drawn by OnGUI last frame; clicks there don't reach the map.</summary>
         readonly System.Collections.Generic.List<Rect> _uiRects = new System.Collections.Generic.List<Rect>();
@@ -61,6 +62,8 @@ namespace Crucible.View
             _game.BattleStarted += b => _message = $"Battle! Round {b.Round}. Your units deploy in the tinted zone.";
             _game.BattleEnded += b => _message = $"Battle over: {b.Status}.";
             _game.ArmySunk += a => _message = $"An embarked army ({a.Count} units) was sunk at sea!";
+            _game.GreatPersonBorn += (p, u) => { if (!p.IsAI) _message = $"A {u.Def.Name} is born! Select them and press E to use their gift."; };
+            _game.ReligionFounded += r => _message = $"{r.Name} has been founded by {_game.Player(r.FounderId).Name}.";
         }
 
         Player Human => _turns.ActivePlayer;
@@ -134,6 +137,13 @@ namespace Crucible.View
                     _message = imp != Crucible.Core.World.ImprovementType.None && _game.StartImprovement(_selectedArmy, imp)
                         ? $"Building a {imp} ({Improvements.BuildTurns(imp) - tile.ImprovementProgress} turns). Moving cancels."
                         : "Nothing to build here (needs a worker, your territory, the right tech and terrain).";
+                }
+                else if (Input.GetKeyDown(KeyCode.E) && _selectedArmy != null)
+                {
+                    var person = _selectedArmy.Units.FirstOrDefault(u => u.Def.GreatPerson != Crucible.Core.Content.GreatPersonType.None &&
+                                                                          u.Def.GreatPerson != Crucible.Core.Content.GreatPersonType.General);
+                    _message = person == null ? "No great person here (Great Generals lead armies: merge them into one)."
+                        : _game.UseGreatPerson(_selectedArmy, person) ?? "They can't do that right now.";
                 }
                 else if (Input.GetKeyDown(KeyCode.U) && _selectedArmy != null && WorkerAutomation.HasWorker(_selectedArmy))
                 {
@@ -250,6 +260,7 @@ namespace Crucible.View
             var clickedCity = _game.CityAt(hex);
             if (clickedCity != null && clickedCity.OwnerId == Human.Id) _selectedCity = clickedCity;
             else if (_selectedArmy == null) _selectedCity = null;
+            _selectedCityState = clickedCity != null && _game.Player(clickedCity.OwnerId).IsCityState ? _game.Player(clickedCity.OwnerId) : null;
 
             var army = _game.ArmyAt(hex);
             if (army != null && army.OwnerId == Human.Id)
@@ -351,6 +362,16 @@ namespace Crucible.View
                           $"{Strategic(Crucible.Core.World.ResourceType.Oil)}   Luxuries {Improvements.ConnectedLuxuries(_game, Human.Id).Count()}");
             sb.AppendLine($"Policies {Human.Policies.Count}: culture {Human.PolicyCulture}/{policyCost}" +
                           (Human.PolicyCulture >= policyCost ? "  — P: adopt a policy!" : "  (P to view)"));
+            string religion = Human.FoundedReligionId >= 0
+                ? $"{_game.Religions[Human.FoundedReligionId].Name} ({_game.FollowerCities(Human)} cities)"
+                : "none founded";
+            sb.AppendLine($"Faith {Human.Faith}/{GameState.ProphetThreshold(Human)}   Religion: {religion}   Tourism +{Human.Tourism}");
+            sb.AppendLine(_game.WorldCongressFounded
+                ? $"World Congress: next vote turn {_game.NextWorldLeaderVoteTurn}, your delegates {(_game.Delegates().TryGetValue(Human.Id, out var d) ? d : 0)}/{_game.VotesNeeded} needed"
+                : "World Congress: not yet founded (Globalization)");
+            if (Human.CompletedProjects.ContainsKey("apollo_program"))
+                sb.AppendLine($"Spaceship: {Human.SpaceshipPartsBuilt}/{GameState.SpaceshipParts} parts" +
+                              (Human.SpaceshipArrivalTurn >= 0 ? $", lands on turn {Human.SpaceshipArrivalTurn}" : ""));
 
             var battle = HumanBattle;
             if (battle != null)
@@ -398,7 +419,8 @@ namespace Crucible.View
             GUI.Box(hud, GUIContent.none);
             GUI.Label(new Rect(20, 16, 500, 800), sb.ToString());
 
-            if (_showPolicies && battle == null) DrawPolicyPanel();
+            if (_selectedCityState != null && battle == null) DrawCityStatePanel(_selectedCityState);
+            else if (_showPolicies && battle == null) DrawPolicyPanel();
             else if (_selectedCity != null && battle == null) DrawCityPanel(_selectedCity);
             else if (battle == null && BesiegedBySelection() is City siege) DrawSiegePanel(siege);
         }
@@ -461,6 +483,7 @@ namespace Crucible.View
             _cityScroll = GUILayout.BeginScrollView(_cityScroll);
             var options = _game.Content.Buildings.Select(b => ProductionItem.Building(b.Id))
                 .Concat(_game.Content.Units.Select(u => ProductionItem.Unit(u.Id)))
+                .Concat(_game.Content.Projects.Select(p => ProductionItem.Project(p.Id)))
                 .Where(i => EconomyRules.CanBuild(_game, city, i))
                 .OrderBy(i => i.Kind).ThenBy(i => EconomyRules.Cost(_game, i));
             foreach (var item in options)
@@ -477,6 +500,33 @@ namespace Crucible.View
             }
             GUILayout.EndScrollView();
             if (GUILayout.Button("Close")) _selectedCity = null;
+            GUILayout.EndArea();
+        }
+
+        /// <summary>City-state diplomacy: influence, status and gold gifts.</summary>
+        void DrawCityStatePanel(Player cs)
+        {
+            var area = new Rect(Screen.width - 310, 10, 300, 230);
+            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
+            GUI.Box(area, GUIContent.none);
+            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
+            GUILayout.Label($"<b>{cs.Name}</b> ({cs.CityStateType} city-state)", Rich());
+            int ally = _game.AllyOf(cs);
+            GUILayout.Label($"Your influence: {_game.InfluenceOf(cs, Human.Id)} — {_game.StatusWith(cs, Human.Id)}");
+            GUILayout.Label($"Ally: {(ally >= 0 ? _game.Player(ally).Name : "none")}   (friend {GameState.FriendInfluence}, ally {GameState.AllyInfluence})");
+            GUILayout.Label(cs.CityStateType == CityStateType.Maritime ? "Friends: +1 food in capital (allies +3)"
+                : cs.CityStateType == CityStateType.Cultured ? "Friends: +2 culture (allies +5)"
+                : cs.CityStateType == CityStateType.Mercantile ? "Friends: +2 happiness (allies +4)"
+                : "Allies: a gifted unit every 15 turns");
+            GUILayout.Label("Allies also get its World Congress delegate.");
+            foreach (int gift in new[] { 50, 100, 250 })
+            {
+                GUI.enabled = Human.Gold >= gift;
+                if (GUILayout.Button($"Gift {gift} gold (+{gift / GameState.GoldPerInfluence} influence)"))
+                    _game.GiftGold(Human, cs, gift);
+                GUI.enabled = true;
+            }
+            if (GUILayout.Button("Close")) _selectedCityState = null;
             GUILayout.EndArea();
         }
 

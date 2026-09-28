@@ -52,7 +52,11 @@ namespace Crucible.Core.Units
         {
             if (unit == null) throw new ArgumentNullException(nameof(unit));
             if (unit.OwnerId != OwnerId) throw new InvalidOperationException("Cannot add another player's unit.");
-            if (_units.Count >= armyCap || _units.Contains(unit)) return false;
+            // A Great General leads the army without taking a slot: effectively army cap +1 (GDD §4.8).
+            bool general = unit.Def.GreatPerson == Content.GreatPersonType.General;
+            int counted = _units.Count(u => u.Def.GreatPerson != Content.GreatPersonType.General);
+            if ((!general && counted >= armyCap) || _units.Contains(unit)) return false;
+            if (general && _units.Any(u => u.Def.GreatPerson == Content.GreatPersonType.General)) return false;
             if (unit.Def.Domain == Content.UnitDomain.Air) return false; // aircraft are based in cities
             if (_units.Count > 0 && (unit.Def.Domain == Content.UnitDomain.Naval) != IsNaval) return false;
             _units.Add(unit);

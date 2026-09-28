@@ -130,7 +130,11 @@ namespace Crucible.Core.Game
             return army.MaxWorldMovement(u => u.Def.Class == UnitClass.Mounted ? faction.MountedWorldMovementBonus : 0);
         }
 
-        public bool AtWar(int a, int b) => a != b; // TODO(M8): diplomacy — for now everyone is at war.
+        /// <summary>
+        /// Majors are permanently at war with each other (diplomacy between majors is future work);
+        /// city-states are neutral with everyone.
+        /// </summary>
+        public bool AtWar(int a, int b) => a != b && !Player(a).IsCityState && !Player(b).IsCityState;
 
         // ------------------------------------------------------------------ world-map commands
 
@@ -141,7 +145,7 @@ namespace Crucible.Core.Game
             if (army.Position.DistanceTo(dest) != 1) return false;
             if (ArmyAt(dest) != null || BattleCovering(dest) != null) return false;
             var city = CityAt(dest);
-            if (city != null && AtWar(city.OwnerId, army.OwnerId)) return false; // cities are taken by assault
+            if (city != null && city.OwnerId != army.OwnerId) return false; // foreign cities are taken by assault, not walked into
 
             int cost = TerrainRules.StepCost(MobilityOf(army), Map.Get(army.Position), Map.Get(dest));
             if (cost == TerrainRules.Impassable) return false;
@@ -465,6 +469,9 @@ namespace Crucible.Core.Game
             _battles.Remove(battle.Id);
 
             var loser = battle.Winner == BattleSideId.Attacker ? battle.Defender : battle.Attacker;
+            // Great General points: 1 per 5 damage dealt (GDD §4.8).
+            battle.Attacker.Player.GeneralPoints += battle.DamageDealt(BattleSideId.Attacker) / 5;
+            battle.Defender.Player.GeneralPoints += battle.DamageDealt(BattleSideId.Defender) / 5;
             foreach (var side in new[] { battle.Attacker, battle.Defender })
                 foreach (var army in side.Armies)
                 {
@@ -519,6 +526,7 @@ namespace Crucible.Core.Game
             var garrison = ArmyAt(city.Position);
             if (garrison != null && garrison.OwnerId != newOwnerId) _armies.Remove(garrison.Id);
 
+            if (city.IsOriginalCapital && city.OwnerId == city.FounderId) ScrapSpaceship(Player(city.FounderId));
             city.OwnerId = newOwnerId;
             city.BesiegedSinceTurn = -1;
             city.SiegeProgress = 0;

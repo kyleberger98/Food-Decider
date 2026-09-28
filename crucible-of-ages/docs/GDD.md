@@ -283,9 +283,9 @@ expended to build a Citadel.
 | Victory | Condition |
 |---|---|
 | **Domination** | Own every original capital |
-| **Science** | Complete the spaceship: Apollo-analogue project, then 6 parts landed |
-| **Culture** | Your Tourism is influential over every other civ's Culture |
-| **Diplomatic** | Win a World Leader vote in the UN-analogue |
+| **Science** | Build the Apollo Program (Space Flight), then 6 parts (3 boosters, cockpit, stasis chamber, engine) in cities with a Factory. The ship launches automatically and lands after 10 turns. Losing your capital scraps the programme. |
+| **Culture** | Your accumulated tourism against *every* other major civ exceeds that civ's lifetime culture. Tourism = 3 per great work, + ½ your culture after Radio, doubled after The Internet. |
+| **Diplomatic** | The first civ to learn Globalization founds and hosts the World Congress (+1 delegate). Every 10 turns there's a World Leader vote: 1 delegate per major, and each city-state's delegate goes to its ally. A majority of all delegates wins. |
 | **Score** | Highest score at the turn limit (default 500, speed-scaled) |
 
 ---
@@ -356,7 +356,7 @@ crucible-of-ages/
 | M5 | Tech, policies, resources 🟡 | ✅ tech-gated units/buildings/improvements, army cap progression, 4 policy trees (Tradition, Liberty, Honor, Commerce) with Civ V cost curve, resources on the map (bonus/strategic/luxury), workers & 6 improvements, strategic caps (4 units per connected source), luxuries (+4 happiness each), worker automation, AI policy adoption. ⏳ Remaining Civ V trees & ideologies, roads, pillaging (Khaganate ability) |
 | M6 | AI v1 ✅ | Strategic AI: expansion (site scoring, settlers), garrison management, defence, one offensive at a time (rally → march → siege → engines → assault), governor plan (settlers, military target), AI-vs-AI skirmishes end in domination (tested). ⏳ Fog-aware targeting & scouting, diplomacy, spending gold (needs purchasing), multiple fronts |
 | M7 | Full-history content 🟡 | ✅ 57 techs across all 8 eras, land units every era, 5 warships, 3 aircraft, rocket artillery, 20 buildings; fleets (triremes coast-only), embarking (Optics / Astronomy), sinking embarked armies, mixed land-sea battlefields, city hangars with air strikes & interception each round, buying with gold (players and AI). ⏳ Wonders, carriers, nukes, unit upgrades, remaining ~25 techs |
-| M8 | Remaining systems | Religion, great people, city-states, World Congress, tourism |
+| M8 | Remaining systems ✅ | Great people (scientist, engineer, merchant, artist, prophet, general) from building points, faith and battle; religion founding and pressure-based spread with founder/follower beliefs; city-states (maritime, cultured, mercantile, militaristic) with influence, friends/allies, bonuses; World Congress & World Leader votes; tourism from great works and late-era culture; Apollo Program + 6 spaceship parts with flight time. All five victories reachable (tested). ⏳ Missionaries, pantheons & chosen beliefs, Congress resolutions, diplomacy between majors, conquering city-states |
 | M9 | Victory & polish | All five victories, score, balance passes, tutorial |
 
 ---

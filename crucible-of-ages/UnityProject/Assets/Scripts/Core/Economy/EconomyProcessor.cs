@@ -15,7 +15,7 @@ namespace Crucible.Core.Economy
         {
             player.Happiness = EconomyRules.Happiness(game, player);
 
-            int gold = 0, science = 0, culture = 0;
+            int gold = 0, science = 0, culture = 0, faith = 0;
             foreach (var city in game.Cities.Where(c => c.OwnerId == player.Id).OrderBy(c => c.Id).ToList())
             {
                 CityGovernor.AssignCitizens(game, city);
@@ -23,6 +23,7 @@ namespace Crucible.Core.Economy
                 gold += y.Gold;
                 science += y.Science;
                 culture += y.Culture;
+                faith += y.Faith;
 
                 Grow(game, city, y);
                 Build(game, city, y);
@@ -38,6 +39,8 @@ namespace Crucible.Core.Economy
                 player.Gold = 0;
             }
 
+            game.ProcessGreatPeople(player, faith);
+            game.ProcessTourism(player);
             player.LifetimeCulture += culture;
             player.PolicyCulture += culture;
             if (player.IsAI) AutoAdoptPolicies(game, player);
@@ -107,8 +110,8 @@ namespace Crucible.Core.Economy
             int cost = EconomyRules.Cost(game, item);
             if (city.ProductionStored < cost) return;
 
-            bool done = item.Kind == ProductionKind.Building
-                ? game.CompleteBuilding(city, item.Id)
+            bool done = item.Kind == ProductionKind.Building ? game.CompleteBuilding(city, item.Id)
+                : item.Kind == ProductionKind.Project ? game.CompleteProject(city, item.Id)
                 : game.SpawnUnit(city, item.Id) != null;
             if (!done) return; // no room to place the unit yet: keep the progress
 

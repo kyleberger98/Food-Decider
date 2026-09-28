@@ -14,7 +14,7 @@ namespace Crucible.Core.Economy
     public static class CityGovernor
     {
         static readonly string[] BuildingPriority =
-            { "monument", "granary", "market", "library", "harbor", "walls", "temple", "workshop", "amphitheater",
+            { "monument", "shrine", "granary", "market", "library", "harbor", "walls", "temple", "workshop", "amphitheater",
               "university", "bank", "colosseum", "castle", "stock_exchange", "public_school", "factory",
               "stadium", "broadcast_tower", "research_lab", "data_center" };
 
@@ -72,6 +72,18 @@ namespace Crucible.Core.Economy
             // Air cover: one fighter per city once flight is known.
             if (owner.IsAI && city.AirUnits.Count == 0 && netGold >= 2 && BestAirUnit(game, city) is ProductionItem plane)
                 return plane;
+
+            // Space race: the most productive city with a factory builds Apollo, then the parts.
+            if (!owner.IsCityState)
+            {
+                var project = game.Content.Projects
+                    .Select(p => ProductionItem.Project(p.Id))
+                    .FirstOrDefault(p => EconomyRules.CanBuild(game, city, p));
+                bool bestCity = game.Cities.Where(c => c.OwnerId == owner.Id)
+                    .OrderByDescending(c => EconomyRules.CityYields(game, c).Production).ThenBy(c => c.Id)
+                    .Take(2).Contains(city);
+                if (project.Id != null && bestCity) return project;
+            }
 
             if (owner.Happiness < 2 && EconomyRules.CanBuild(game, city, ProductionItem.Building("colosseum")))
                 return ProductionItem.Building("colosseum");

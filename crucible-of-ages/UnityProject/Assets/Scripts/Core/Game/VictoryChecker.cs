@@ -27,7 +27,7 @@ namespace Crucible.Core.Game
 
         public static VictoryResult Check(GameState g)
         {
-            var alive = g.Players.Where(p => !p.IsEliminated).ToList();
+            var alive = g.Players.Where(p => !p.IsEliminated && !p.IsCityState).ToList();
 
             // Domination: one player owns every original capital.
             var capitals = g.Cities.Where(c => c.IsOriginalCapital).ToList();

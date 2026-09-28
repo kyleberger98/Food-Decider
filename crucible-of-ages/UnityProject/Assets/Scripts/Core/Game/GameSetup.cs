@@ -21,6 +21,7 @@ namespace Crucible.Core.Game
             var starts = PickStarts(map);
             PlaceStart(game, human.Id, starts.a, "Aurelia", "warrior", "warrior", "archer", "spearman", DefaultContent.SettlerUnit);
             PlaceStart(game, ai.Id, starts.b, "Ordu-Baliq", "warrior", "archer", "sky_rider", "horseman");
+            PlaceCityStates(game);
             return game;
         }
 
@@ -32,6 +33,26 @@ namespace Crucible.Core.Game
                 .OrderBy(n => n.Q).ThenBy(n => n.R)
                 .First();
             game.CreateArmy(playerId, armyHex, units);
+        }
+
+        /// <summary>Two neutral city-states on good land at least 6 hexes from every city.</summary>
+        static void PlaceCityStates(GameState game)
+        {
+            var specs = new[] { ("Kessra", Empire.CityStateType.Maritime), ("Vallum", Empire.CityStateType.Mercantile) };
+            foreach (var (name, type) in specs)
+            {
+                var site = game.Map.Tiles
+                    .Where(t => t.IsPassableForLand && t.Elevation <= 2 && t.OwnerPlayerId < 0)
+                    .Where(t => game.Cities.All(c => c.Position.DistanceTo(t.Coord) >= 6))
+                    .Where(t => game.ArmyAt(t.Coord) == null)
+                    .OrderByDescending(t => game.Cities.Min(c => c.Position.DistanceTo(t.Coord)))
+                    .ThenBy(t => t.Coord.Q).ThenBy(t => t.Coord.R)
+                    .Select(t => (HexCoord?)t.Coord)
+                    .FirstOrDefault();
+                if (!site.HasValue) return;
+                var cs = game.AddCityState(name, type, site.Value);
+                game.CreateArmy(cs.Id, site.Value, "warrior", "archer");
+            }
         }
 
         /// <summary>Two good start tiles (low, dry land with room around it) as far apart as possible.</summary>

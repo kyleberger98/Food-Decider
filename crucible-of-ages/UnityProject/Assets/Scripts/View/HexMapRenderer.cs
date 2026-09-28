@@ -26,7 +26,7 @@ namespace Crucible.View
         WorldMap _map;
         TerrainArt _art;
         TerrainMesh _built;
-        Mesh _groundMesh, _propMesh;
+        Mesh _groundMesh, _propMesh, _colliderMesh;
         Color[] _groundBase, _groundShown, _propBase, _propShown;
         Vector3[] _propPositions, _propShownPositions;
         readonly HashSet<HexCoord> _clearedProps = new HashSet<HexCoord>();
@@ -60,7 +60,9 @@ namespace Crucible.View
             _groundBase = _groundMesh.colors;
             _groundShown = (Color[])_groundBase.Clone();
             GetComponent<MeshFilter>().sharedMesh = _groundMesh;
-            GetComponent<MeshCollider>().sharedMesh = _groundMesh;
+            if (_colliderMesh != null) Destroy(_colliderMesh);
+            _colliderMesh = ToMesh(_built.Collider, "WorldPicking"); // flat hex tops: cheap to raycast
+            GetComponent<MeshCollider>().sharedMesh = _colliderMesh;
             GetComponent<MeshRenderer>().sharedMaterial = LowPolyMaterial;
 
             var props = transform.Find("Decorations");

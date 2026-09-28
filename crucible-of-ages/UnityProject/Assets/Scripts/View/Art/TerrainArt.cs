@@ -10,6 +10,9 @@ namespace Crucible.View.Art
     {
         public readonly MeshData Ground = new MeshData();
         public readonly MeshData Props = new MeshData();
+
+        /// <summary>Flat hex tops only: cheap picking geometry, whatever detail the ground has.</summary>
+        public readonly MeshData Collider = new MeshData();
         public readonly Dictionary<HexCoord, (int start, int count)> GroundRanges = new Dictionary<HexCoord, (int, int)>();
         public readonly Dictionary<HexCoord, (int start, int count)> PropRanges = new Dictionary<HexCoord, (int, int)>();
     }
@@ -66,9 +69,13 @@ namespace Crucible.View.Art
         public TerrainMesh Build(WorldMap map)
         {
             _map = map;
+            FindTileVariants();
             var result = new TerrainMesh();
             foreach (var tile in map.Tiles)
             {
+                var c = Center(tile.Coord);
+                result.Collider.Hexagon(Frame.At(c), HexSize, default);
+
                 int g = result.Ground.VertexCount;
                 AddGround(result.Ground, tile);
                 result.GroundRanges[tile.Coord] = (g, result.Ground.VertexCount - g);
@@ -78,6 +85,75 @@ namespace Crucible.View.Art
                 result.PropRanges[tile.Coord] = (p, result.Props.VertexCount - p);
             }
             return result;
+        }
+
+        // ------------------------------------------------------------------ Blender tile tops
+
+        /// <summary>Tile-top kinds exported from Blender (tile_&lt;kind&gt;_&lt;n&gt;), see Tools/blender/build_tiles.py.</summary>
+        static readonly string[] TileKinds =
+        {
+            "grassland", "plains", "desert", "tundra", "snow",
+            "hills_grassland", "hills_plains", "hills_desert", "hills_tundra", "hills_snow",
+            "mountain", "marsh", "ocean", "coast", "lake", "ice",
+        };
+
+        readonly Dictionary<string, List<string>> _tileVariants = new Dictionary<string, List<string>>();
+
+        void FindTileVariants()
+        {
+            _tileVariants.Clear();
+            var lib = ArtLibrary.Current;
+            if (lib == null) return;
+            foreach (var kind in TileKinds)
+            {
+                var names = new List<string>();
+                for (int n = 1; lib.Has($"tile_{kind}_{n}"); n++) names.Add($"tile_{kind}_{n}");
+                if (names.Count > 0) _tileVariants[kind] = names;
+            }
+        }
+
+        static string TileKind(Tile t)
+        {
+            if (t.IsIce) return "ice";
+            switch (t.Terrain)
+            {
+                case TerrainType.Ocean: return "ocean";
+                case TerrainType.Coast: return "coast";
+                case TerrainType.Lake: return "lake";
+            }
+            if (t.IsMountain) return "mountain";
+            if (t.Feature == FeatureType.Marsh) return "marsh";
+            string terrain = t.Terrain.ToString().ToLowerInvariant();
+            return t.Elevation >= 2 ? "hills_" + terrain : terrain;
+        }
+
+        /// <summary>
+        /// Draws a Blender tile top (one of its variants, turned by a multiple of 60°) at the tile's
+        /// centre, tinted like the procedural ground (woods darken it, per-tile jitter). False if none.
+        /// </summary>
+        bool TileTop(MeshData m, Tile tile, V3 center, ArtRng rng, float jitter)
+        {
+            if (!_tileVariants.TryGetValue(TileKind(tile), out var variants)) return false;
+            var model = ArtLibrary.Current.Get(variants[(int)(rng.Next() % (uint)variants.Count)], default);
+            var frame = Frame.At(center).Rotate(60 * (int)(rng.Next() % 6)).Scale(HexSize);
+            Rgb? tint = null;
+            float amount = 0;
+            switch (tile.Feature)
+            {
+                case FeatureType.Forest: tint = Rgb.Hex(0x3E6A30); amount = 0.45f; break;
+                case FeatureType.Jungle: tint = Rgb.Hex(0x3C7A2C); amount = 0.6f; break;
+                case FeatureType.Floodplain: tint = Rgb.Hex(0x93B24C); amount = 0.5f; break;
+                case FeatureType.Oasis: tint = Rgb.Hex(0x9DB65A); amount = 0.35f; break;
+            }
+            for (int i = 0; i < model.VertexCount; i++)
+            {
+                var p = model.Positions[i];
+                var c = model.Colors[i];
+                if (tint.HasValue) c = Rgb.Lerp(c, tint.Value, amount);
+                m.Positions.Add(frame.P(p.X, p.Y, p.Z));
+                m.Colors.Add(c * jitter);
+            }
+            return true;
         }
 
         // ------------------------------------------------------------------ ground
@@ -115,7 +191,8 @@ namespace Crucible.View.Art
         {
             var rng = new ArtRng(tile.Coord.Q, tile.Coord.R, 1);
             var center = Center(tile.Coord);
-            var baseColor = GroundColor(tile) * (tile.IsWater ? rng.Range(0.985f, 1.015f) : rng.Range(0.95f, 1.05f));
+            float jitter = tile.IsWater ? rng.Range(0.985f, 1.015f) : rng.Range(0.95f, 1.05f);
+            var baseColor = GroundColor(tile) * jitter;
 
             // Which corners touch land / water (for foam and beaches).
             var cornerLand = new bool[6];
@@ -133,6 +210,20 @@ namespace Crucible.View.Art
                 }
             }
 
+            if (tile.IsWater && TileTop(m, tile, center, rng, jitter))
+            {
+                // Blender water or ice in the middle; a flat ring out to the corners carries the shore foam.
+                for (int i = 0; i < 6; i++)
+                {
+                    int j = (i + 1) % 6;
+                    Rgb ci = cornerLand[i] ? Rgb.Lerp(baseColor, Foam, tile.IsIce ? 0.2f : 0.55f) : baseColor * 0.97f;
+                    Rgb cj = cornerLand[j] ? Rgb.Lerp(baseColor, Foam, tile.IsIce ? 0.2f : 0.55f) : baseColor * 0.97f;
+                    m.Quad(center + Corner(i) * InnerRadius, center + Corner(j) * InnerRadius, center + Corner(j), center + Corner(i),
+                           baseColor, baseColor, cj, ci);
+                }
+                if (tile.IsIce) Walls(m, tile, center, center, IceShadow, IceShadow);
+                return;
+            }
             if (tile.IsWater)
             {
                 // Flat water; corners next to land blend into pale foam, ice floes get chunky shading.
@@ -159,10 +250,11 @@ namespace Crucible.View.Art
                 bool beach = cornerWater[i] && tile.Elevation <= 1 && !tile.IsMountain && tile.Terrain != TerrainType.Snow;
                 outerColor[i] = beach ? Beach : baseColor * 0.9f;
             }
+            bool authored = TileTop(m, tile, center, rng, jitter);
             for (int i = 0; i < 6; i++)
             {
                 int j = (i + 1) % 6;
-                m.Tri(center, inner[j], inner[i], baseColor);
+                if (!authored) m.Tri(center, inner[j], inner[i], baseColor);
                 m.Quad(inner[i], inner[j], outer[j], outer[i], baseColor, baseColor, outerColor[j], outerColor[i]);
             }
             Walls(m, tile, center + new V3(0, -Bevel, 0), center, baseColor * 0.72f, Beach * 0.85f);
@@ -265,7 +357,8 @@ namespace Crucible.View.Art
                     PalmTree(m, top.Move(0.05f, 0, -0.42f), rng, 1.15f);
                     break;
                 case FeatureType.None:
-                    if (tile.Terrain == TerrainType.Desert && rng.Value < 0.6f) Dunes(m, top, rng);
+                    // Blender desert tiles carry their own wind ripples; the chunky dunes are the fallback.
+                    if (tile.Terrain == TerrainType.Desert && rng.Value < 0.6f && !_tileVariants.ContainsKey(TileKind(tile))) Dunes(m, top, rng);
                     else if (tile.Terrain == TerrainType.Tundra && rng.Value < 0.5f)
                         for (int i = 0; i < 2; i++) { var at = Scatter(top, rng, 0.6f); if (!Authored(m, "prop_rock", at, 0.9f)) m.Gem(at, 0.07f, 0.05f, 0.06f, RockDark, Rock); }
                     else if (tile.Elevation >= 2 && rng.Value < 0.5f)
@@ -357,9 +450,15 @@ namespace Crucible.View.Art
                 m.Frustum(at, 5, 0, r, h * snowLine, r * (1 - snowLine) * 1.05f, dark, rock, caps: false, phase: phase);
                 m.Frustum(at, 5, h * snowLine, r * (1 - snowLine) * 1.05f, h, 0, Snow * 0.92f, Snow, caps: false, phase: phase);
             }
-            Peak(f.Move(rng.Range(-0.08f, 0.08f), 0, rng.Range(-0.08f, 0.08f)), 0.8f, 1.25f * scale, rng.Range(0, 1));
-            Peak(f.Move(0.42f, 0, -0.26f), 0.48f, 0.75f * scale, rng.Range(0, 1));
-            Peak(f.Move(-0.36f, 0, 0.34f), 0.42f, 0.6f * scale, rng.Range(0, 1));
+            // Blender peaks (prop_peak_1..3) when available; each already holds a main crag and two shoulders.
+            string peak = $"prop_peak_{1 + (int)(rng.Next() % 3)}";
+            if (Authored(m, peak, f, scale, wonder ? 0.95f : 1f)) { }
+            else
+            {
+                Peak(f.Move(rng.Range(-0.08f, 0.08f), 0, rng.Range(-0.08f, 0.08f)), 0.8f, 1.25f * scale, rng.Range(0, 1));
+                Peak(f.Move(0.42f, 0, -0.26f), 0.48f, 0.75f * scale, rng.Range(0, 1));
+                Peak(f.Move(-0.36f, 0, 0.34f), 0.42f, 0.6f * scale, rng.Range(0, 1));
+            }
             if (wonder)
             {
                 Peak(f.Move(-0.34f, 0, -0.3f), 0.28f, 0.8f, 0.4f);

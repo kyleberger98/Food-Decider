@@ -4,7 +4,7 @@ Exports every model in the open .blend to the game.
     blender -b crucible_assets.blend -P Tools/blender/export_assets.py            (from the repo root)
     blender -b crucible_assets.blend -P Tools/blender/export_assets.py -- --render (also render previews)
 
-Each mesh object named <category>_<name> in a collection called unit / prop / city is written to
+Each mesh object named <category>_<name> in a collection called unit / prop / city / tile is written to
 UnityProject/Assets/Resources/Art/<category>_<name>.bytes: "CRM1", a little-endian int32 triangle
 count, then per vertex float32 x, y, z (Unity axes: x right, y up, z forward) and uint8 r, g, b
 (sRGB). Blender's -Y (front) becomes Unity's +Z, and winding is flipped for Unity's left-handed
@@ -35,7 +35,7 @@ import crucible_art as art  # noqa: E402
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 OUT_DIR = os.path.join(REPO, "UnityProject", "Assets", "Resources", "Art")
 PREVIEW_DIR = os.path.join(REPO, "docs", "images")
-CATEGORIES = ("unit", "prop", "city")
+CATEGORIES = ("unit", "prop", "city", "tile")
 
 
 def export_object(obj, path):
@@ -124,18 +124,20 @@ def render_previews(cols=7, spacing=0.95, size=(1400, 820), samples=24):
             continue
         saved = {o.name: o.location.copy() for o in objs}
         cols_here = min(cols, len(objs))
-        spacing_here = {"unit": spacing, "prop": spacing * 0.6, "city": spacing * 1.15}.get(cat, spacing)
+        spacing_here = {"unit": spacing, "prop": spacing * 0.9, "city": spacing * 1.15, "tile": spacing * 1.9}.get(cat, spacing)
         rows = (len(objs) + cols_here - 1) // cols_here
         for i, o in enumerate(sorted(objs, key=lambda o: o.name)):
             o.location = Vector((((i % cols_here) - (cols_here - 1) / 2) * spacing_here, ((i // cols_here) - (rows - 1) / 2) * spacing_here * 1.1, 0))
             o.rotation_euler = (0, 0, math.radians(-30))  # three-quarter view, as in the game
+            if cat == "tile":
+                o.location.z = 0.06  # tile tops dip below zero: lift them off the preview ground
         # Hide the other categories.
         for other in CATEGORIES:
             oc = bpy.data.collections.get(other)
             if oc:
                 oc.hide_render = other != cat
         cam.data.type = "ORTHO"
-        cam.data.ortho_scale = max(cols_here * spacing_here * 1.1, rows * spacing_here * 1.3 * size[0] / size[1])
+        cam.data.ortho_scale = max(cols_here * spacing_here * 1.1, rows * spacing_here * 0.9 * size[0] / size[1])
         cam.location = Vector((0, -8, 7.2))
         cam.rotation_euler = (math.radians(48), 0, 0)
         # Show team parts in a player colour (blue) instead of the magenta marker.

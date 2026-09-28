@@ -40,7 +40,7 @@ symbols, miniatures and terrain meshes).
 
 ![World](docs/images/world.png)
 
-The terrain is procedural. The units, trees and cities are Blender models (see *Blender assets*). The images here come from the real geometry, drawn by a small software renderer outside Unity, so the in-editor lighting will differ a little.
+The terrain tiles, peaks, units, trees and cities are Blender models (see *Blender assets*). The rim, beaches, cliffs, rivers and wonders are procedural. The images here come from the real geometry, drawn by a small software renderer outside Unity, so the in-editor lighting will differ a little.
 
 - **World:** bevelled low-poly hexes with colour variation, sandy beaches and shore foam, rivers,
   pack ice at the poles, and decorations: conifer and broadleaf woods, jungle, marsh reeds,
@@ -63,15 +63,16 @@ The terrain is procedural. The units, trees and cities are Blender models (see *
 
 ### Blender assets
 
-The unit miniatures, trees, palms, rocks and city parts are built in **Blender** (4.2 LTS or newer) and exported into the game. Anything without a Blender model falls back to the procedural art, so the game always runs.
+The terrain tiles, mountain peaks, unit miniatures, trees, palms, rocks and city parts are built in **Blender** (4.2 LTS or newer) and exported into the game. Anything without a Blender model falls back to the procedural art, so the game always runs.
 
 | Blender models | |
 |---|---|
 | ![Units](docs/images/blender-unit.png) | ![Props](docs/images/blender-prop.png) ![City parts](docs/images/blender-city.png) |
+| ![Terrain tiles](docs/images/blender-tile.png) | Terrain tile tops. Rows by kind: grassland, plains, desert, tundra and snow (flat and hills), mountain, marsh, ocean, coast, lake and pack ice. |
 
 - **Files:**
   - `Tools/blender/crucible_assets.blend` is the model library: one object per model, in the `unit`, `prop` and `city` collections.
-  - `Tools/blender/build_assets.py` regenerates that library from code.
+  - `Tools/blender/build_assets.py` regenerates that library from code. The terrain tiles and peaks come from `build_tiles.py`.
   - `Tools/blender/export_assets.py` writes each model to `UnityProject/Assets/Resources/Art/<name>.bytes`. That is a small mesh format the game loads at startup (see `ArtLibrary`).
 - **Editing by hand:**
   1. Open the `.blend` and model or vertex-paint the colour attribute **Col**. Pure magenta (and darker magenta for shading) becomes the owner's colour in game.
@@ -87,6 +88,11 @@ The unit miniatures, trees, palms, rocks and city parts are built in **Blender**
   - Names follow the pattern `unit_<symbol>`: `unit_sword`, `unit_spear`, `unit_bow`, `unit_crossbow`, `unit_horse`, `unit_catapult`, `unit_cannon`, `unit_rocket`, `unit_musket`, `unit_helmet`, `unit_tank`, `unit_sailship`, `unit_steamship`, `unit_carrier`, `unit_fighter`, `unit_bomber`, `unit_jet`, `unit_scout`, `unit_settler`, `unit_worker`, `unit_ram`, `unit_siegetower`, and the great people `unit_general`, `unit_scientist`, `unit_engineer`, `unit_merchant`, `unit_artist`, `unit_prophet`.
   - Props are `prop_conifer`/`_b`, `prop_broadleaf`/`_b`, `prop_jungle`, `prop_palm` and `prop_rock`.
   - City parts are `city_house`, `city_keep`, `city_wall` (1.0 long along X, stretched along each hex edge) and `city_tower`.
+  - Mountain peaks are `prop_peak_1..3`.
+  - **Terrain tiles** are `tile_<kind>_<n>` (any number of variants). The kinds are `grassland`, `plains`, `desert`, `tundra`, `snow`, `hills_<same five>` (elevation 2+), `mountain`, `marsh`, `ocean`, `coast`, `lake` and `ice`.
+  - A tile is the inside of a hex: a pointy-top hexagon with a corner radius of **0.84**. Its outline must sit exactly at height 0 so it meets the game's rim, beaches, cliffs and rivers. Keep the middle about level, because units and cities stand there.
+  - The game picks a variant per hex, turns it by a multiple of 60°, and darkens it under forests and jungle.
+  - A 48×32 map with detailed tiles is about 0.9M ground vertices in one draw call. Mouse picking uses a separate flat collider.
 - `dotnet test` checks that every exported model loads, stands on the ground, faces the right way and carries team colours.
 
 ### Interface

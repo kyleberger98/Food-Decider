@@ -13,6 +13,8 @@ Models face -Y and stand on z = 0, one object per model, named <category>_<name>
   unit_*  one per unit symbol (squads of three for foot troops, rider pairs, engines, ships, planes)
   prop_*  terrain decorations (trees, palms, rocks)
   city_*  settlement parts (house, keep, wall segment, tower) assembled by the game per city
+  tile_*  terrain tile tops (grassland, hills, desert, water, ice...) and prop_peak_* mountain peaks,
+          see build_tiles.py
 """
 import math
 import os
@@ -544,7 +546,9 @@ CITY = {
 
 def build():
     a.reset_scene()
-    for cat, table in (("unit", UNITS), ("prop", PROPS), ("city", CITY)):
+    import build_tiles
+    props = dict(PROPS, **build_tiles.all_peaks())
+    for cat, table in (("unit", UNITS), ("prop", props), ("city", CITY), ("tile", build_tiles.all_tiles())):
         a.collection(cat)
         for name, make in table.items():
             join(make(), f"{cat}_{name}", cat)

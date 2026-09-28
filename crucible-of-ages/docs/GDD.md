@@ -98,8 +98,16 @@ Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
   **General**, **Admiral**.
 - **Religion:** pantheon → founding → enhancing → reformation beliefs.
 - **City-states:** Maritime / Cultured / Militaristic / Mercantile / Religious; quests; influence.
-- **Diplomacy:** declarations, open borders, research agreements, defensive pacts, embassies,
-  denouncements, and a **World Congress** that becomes the **United Nations** analogue.
+- **Diplomacy:** new games start at **peace**. Declaring war needs no active peace treaty; the
+  victim's defensive-pact partners join in, and the declaration is remembered (−30 opinion for the
+  victim and −10 for everyone else, for 50 turns). Peace can be proposed after 10 turns of war. It
+  calls off battles and sieges, expels each side's armies from the other's land, and holds for
+  10 turns. At peace, armies can't enter another major's territory without **open borders**;
+  city-state land is always open. **Defensive pacts** drag partners into wars. AI **opinion**
+  weighs declarations, lost cities, treaties and shared enemies. The AI accepts friendship when it
+  likes you and has no designs on you, and accepts peace when it's losing or the war drags on.
+  AI proposals to a human wait for an answer. Research agreements, embassies and denouncements
+  are ⏳. The **World Congress** is the **United Nations** analogue.
 - **Workers** build improvements; **roads** matter more than in Civ V, because armies are the
   main movers.
 - **Fog of war:** unexplored / fogged (terrain and cities remembered) / visible. Sight is 2 hexes,
@@ -357,7 +365,7 @@ crucible-of-ages/
 | M6 | AI v1 ✅ | Strategic AI: expansion (site scoring, settlers), garrison management, defence, one offensive at a time (rally → march → siege → engines → assault), governor plan (settlers, military target), AI-vs-AI skirmishes end in domination (tested). ⏳ Fog-aware targeting & scouting, diplomacy, spending gold (needs purchasing), multiple fronts |
 | M7 | Full-history content 🟡 | ✅ 57 techs across all 8 eras, land units every era, 5 warships, 3 aircraft, rocket artillery, 20 buildings; fleets (triremes coast-only), embarking (Optics / Astronomy), sinking embarked armies, mixed land-sea battlefields, city hangars with air strikes & interception each round, buying with gold (players and AI). ⏳ Wonders, carriers, nukes, unit upgrades, remaining ~25 techs |
 | M8 | Remaining systems ✅ | Great people (scientist, engineer, merchant, artist, prophet, general) from building points, faith and battle; religion founding and pressure-based spread with founder/follower beliefs; city-states (maritime, cultured, mercantile, militaristic) with influence, friends/allies, bonuses; World Congress & World Leader votes; tourism from great works and late-era culture; Apollo Program + 6 spaceship parts with flight time. All five victories reachable (tested). ⏳ Missionaries, pantheons & chosen beliefs, Congress resolutions, diplomacy between majors, conquering city-states |
-| M9 | Victory & polish | All five victories, score, balance passes, tutorial |
+| M9 | Victory & polish 🟡 | ✅ All five victories, save/load (deterministic, tested), diplomacy between majors. ⏳ Balance passes, tutorial, art & animation, options/menus |
 
 ---
 

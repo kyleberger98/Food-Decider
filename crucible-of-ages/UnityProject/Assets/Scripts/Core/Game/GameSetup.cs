@@ -14,6 +14,7 @@ namespace Crucible.Core.Game
             var content = DefaultContent.Create();
             var map = MapGenerator.Generate(new MapGeneratorSettings { Seed = seed, Width = width, Height = height });
             var game = new GameState(content, map, seed ^ 0x5EED5EEDUL);
+            game.Diplomacy.MajorsStartAtWar = false; // wars must be declared
 
             var human = game.AddPlayer(allAI ? "The Consul" : "You", DefaultContent.Aurel, isAI: allAI);
             var ai = game.AddPlayer("The Khagan", DefaultContent.Khaganate, isAI: true);

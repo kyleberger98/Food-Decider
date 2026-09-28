@@ -17,7 +17,7 @@ namespace Crucible.View
     /// enemy for the combat breakdown.
     /// Keys: Enter = end world turn, Space = confirm deployment / end battle turn, R = retreat,
     /// X = auto-resolve the current round, B = batter walls, G = besiege, F = found city, T = research,
-    /// P = policies, I/U = worker improve/automate, V = use great person, F5/F9 = quick save/load.
+    /// P = policies, L = diplomacy, I/U = worker improve/automate, V = use great person, F5/F9 = quick save/load.
     /// (WASD/QE belong to the camera.)
     /// </summary>
     public sealed class GameController : MonoBehaviour
@@ -36,6 +36,7 @@ namespace Crucible.View
         Vector2 _cityScroll;
         bool _showPolicies;
         Player _selectedCityState;
+        bool _showDiplomacy;
 
         /// <summary>Screen areas drawn by OnGUI last frame; clicks there don't reach the map.</summary>
         readonly System.Collections.Generic.List<Rect> _uiRects = new System.Collections.Generic.List<Rect>();
@@ -70,6 +71,8 @@ namespace Crucible.View
             _game.ArmySunk += a => _message = $"An embarked army ({a.Count} units) was sunk at sea!";
             _game.GreatPersonBorn += (p, u) => { if (!p.IsAI) _message = $"A {u.Def.Name} is born! Select them and press V to use their gift."; };
             _game.ReligionFounded += r => _message = $"{r.Name} has been founded by {_game.Player(r.FounderId).Name}.";
+            _game.WarDeclared += (a, b) => _message = $"WAR: {a.Name} declares war on {b.Name}!";
+            _game.PeaceMade += (a, b) => _message = $"Peace between {a.Name} and {b.Name}.";
         }
 
         static string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "quicksave.crucible");
@@ -170,6 +173,10 @@ namespace Crucible.View
                 else if (Input.GetKeyDown(KeyCode.P))
                 {
                     _showPolicies = !_showPolicies;
+                }
+                else if (Input.GetKeyDown(KeyCode.L))
+                {
+                    _showDiplomacy = !_showDiplomacy;
                 }
                 else if (Input.GetKeyDown(KeyCode.I) && _selectedArmy != null)
                 {
@@ -322,6 +329,12 @@ namespace Crucible.View
             }
 
             var city = _game.CityAt(hex);
+            int foreignOwner = army != null && army.OwnerId != Human.Id ? army.OwnerId : city != null && city.OwnerId != Human.Id ? city.OwnerId : -1;
+            if (foreignOwner >= 0 && !_game.Player(foreignOwner).IsCityState && !_game.AtWar(foreignOwner, Human.Id))
+            {
+                _message = $"You are at peace with {_game.Player(foreignOwner).Name}. Open diplomacy (L) to declare war.";
+                return;
+            }
             bool enemyThere = (army != null && _game.AtWar(army.OwnerId, Human.Id)) ||
                               (city != null && _game.AtWar(city.OwnerId, Human.Id));
             if (enemyThere)
@@ -407,6 +420,8 @@ namespace Crucible.View
                 ? $"{_game.Religions[Human.FoundedReligionId].Name} ({_game.FollowerCities(Human)} cities)"
                 : "none founded";
             sb.AppendLine($"Faith {Human.Faith}/{GameState.ProphetThreshold(Human)}   Religion: {religion}   Tourism +{Human.Tourism}");
+            int pending = _game.Diplomacy.Pending.Count(p => p.ToId == Human.Id);
+            if (pending > 0) sb.AppendLine($"Diplomacy: {pending} proposal(s) waiting — press L");
             sb.AppendLine(_game.WorldCongressFounded
                 ? $"World Congress: next vote turn {_game.NextWorldLeaderVoteTurn}, your delegates {(_game.Delegates().TryGetValue(Human.Id, out var d) ? d : 0)}/{_game.VotesNeeded} needed"
                 : "World Congress: not yet founded (Globalization)");
@@ -460,7 +475,8 @@ namespace Crucible.View
             GUI.Box(hud, GUIContent.none);
             GUI.Label(new Rect(20, 16, 500, 800), sb.ToString());
 
-            if (_selectedCityState != null && battle == null) DrawCityStatePanel(_selectedCityState);
+            if (_showDiplomacy && battle == null) DrawDiplomacyPanel();
+            else if (_selectedCityState != null && battle == null) DrawCityStatePanel(_selectedCityState);
             else if (_showPolicies && battle == null) DrawPolicyPanel();
             else if (_selectedCity != null && battle == null) DrawCityPanel(_selectedCity);
             else if (battle == null && BesiegedBySelection() is City siege) DrawSiegePanel(siege);
@@ -541,6 +557,57 @@ namespace Crucible.View
             }
             GUILayout.EndScrollView();
             if (GUILayout.Button("Close")) _selectedCity = null;
+            GUILayout.EndArea();
+        }
+
+        /// <summary>Leaders screen: war and peace, treaties, opinion, and proposals awaiting an answer.</summary>
+        void DrawDiplomacyPanel()
+        {
+            var area = new Rect(Screen.width - 450, 10, 440, Mathf.Min(520, Screen.height - 20));
+            if (Event.current.type == EventType.Layout) _uiRects.Add(area);
+            GUI.Box(area, GUIContent.none);
+            GUILayout.BeginArea(new Rect(area.x + 10, area.y + 8, area.width - 20, area.height - 16));
+            GUILayout.Label("<b>Diplomacy</b>", Rich());
+
+            foreach (var proposal in _game.Diplomacy.Pending.Where(p => p.ToId == Human.Id).ToList())
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"{_game.Player(proposal.FromId).Name} proposes {proposal.Kind}");
+                if (GUILayout.Button("Accept", GUILayout.Width(70))) _game.Answer(proposal, true);
+                if (GUILayout.Button("Decline", GUILayout.Width(70))) _game.Answer(proposal, false);
+                GUILayout.EndHorizontal();
+            }
+
+            foreach (var other in _game.MajorPlayers.Where(p => p != Human && !p.IsEliminated))
+            {
+                var rel = _game.Diplomacy.Get(Human.Id, other.Id);
+                string state = rel.AtWar ? $"AT WAR since turn {rel.WarStartedTurn}"
+                    : _game.Turn < rel.PeaceUntilTurn ? $"peace treaty until turn {rel.PeaceUntilTurn}" : "at peace";
+                string treaties = (rel.OpenBorders ? " · open borders" : "") + (rel.DefensivePact ? " · defensive pact" : "");
+                GUILayout.Label($"<b>{other.Name}</b> ({other.Faction.Name}) — {state}{treaties}", Rich());
+                GUILayout.Label($"Their opinion of you: {_game.Opinion(other, Human)}");
+                GUILayout.BeginHorizontal();
+                if (!rel.AtWar)
+                {
+                    GUI.enabled = _game.CannotDeclareWar(Human, other) == null;
+                    if (GUILayout.Button("Declare war")) _game.DeclareWar(Human, other);
+                    GUI.enabled = _game.CanPropose(Human, other, Treaty.OpenBorders);
+                    if (GUILayout.Button("Open borders"))
+                        _message = _game.Propose(Human, other, Treaty.OpenBorders) ? "Open borders agreed." : $"{other.Name} refuses.";
+                    GUI.enabled = _game.CanPropose(Human, other, Treaty.DefensivePact);
+                    if (GUILayout.Button("Defensive pact"))
+                        _message = _game.Propose(Human, other, Treaty.DefensivePact) ? "Defensive pact signed." : $"{other.Name} refuses.";
+                }
+                else
+                {
+                    GUI.enabled = _game.CanPropose(Human, other, Treaty.Peace);
+                    if (GUILayout.Button(GUI.enabled ? "Propose peace" : $"Peace possible from turn {rel.WarStartedTurn + Diplomacy.MinWarTurnsBeforePeace}"))
+                        _message = _game.Propose(Human, other, Treaty.Peace) ? "Peace!" : $"{other.Name} fights on.";
+                }
+                GUI.enabled = true;
+                GUILayout.EndHorizontal();
+            }
+            if (GUILayout.Button("Close")) _showDiplomacy = false;
             GUILayout.EndArea();
         }
 

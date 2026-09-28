@@ -50,9 +50,31 @@ namespace Crucible.Core.AI
             foreach (var army in OwnArmies(game, player).Where(IsSettlerArmy).ToList()) ManageSettler(game, player, army);
             Defend(game, player);
             Offense(game, player);
+            ConductDiplomacy(game, player);
             UseGreatPeople(game, player);
             CourtCityStates(game, player);
             SpendGold(game, player);
+        }
+
+        /// <summary>Sue for peace when losing; seek open borders and pacts with civs it likes and has no designs on.</summary>
+        void ConductDiplomacy(GameState game, Player player)
+        {
+            foreach (var other in game.MajorPlayers.Where(p => p != player && !p.IsEliminated).ToList())
+            {
+                var rel = game.Diplomacy.Get(player.Id, other.Id);
+                if (rel.AtWar)
+                {
+                    bool losing = DiplomacyAI.MilitaryStrength(game, player) < 0.6 * DiplomacyAI.MilitaryStrength(game, other);
+                    if (losing && game.CanPropose(player, other, Treaty.Peace)) game.Propose(player, other, Treaty.Peace);
+                    continue;
+                }
+                if (DiplomacyAI.PlansWarOn(game, player, other)) continue;
+                int opinion = game.Opinion(player, other);
+                if (opinion >= 0 && game.Turn % 10 == 0 && game.CanPropose(player, other, Treaty.OpenBorders))
+                    game.Propose(player, other, Treaty.OpenBorders);
+                if (opinion >= 25 && game.Turn % 10 == 5 && game.CanPropose(player, other, Treaty.DefensivePact))
+                    game.Propose(player, other, Treaty.DefensivePact);
+            }
         }
 
         /// <summary>Great people act at once; generals ride with the largest field army.</summary>
@@ -311,7 +333,9 @@ namespace Crucible.Core.AI
             if (game.Turn < EarliestOffensiveTurn || (cities < CitiesBeforeWar && game.Turn < WarAnywayTurn)) return;
 
             var target = game.City(player.AITargetCityId);
-            if (target == null || !game.AtWar(target.OwnerId, player.Id)) target = PickTarget(game, player);
+            if (target == null || target.OwnerId == player.Id || game.Player(target.OwnerId).IsCityState ||
+                (!game.AtWar(target.OwnerId, player.Id) && game.CannotDeclareWar(player, game.Player(target.OwnerId)) != null))
+                target = PickTarget(game, player);
             player.AITargetCityId = target?.Id ?? -1;
             if (target == null) return;
 
@@ -332,6 +356,9 @@ namespace Crucible.Core.AI
 
             int ready = Math.Max(2, player.ArmyCap - 1); // leave a slot for a siege engine
             if (spearhead.Count < ready || spearhead.InBattle) return;
+
+            // Ready to march: declare war first if we're at peace (treaties permitting).
+            if (!game.AtWar(player.Id, target.OwnerId) && !game.DeclareWar(player, game.Player(target.OwnerId))) return;
 
             // Opportunistic field battle on the way.
             var blocker = spearhead.Position.Neighbors().Select(game.ArmyAt)
@@ -383,8 +410,12 @@ namespace Crucible.Core.AI
         {
             var home = game.Cities.Where(c => c.OwnerId == player.Id).OrderByDescending(c => c.IsOriginalCapital).FirstOrDefault();
             if (home == null) return null;
+            // Enemies we're already fighting first, then majors we could declare on and don't like much.
             return game.Cities
-                .Where(c => game.AtWar(c.OwnerId, player.Id))
+                .Where(c => !game.Player(c.OwnerId).IsCityState && c.OwnerId != player.Id)
+                .Where(c => game.AtWar(c.OwnerId, player.Id) ||
+                            (game.CannotDeclareWar(player, game.Player(c.OwnerId)) == null && game.Opinion(player, game.Player(c.OwnerId)) < 20))
+                .OrderBy(c => game.AtWar(c.OwnerId, player.Id) ? 0 : 1)
                 .OrderBy(c => c.Position.DistanceTo(home.Position))
                 .ThenBy(c => CityDefense(game, c))
                 .ThenBy(c => c.Id)

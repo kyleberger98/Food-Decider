@@ -22,7 +22,7 @@ namespace Crucible.Core.Game
     public static class SaveGame
     {
         const string Magic = "CRUCIBLE";
-        public const int Version = 1;
+        public const int Version = 2; // 2: diplomacy between majors
 
         public static byte[] Save(GameState game, TurnManager turns)
         {
@@ -184,6 +184,20 @@ namespace Crucible.Core.Game
             foreach (var rel in _religions) { w.String(rel.Name); w.Int(rel.FounderId); w.Int(rel.HolyCityId); }
             w.Int(WorldCongressFoundedTurn); w.Int(WorldCongressHostId); w.IntMap(LastVote);
 
+            w.Bool(Diplomacy.MajorsStartAtWar);
+            var relations = Diplomacy.All.ToList();
+            w.Int(relations.Count);
+            foreach (var kv in relations)
+            {
+                w.Int(kv.Key.Item1); w.Int(kv.Key.Item2);
+                w.Bool(kv.Value.AtWar); w.Int(kv.Value.WarStartedTurn); w.Int(kv.Value.PeaceUntilTurn);
+                w.Bool(kv.Value.OpenBorders); w.Bool(kv.Value.DefensivePact);
+            }
+            w.Int(Diplomacy.Declarations.Count);
+            foreach (var d in Diplomacy.Declarations) { w.Int(d.declarer); w.Int(d.victim); w.Int(d.turn); }
+            w.Int(Diplomacy.Pending.Count);
+            foreach (var p in Diplomacy.Pending) { w.Int(p.FromId); w.Int(p.ToId); w.Int((int)p.Kind); w.Int(p.Turn); }
+
             w.Int(_battles.Count);
             foreach (var b in _battles.Values)
             {
@@ -282,6 +296,19 @@ namespace Crucible.Core.Game
             for (int n = r.Int(), i = 0; i < n; i++) g._religions.Add(new Religion(i, r.String(), r.Int(), r.Int()));
             g.WorldCongressFoundedTurn = r.Int(); g.WorldCongressHostId = r.Int();
             foreach (var kv in r.IntMap()) g.LastVote[kv.Key] = kv.Value;
+
+            g.Diplomacy.MajorsStartAtWar = r.Bool();
+            for (int n = r.Int(), i = 0; i < n; i++)
+            {
+                int a = r.Int(), b = r.Int();
+                g.Diplomacy.Set(a, b, new Relation
+                {
+                    AtWar = r.Bool(), WarStartedTurn = r.Int(), PeaceUntilTurn = r.Int(), OpenBorders = r.Bool(), DefensivePact = r.Bool(),
+                });
+            }
+            for (int n = r.Int(), i = 0; i < n; i++) g.Diplomacy.Declarations.Add((r.Int(), r.Int(), r.Int()));
+            for (int n = r.Int(), i = 0; i < n; i++)
+                g.Diplomacy.Pending.Add(new Proposal { FromId = r.Int(), ToId = r.Int(), Kind = (Treaty)r.Int(), Turn = r.Int() });
 
             for (int n = r.Int(), i = 0; i < n; i++)
             {

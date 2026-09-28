@@ -84,7 +84,7 @@ namespace Crucible.Core.Game
         static bool IsEnterable(GameState game, Army army, HexCoord c)
         {
             var tile = game.Map.Get(c);
-            if (tile == null) return false;
+            if (tile == null || !game.MayEnterTerritory(army.OwnerId, tile)) return false;
             if (game.ArmyAt(c) is Army other && other != army) return false;
             if (game.CityAt(c) is Empire.City city && city.OwnerId != army.OwnerId) return false;
             return game.BattleCovering(c) == null;

@@ -132,11 +132,9 @@ namespace Crucible.Core.Game
             return army.MaxWorldMovement(u => u.Def.Class == UnitClass.Mounted ? faction.MountedWorldMovementBonus : 0);
         }
 
-        /// <summary>
-        /// Majors are permanently at war with each other (diplomacy between majors is future work);
-        /// city-states are neutral with everyone.
-        /// </summary>
-        public bool AtWar(int a, int b) => a != b && !Player(a).IsCityState && !Player(b).IsCityState;
+        /// <summary>Majors follow <see cref="Diplomacy"/>; city-states are neutral with everyone.</summary>
+        public bool AtWar(int a, int b) =>
+            a != b && !Player(a).IsCityState && !Player(b).IsCityState && Diplomacy.IsAtWar(a, b);
 
         // ------------------------------------------------------------------ world-map commands
 
@@ -148,6 +146,7 @@ namespace Crucible.Core.Game
             if (ArmyAt(dest) != null || BattleCovering(dest) != null) return false;
             var city = CityAt(dest);
             if (city != null && city.OwnerId != army.OwnerId) return false; // foreign cities are taken by assault, not walked into
+            if (!MayEnterTerritory(army.OwnerId, Map.Get(dest))) return false; // closed borders
 
             int cost = TerrainRules.StepCost(MobilityOf(army), Map.Get(army.Position), Map.Get(dest));
             if (cost == TerrainRules.Impassable) return false;

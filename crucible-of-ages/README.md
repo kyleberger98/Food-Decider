@@ -30,8 +30,9 @@ symbols, miniatures and terrain meshes).
 1. Unity **2022.3 LTS or newer**, **Built-in Render Pipeline** (the default 3D template).
 2. In Unity Hub, choose **Add → Add project from disk** and pick `UnityProject/`. Unity generates
    `ProjectSettings/`, `Packages/` and the `.meta` files on first open. Commit them afterwards.
-3. Create an empty scene, add an empty GameObject, attach **`GameBootstrap`**, and press **Play**.
-   Its inspector picks the seed, map size and **map script** (Continents, Pangaea, Archipelago).
+3. Press **Play**. A game starts in whatever scene is open (the new project's empty scene is fine).
+   To pick the seed, map size and **map script** (Continents, Pangaea, Archipelago), add an empty
+   GameObject with **`GameBootstrap`** to the scene and set them in its inspector.
 4. If you get Input errors, set *Project Settings → Player → Active Input Handling* to **Both**
    (the scaffold uses the legacy `Input` API).
 5. For player builds, add `Crucible/VertexColorLit` to *Graphics → Always Included Shaders*.

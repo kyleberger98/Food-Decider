@@ -5,8 +5,9 @@ using UnityEngine;
 namespace Crucible.View
 {
     /// <summary>
-    /// Entry point. Drop this on an empty GameObject in an empty scene and press Play:
-    /// it generates a skirmish, builds the map mesh, and wires up the camera, input and HUD.
+    /// Entry point: generates a skirmish, builds the map mesh, and wires up the camera, input and HUD.
+    /// Pressing Play in any scene starts a game (see <see cref="AutoStart"/>); add this to a
+    /// GameObject yourself to pick the seed, map size and map script in the inspector.
     /// </summary>
     public sealed class GameBootstrap : MonoBehaviour
     {
@@ -14,6 +15,17 @@ namespace Crucible.View
         public int mapWidth = 48;
         public int mapHeight = 32;
         public Crucible.Core.World.MapScript mapScript = Crucible.Core.World.MapScript.Continents;
+
+        /// <summary>
+        /// Starts a game when Play is pressed in a scene that doesn't have a GameBootstrap yet (such as
+        /// the empty scene of a freshly opened project), so no scene setup is needed.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void AutoStart()
+        {
+            if (FindFirstObjectByType<GameBootstrap>() != null) return;
+            new GameObject("Crucible of Ages").AddComponent<GameBootstrap>();
+        }
 
         void Start()
         {

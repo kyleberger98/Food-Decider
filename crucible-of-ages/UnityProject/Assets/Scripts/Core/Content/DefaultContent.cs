@@ -118,11 +118,12 @@ namespace Crucible.Core.Content
             T("radio", "Radio", Era.Modern, 3100, 0, "electricity");
             T("flight", "Flight", Era.Modern, 3400, 0, "combustion", "radio");
             T("refrigeration", "Refrigeration", Era.Modern, 3100, 0, "electricity", "scientific_theory");
+            T("atomic_theory", "Atomic Theory", Era.Modern, 3100, 0, "electricity", "scientific_theory"); // reveals uranium
 
             T("combined_arms", "Combined Arms", Era.Atomic, 4600, 1, "combustion");
             T("radar", "Radar", Era.Atomic, 4600, 0, "flight");
             T("rocketry", "Rocketry", Era.Atomic, 4600, 0, "radar");
-            T("nuclear_fission", "Nuclear Fission", Era.Atomic, 5200, 0, "rocketry");
+            T("nuclear_fission", "Nuclear Fission", Era.Atomic, 5200, 0, "rocketry", "atomic_theory");
             T("mass_media", "Mass Media", Era.Atomic, 4600, 0, "radio");
 
             T("robotics", "Robotics", Era.Information, 6200, 0, "combined_arms");
@@ -132,6 +133,7 @@ namespace Crucible.Core.Content
             T("nanotechnology", "Nanotechnology", Era.Information, 7500, 0, "robotics", "satellites");
             T("globalization", "Globalization", Era.Information, 7500, 0, "the_internet");
             T("space_flight", "Space Flight", Era.Information, 8000, 0, "satellites", "nanotechnology");
+            T("advanced_ballistics", "Advanced Ballistics", Era.Information, 7000, 0, "nuclear_fission", "satellites");
 
             // Future (Civ VI): beyond the space race.
             T("smart_materials", "Smart Materials", Era.Future, 9000, 1, "nanotechnology");
@@ -222,6 +224,10 @@ namespace Crucible.Core.Content
             U("bomber", "Bomber", UnitClass.Bomber, Era.Atomic, 25, 320, "radar", rs: 65, range: 10, resource: "oil");
             U("jet_fighter", "Jet Fighter", UnitClass.Fighter, Era.Information, 30, 375, "computers", rs: 70, range: 10);
             U("stealth_bomber", "Stealth Bomber", UnitClass.Bomber, Era.Information, 45, 425, "satellites", rs: 85, range: 16);
+
+            // Nuclear weapons (Civ V): one-shot, launched from a city at any hex in range, need uranium.
+            U("atomic_bomb", "Atomic Bomb", UnitClass.Missile, Era.Atomic, 0, 600, "nuclear_fission", range: 10, resource: "uranium").BlastRadius = 1;
+            U("nuclear_missile", "Nuclear Missile", UnitClass.Missile, Era.Information, 0, 800, "advanced_ballistics", range: 14, resource: "uranium").BlastRadius = 2;
 
             // Not buildable: spawned by besieged cities (GDD §4.6).
             U(MilitiaUnit, "Militia", UnitClass.Melee, Era.Neolithic, 6, 0, null);

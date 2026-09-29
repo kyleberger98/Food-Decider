@@ -114,6 +114,31 @@ def rock(seed):
             sphere(0.045, a.hexcol(0x5A504A), loc=(0.08, 0.04, 0.025), subdiv=1, jitter=0.25, seed=seed + 7)]
 
 
+def mushroom_cloud():
+    """The mushroom cloud of a nuclear strike (an effect the game scales up over the blast)."""
+    rnd = random.Random(11)
+    dust, stem, fire = a.hexcol(0x8A7A68), a.hexcol(0xC8B8A0), a.hexcol(0xF08A2A)
+    cap, cap_top = a.hexcol(0xE8D2B0), a.hexcol(0xF4EAD8)
+    p = [cylinder(0.24, 0.05, dust, loc=(0, 0, 0.025), sides=14, top=0.2)]                        # base surge
+    for k in range(9):
+        ang = k * 2 * math.pi / 9
+        p.append(sphere(0.06, dust if k % 2 else a.hexcol(0xA89880), loc=(math.cos(ang) * 0.2, math.sin(ang) * 0.2, 0.06),
+                        subdiv=1, scale=(1.2, 1.2, 0.7), jitter=0.2, seed=k))
+    p.append(cylinder(0.075, 0.5, stem, loc=(0, 0, 0.3), sides=10, top=0.055))                    # column
+    for k in range(5):
+        p.append(sphere(0.07 - k * 0.004, stem if k < 3 else fire, loc=(rnd.uniform(-0.01, 0.01), rnd.uniform(-0.01, 0.01), 0.12 + k * 0.09),
+                        subdiv=1, jitter=0.2, seed=20 + k))
+    p.append(cylinder(0.13, 0.03, a.hexcol(0xD8C8B0), loc=(0, 0, 0.33), sides=14))                # condensation ring
+    p.append(sphere(0.2, fire, loc=(0, 0, 0.6), subdiv=2, scale=(1.1, 1.1, 0.45), jitter=0.08, seed=31))   # glowing underside
+    p.append(sphere(0.22, cap, loc=(0, 0, 0.67), subdiv=2, scale=(1.15, 1.15, 0.55), jitter=0.1, seed=32))
+    for k in range(7):
+        ang = k * 2 * math.pi / 7 + 0.3
+        p.append(sphere(0.09, cap_top if k % 2 else cap, loc=(math.cos(ang) * 0.17, math.sin(ang) * 0.17, 0.7 + rnd.uniform(-0.02, 0.03)),
+                        subdiv=1, jitter=0.2, seed=40 + k))
+    p.append(sphere(0.14, cap_top, loc=(0, 0, 0.78), subdiv=2, scale=(1, 1, 0.6), jitter=0.1, seed=50))
+    return p
+
+
 PROPS = {
     "conifer": lambda: conifer(1),
     "conifer_b": lambda: conifer(2),
@@ -122,6 +147,7 @@ PROPS = {
     "jungle": lambda: jungle_tree(5),
     "palm": lambda: palm(6),
     "rock": lambda: rock(7),
+    "mushroom": mushroom_cloud,
 }
 
 # ---------------------------------------------------------------------------------------- city parts

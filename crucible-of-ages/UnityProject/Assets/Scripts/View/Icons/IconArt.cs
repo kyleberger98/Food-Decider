@@ -10,7 +10,7 @@ namespace Crucible.View.Icons
         Sword, Spear, Bow, Crossbow, Horse, Catapult, Cannon, Rocket, Musket, Helmet, Tank,
         SailShip, Steamship, Carrier, Fighter, Bomber, Jet, Scout, Settler, Worker, Ram, SiegeTower,
         General, Scientist, Engineer, Merchant, Artist, Prophet,
-        Helicopter, Robot, Submarine,
+        Helicopter, Robot, Submarine, Nuke,
     }
 
     /// <summary>
@@ -45,6 +45,7 @@ namespace Crucible.View.Icons
                 case "trireme": case "frigate": return UnitIcon.SailShip;
                 case "jet_fighter": return UnitIcon.Jet;
             }
+            if (def.IsNuclear) return UnitIcon.Nuke;
             switch (def.GreatPerson)
             {
                 case GreatPersonType.General: return UnitIcon.General;
@@ -522,6 +523,19 @@ namespace Crucible.View.Icons
                     c.Poly(50, 2, 70, 34, 76, 58, 70, 80, 50, 96, 30, 80, 24, 58, 30, 34, 40, 44);
                     c.Cut(50, 46, 60, 64, 58, 80, 50, 88, 42, 80, 40, 64);
                     c.Poly(50, 60, 55, 72, 50, 82, 45, 72);
+                    break;
+
+                case UnitIcon.Nuke:
+                    // The radiation trefoil: three 60° blades round a hub.
+                    for (int blade = 0; blade < 3; blade++)
+                    {
+                        var xy = new List<double>();
+                        double a0 = -60 + blade * 120;   // blades centred up-right, down and up-left
+                        for (int k = 0; k <= 8; k++) { double a = (a0 + k * 60 / 8.0) * Math.PI / 180; xy.Add(50 + Math.Cos(a) * 44); xy.Add(52 + Math.Sin(a) * 44); }
+                        for (int k = 8; k >= 0; k--) { double a = (a0 + k * 60 / 8.0) * Math.PI / 180; xy.Add(50 + Math.Cos(a) * 15); xy.Add(52 + Math.Sin(a) * 15); }
+                        c.Poly(xy.ToArray());
+                    }
+                    c.Circle(50, 52, 10);
                     break;
             }
             return c;

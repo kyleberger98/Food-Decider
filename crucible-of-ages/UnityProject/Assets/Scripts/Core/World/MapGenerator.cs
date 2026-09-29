@@ -296,7 +296,7 @@ namespace Crucible.Core.World
                 if (t.Terrain == TerrainType.Coast || t.Terrain == TerrainType.Lake) { if (roll < 0.08) t.Resource = ResourceType.Fish; continue; }
                 if (hills && t.Feature == FeatureType.None)
                 {
-                    t.Resource = roll < 0.07 ? ResourceType.Iron : roll < 0.10 ? ResourceType.Gems : t.Resource;
+                    t.Resource = roll < 0.07 ? ResourceType.Iron : roll < 0.10 ? ResourceType.Gems : roll < 0.115 ? ResourceType.Uranium : t.Resource;
                     continue;
                 }
                 switch (t.Feature)
@@ -322,10 +322,10 @@ namespace Crucible.Core.World
                         t.Resource = roll < 0.04 ? ResourceType.Horses : roll < 0.08 ? ResourceType.Wheat : roll < 0.10 ? ResourceType.Wine : roll < 0.12 ? ResourceType.Iron : ResourceType.None;
                         break;
                     case TerrainType.Desert:
-                        t.Resource = t.Feature == FeatureType.Floodplain && roll < 0.2 ? ResourceType.Wheat : roll < 0.05 ? ResourceType.Oil : ResourceType.None;
+                        t.Resource = t.Feature == FeatureType.Floodplain && roll < 0.2 ? ResourceType.Wheat : roll < 0.05 ? ResourceType.Oil : roll < 0.065 ? ResourceType.Uranium : ResourceType.None;
                         break;
                     case TerrainType.Tundra:
-                        t.Resource = roll < 0.05 ? ResourceType.Oil : roll < 0.09 ? ResourceType.Furs : ResourceType.None;
+                        t.Resource = roll < 0.05 ? ResourceType.Oil : roll < 0.09 ? ResourceType.Furs : roll < 0.105 ? ResourceType.Uranium : ResourceType.None;
                         break;
                 }
             }

@@ -38,7 +38,7 @@ namespace Crucible.Core.Tests
                 foreach (var unit in TestWorld.Content.Units)
                     Assert.True(UnitModels.AuthoredName(unit) != null, unit.Id);
                 // Ages get their own look: knights are not the generic riders, landships not tanks.
-                foreach (var id in new[] { "warrior", "slinger", "knight", "longswordsman", "landship", "helicopter", "giant_death_robot", "trireme", "stealth_bomber" })
+                foreach (var id in new[] { "warrior", "slinger", "knight", "longswordsman", "landship", "helicopter", "giant_death_robot", "trireme", "stealth_bomber", "atomic_bomb", "nuclear_missile" })
                     Assert.Equal("unit_" + id, UnitModels.AuthoredName(TestWorld.Content.Unit(id)));
                 Assert.NotEqual(UnitModels.Build(TestWorld.Content.Unit("knight"), new Rgb(0, 0, 1)).VertexCount,
                                 UnitModels.Build(TestWorld.Content.Unit("horseman"), new Rgb(0, 0, 1)).VertexCount);
@@ -174,6 +174,7 @@ namespace Crucible.Core.Tests
             {
                 ArtLibrary.Current = null;
                 var procedural = UnitModels.Build(UnitIcon.Sword, new Rgb(1, 0, 0));
+                Assert.True(EffectModels.MushroomCloud().VertexCount > 0);
                 var map = MapGenerator.Generate(new MapGeneratorSettings { Seed = 3, Width = 24, Height = 16 });
                 var proceduralProps = new TerrainArt().Build(map).Props.VertexCount;
 
@@ -183,6 +184,7 @@ namespace Crucible.Core.Tests
                 Assert.NotEqual(procedural.VertexCount, authored.VertexCount);
                 Assert.NotEqual(proceduralProps, new TerrainArt().Build(map).Props.VertexCount);
                 Assert.True(CityModels.Build(6, 2, true, new Rgb(0, 0, 1), 1).VertexCount > 1000);
+                Assert.Equal(ArtLibrary.Current.Get("prop_mushroom", new Rgb(1, 1, 1)).VertexCount, EffectModels.MushroomCloud().VertexCount);
 
                 Assert.Throws<InvalidDataException>(() => ArtLibrary.Parse(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }));
             }

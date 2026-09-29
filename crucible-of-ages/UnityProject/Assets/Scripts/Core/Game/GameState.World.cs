@@ -380,6 +380,7 @@ namespace Crucible.Core.Game
             ProcessCityStates();
             ProcessWorldCongress();
             ProcessSpaceships();
+            DecayFallout();
         }
     }
 }

@@ -48,12 +48,53 @@ namespace Crucible.Core.AI
             SplitCivilians(game, player);
             EnsureGarrisons(game, player);
             foreach (var army in OwnArmies(game, player).Where(IsSettlerArmy).ToList()) ManageSettler(game, player, army);
+            UseNukes(game, player);
             Defend(game, player);
             Offense(game, player);
             ConductDiplomacy(game, player);
             UseGreatPeople(game, player);
             CourtCityStates(game, player);
             SpendGold(game, player);
+        }
+
+        /// <summary>Points a strike must be worth before the AI uses a nuclear weapon (a city or a big army).</summary>
+        public const int NukeThreshold = 8;
+
+        /// <summary>
+        /// One nuclear strike per turn at the enemy target worth most: units caught in the blast (double at
+        /// ground zero) and citizens lost count for it, its own units and cities heavily against it.
+        /// </summary>
+        public static NuclearStrike UseNukes(GameState game, Player player)
+        {
+            var best = (score: NukeThreshold - 1, city: (City)null, weapon: (Unit)null, target: default(HexCoord));
+            foreach (var city in game.Cities.Where(c => c.OwnerId == player.Id).OrderBy(c => c.Id))
+            {
+                var weapon = game.NukesIn(city).OrderByDescending(u => u.Def.BlastRadius).ThenBy(u => u.Id).FirstOrDefault();
+                if (weapon == null) continue;
+                var targets = game.Cities.Where(c => game.AtWar(player.Id, c.OwnerId)).Select(c => c.Position)
+                    .Concat(game.Armies.Where(a => game.AtWar(player.Id, a.OwnerId)).Select(a => a.Position))
+                    .Where(h => city.Position.DistanceTo(h) <= weapon.Def.Range)
+                    .Distinct().OrderBy(h => h.Q).ThenBy(h => h.R);
+                foreach (var target in targets)
+                {
+                    int score = NukeValue(game, player, target, weapon.Def.BlastRadius);
+                    if (score > best.score && game.NukeBlocker(city, weapon, target) == null) best = (score, city, weapon, target);
+                }
+            }
+            return best.weapon == null ? null : game.LaunchNuke(best.city, best.weapon, best.target);
+        }
+
+        static int NukeValue(GameState game, Player player, HexCoord target, int radius)
+        {
+            int score = 0;
+            foreach (var army in game.Armies.Where(a => a.Position.DistanceTo(target) <= radius))
+            {
+                int per = army.OwnerId == player.Id ? -3 : game.AtWar(player.Id, army.OwnerId) ? (army.Position == target ? 2 : 1) : -100;
+                score += per * army.Units.Count(u => u.Def.IsMilitary);
+            }
+            foreach (var city in game.Cities.Where(c => c.Position.DistanceTo(target) <= radius))
+                score += city.OwnerId == player.Id ? -20 : city.Population / (city.Position == target ? 1 : 3);
+            return score;
         }
 
         /// <summary>Sue for peace when losing; seek open borders and pacts with civs it likes and has no designs on.</summary>

@@ -72,6 +72,9 @@ namespace Crucible.Core.Economy
             // Air cover: one fighter per city once flight is known.
             if (owner.IsAI && city.AirUnits.Count == 0 && netGold >= 2 && BestAirUnit(game, city) is ProductionItem plane)
                 return plane;
+            // Deterrent: one nuclear weapon in the empire while at war with a major power.
+            if (owner.IsAI && netGold >= 2 && AtWarWithMajor(game, owner) && !HasNuke(game, owner) && BestNuke(game, city) is ProductionItem nuke)
+                return nuke;
 
             // Space race: the most productive city with a factory builds Apollo, then the parts.
             if (!owner.IsCityState)
@@ -117,6 +120,24 @@ namespace Crucible.Core.Economy
                 .FirstOrDefault();
             return best == null ? (ProductionItem?)null : ProductionItem.Unit(best.Id);
         }
+
+        /// <summary>The most powerful nuclear weapon this city can build, if any.</summary>
+        public static ProductionItem? BestNuke(GameState game, City city)
+        {
+            var best = game.Content.Units
+                .Where(u => u.IsNuclear && EconomyRules.CanBuild(game, city, ProductionItem.Unit(u.Id)))
+                .OrderByDescending(u => u.BlastRadius).ThenBy(u => u.Id)
+                .FirstOrDefault();
+            return best == null ? (ProductionItem?)null : ProductionItem.Unit(best.Id);
+        }
+
+        static bool AtWarWithMajor(GameState game, Player owner) =>
+            game.MajorPlayers.Any(p => p != owner && !p.IsEliminated && game.AtWar(owner.Id, p.Id));
+
+        /// <summary>A nuclear weapon is stockpiled or being built somewhere in the empire.</summary>
+        static bool HasNuke(GameState game, Player owner) =>
+            game.Cities.Where(c => c.OwnerId == owner.Id).Any(c => c.AirUnits.Any(u => u.Def.IsNuclear) ||
+                (c.CurrentProduction.HasValue && c.CurrentProduction.Value.Kind == ProductionKind.Unit && game.Content.Unit(c.CurrentProduction.Value.Id).IsNuclear));
 
         /// <summary>The strongest land unit this city can build.</summary>
         public static ProductionItem? BestUnit(GameState game, City city)

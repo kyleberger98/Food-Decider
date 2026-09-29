@@ -121,6 +121,15 @@ namespace Crucible.View.UI
                 if (city.AirUnits.Count > 0)
                     body.Put(Ui.Text($"Hangar {city.AirUnits.Count}/{City.AirCapacity}: " + string.Join(", ", city.AirUnits.Select(u => $"{u.Def.Name} ({u.Hp})")), 12, Theme.Info, wrap: true))
                         .style.marginTop = 4;
+                // Nuclear weapons are launched by hand: pick one, then a target on the map.
+                foreach (var nuke in G.NukesIn(city).ToList())
+                {
+                    var launch = body.Put(Ui.Btn($"Launch {nuke.Def.Name}  (range {nuke.Def.Range}, blast {nuke.Def.BlastRadius})",
+                        () => _c.BeginNukeTargeting(city, nuke), ButtonStyle.Normal, true, 12));
+                    launch.style.marginTop = 4;
+                    launch.tooltip = "Choose a target on the map. Everything in the blast is hit, the land is poisoned for "
+                                     + $"{GameState.FalloutTurns} turns, and every other civilisation will remember it.";
+                }
             }
 
             body.Put(Ui.Divider());
@@ -360,7 +369,7 @@ namespace Crucible.View.UI
             ("F5 / F9", "Quick save / quick load"),
             ("WASD, Q/E", "Pan, rotate (also screen edges and middle-drag)"),
             ("Shift+Build", "Add to a city's production queue"),
-            ("Esc", "Close panel / deselect"),
+            ("Esc", "Close panel / deselect / cancel a nuclear launch"),
         };
 
         static void HelpPanel(VisualElement body)

@@ -32,7 +32,7 @@ namespace Crucible.Core.Economy
 
         public static Yields TileYields(Tile t, WorldMap map)
         {
-            if (t == null || t.IsIce) return new Yields();
+            if (t == null || t.IsIce || t.Fallout > 0) return new Yields(); // fallout poisons the land until it clears
             if (t.IsMountain) return WonderYields(t.Wonder); // only a wonder makes a peak worth working
             Yields y;
             switch (t.Terrain)

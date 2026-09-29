@@ -48,10 +48,16 @@ namespace Crucible.Core.Game
         public const int WarmongerPenalty = -10;
         public const int MemoryTurns = 50;
 
+        /// <summary>Opinion every civ holds against one that used a nuclear weapon (per strike, remembered <see cref="MemoryTurns"/>).</summary>
+        public const int NuclearPenalty = -25;
+
         readonly SortedDictionary<(int, int), Relation> _relations = new SortedDictionary<(int, int), Relation>();
 
         /// <summary>(declarer, victim, turn) for every war declaration: the AI remembers.</summary>
         internal readonly List<(int declarer, int victim, int turn)> Declarations = new List<(int, int, int)>();
+
+        /// <summary>(player, turn) for every nuclear strike: the whole world remembers.</summary>
+        internal readonly List<(int playerId, int turn)> NuclearStrikes = new List<(int, int)>();
 
         public readonly List<Proposal> Pending = new List<Proposal>();
 
@@ -260,6 +266,7 @@ namespace Crucible.Core.Game
             o += Diplomacy.Declarations.Count(d => d.declarer == subject.Id && d.victim != observer.Id && Turn - d.turn < Diplomacy.MemoryTurns)
                  * Diplomacy.WarmongerPenalty;
             o -= 15 * _cities.Values.Count(c => c.FounderId == observer.Id && c.OwnerId == subject.Id);
+            o += Diplomacy.NuclearStrikes.Count(n => n.playerId == subject.Id && Turn - n.turn < Diplomacy.MemoryTurns) * Diplomacy.NuclearPenalty;
             if (rel.AtWar) o -= 20;
             if (rel.OpenBorders) o += 10;
             if (rel.DefensivePact) o += 20;

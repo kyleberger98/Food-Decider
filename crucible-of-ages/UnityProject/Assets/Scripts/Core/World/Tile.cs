@@ -57,6 +57,8 @@ namespace Crucible.Core.World
         Silk,
         Gems,
         Furs,
+        // Strategic, revealed by Atomic Theory: fuels nuclear weapons (listed last so older saves keep their ids)
+        Uranium,
     }
 
     public enum ImprovementType
@@ -100,6 +102,9 @@ namespace Crucible.Core.World
         public ResourceType Resource { get; set; }
         public ImprovementType Improvement { get; set; }
         public NaturalWonder Wonder { get; set; }
+
+        /// <summary>Turns of nuclear fallout left (0 = clean). A contaminated tile yields nothing.</summary>
+        public int Fallout { get; set; }
 
         /// <summary>Improvement a worker is currently building here, and turns of work done on it.</summary>
         public ImprovementType ImprovementInProgress { get; set; }

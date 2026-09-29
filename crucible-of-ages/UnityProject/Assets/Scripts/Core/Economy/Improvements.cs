@@ -34,6 +34,7 @@ namespace Crucible.Core.Economy
                 case ResourceType.Horses:
                 case ResourceType.Iron:
                 case ResourceType.Oil:
+                case ResourceType.Uranium:
                     return ResourceKind.Strategic;
                 case ResourceType.Wine:
                 case ResourceType.Silk:
@@ -74,7 +75,8 @@ namespace Crucible.Core.Economy
                 case ResourceType.Cattle:
                 case ResourceType.Horses: return ImprovementType.Pasture;
                 case ResourceType.Iron:
-                case ResourceType.Gems: return ImprovementType.Mine;
+                case ResourceType.Gems:
+                case ResourceType.Uranium: return ImprovementType.Mine;
                 case ResourceType.Oil: return ImprovementType.Well;
                 case ResourceType.Wine:
                 case ResourceType.Silk: return ImprovementType.Plantation;
@@ -82,6 +84,12 @@ namespace Crucible.Core.Economy
                 default: return ImprovementType.None;
             }
         }
+
+        /// <summary>Tech that reveals a resource (Civ V: Atomic Theory shows uranium), or null if always known.</summary>
+        public static string RevealTech(ResourceType r) => r == ResourceType.Uranium ? "atomic_theory" : null;
+
+        /// <summary>Whether the player can see (and so mine) this resource.</summary>
+        public static bool Knows(Player player, ResourceType r) => player.Tech.Has(RevealTech(r));
 
         public static Yields ImprovementYields(ImprovementType i)
         {
@@ -125,7 +133,12 @@ namespace Crucible.Core.Economy
         public static bool Fits(Tile t, ImprovementType i)
         {
             if (t == null || !t.IsPassableForLand || t.HasCity || i == ImprovementType.None) return false;
-            if (ImprovementFor(t.Resource) == i) return true;
+            return ImprovementFor(t.Resource) == i || FitsTerrain(t, i);
+        }
+
+        /// <summary>Whether the terrain alone allows the improvement (farms on flat land, mines on hills).</summary>
+        static bool FitsTerrain(Tile t, ImprovementType i)
+        {
             bool hills = t.Elevation >= 2;
             switch (i)
             {
@@ -141,7 +154,8 @@ namespace Crucible.Core.Economy
         }
 
         public static bool CanBuild(Player player, Tile t, ImprovementType i) =>
-            Fits(t, i) && t.Improvement != i && player.Tech.Has(RequiredTech(i)) && t.OwnerPlayerId == player.Id;
+            Fits(t, i) && (Knows(player, t.Resource) || FitsTerrain(t, i)) &&   // no uranium mines on the flat before Atomic Theory
+            t.Improvement != i && player.Tech.Has(RequiredTech(i)) && t.OwnerPlayerId == player.Id;
 
         /// <summary>The most valuable improvement this player can build on the tile, or None.</summary>
         public static ImprovementType Best(Player player, Tile t)

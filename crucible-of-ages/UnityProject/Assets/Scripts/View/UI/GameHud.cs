@@ -279,7 +279,9 @@ namespace Crucible.View.UI
                 happy < 0 ? "Unhappy: growth slowed" + (happy <= -10 ? ", no growth, −3 combat strength" : "") : "Content"));
             _topStats.Add(Ui.Stat("tourism", Ui.Signed(Me.Tourism), Theme.Tourism));
             string Strat(ResourceType r) => $"{Improvements.StrategicAvailable(G, Me.Id, r) - Improvements.StrategicUsed(G, Me.Id, r)}";
-            _topStats.Add(Ui.Stat("horses · iron · oil", $"{Strat(ResourceType.Horses)} · {Strat(ResourceType.Iron)} · {Strat(ResourceType.Oil)}", Theme.Production,
+            bool uranium = Improvements.Knows(Me, ResourceType.Uranium);
+            _topStats.Add(Ui.Stat("horses · iron · oil" + (uranium ? " · uranium" : ""),
+                $"{Strat(ResourceType.Horses)} · {Strat(ResourceType.Iron)} · {Strat(ResourceType.Oil)}" + (uranium ? $" · {Strat(ResourceType.Uranium)}" : ""), Theme.Production,
                 "Free strategic resources (connected supply minus units using them)"));
 
             _topRight.Clear();
@@ -639,14 +641,19 @@ namespace Crucible.View.UI
             var unit = battle?.UnitAt(hover.Value);
             var army = _c.Viewer.IsVisible(hover.Value) ? G.ArmyAt(hover.Value) : null;
             var forecast = _c.HoverForecast();
+            string nukeBlocker = _c.NukeHoverBlocker();
             if (!Changed("tooltip", $"{hover}|{unit?.Id}|{unit?.Hp}|{army?.Id}|{army?.Count}|{tile.Improvement}|{tile.OwnerPlayerId}|" +
-                                    $"{_c.SelectedArmy?.Id}|{forecast?.Verdict}|{army?.HealthFraction}")) return;
+                                    $"{_c.SelectedArmy?.Id}|{forecast?.Verdict}|{army?.HealthFraction}|{tile.Fallout}|{_c.NukeTargeting.HasValue}|{nukeBlocker}")) return;
 
             _tooltip.Clear();
             string height = tile.IsIce ? "pack ice — impassable" : tile.IsWater ? (tile.Terrain == TerrainType.Ocean ? "ocean" : "shallows")
                 : tile.IsMountain ? "mountain" : new[] { "lowland", "plains", "hills", "highlands" }[Mathf.Clamp(tile.Elevation, 0, 3)];
             string feature = tile.Feature != FeatureType.None && !tile.IsIce ? " · " + tile.Feature : "";
+            if (_c.NukeTargeting is { } aim)
+                _tooltip.Put(Ui.Text(nukeBlocker ?? $"Launch {aim.weapon.Def.Name} here (click)", 12, nukeBlocker == null ? Theme.Bad : Theme.Muted, bold: true, wrap: true));
             _tooltip.Put(Ui.Text($"{tile.Terrain}{feature}  ({height})", 12, Theme.Text, bold: true));
+            if (tile.Fallout > 0)
+                _tooltip.Put(Ui.Text($"Nuclear fallout: yields nothing for {tile.Fallout} more turns", 11, Theme.Bad, wrap: true));
             if (tile.Wonder != NaturalWonder.None)
             {
                 string name = System.Text.RegularExpressions.Regex.Replace(tile.Wonder.ToString(), "(?<=[a-z])(?=[A-Z])", " ");
@@ -658,7 +665,7 @@ namespace Crucible.View.UI
                 string extra = (y.Science > 0 ? $"  ·  {y.Science} sci" : "") + (y.Culture > 0 ? $"  ·  {y.Culture} culture" : "") + (y.Faith > 0 ? $"  ·  {y.Faith} faith" : "");
                 _tooltip.Put(Ui.Text($"{y.Food} food  ·  {y.Production} prod  ·  {y.Gold} gold{extra}", 11, Theme.Muted));
             }
-            if (tile.Resource != ResourceType.None)
+            if (tile.Resource != ResourceType.None && Improvements.Knows(Me, tile.Resource))
                 _tooltip.Put(Ui.Text($"{tile.Resource} ({Improvements.KindOf(tile.Resource)})" +
                                      (Improvements.IsConnected(tile) ? " — connected" : $" — needs a {Improvements.ImprovementFor(tile.Resource)}"), 11, Theme.Accent));
             if (tile.Improvement != ImprovementType.None) _tooltip.Put(Ui.Text($"Improvement: {tile.Improvement}", 11, Theme.Text));

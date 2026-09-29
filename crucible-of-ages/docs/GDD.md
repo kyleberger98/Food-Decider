@@ -98,13 +98,14 @@ Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
   roots of the tree), then Ancient, Classical, Medieval, Renaissance, Industrial, Modern, Atomic,
   Information, and a Future era after Civ VI (Smart Materials, Cybernetics, Fusion Power,
   Predictive Systems). An empire's age is its most advanced tech's era; it shows in the top bar
-  and sets the look of its cities. 64 techs today, about 80 planned.
+  and sets the look of its cities. 66 techs today, about 80 planned.
 - **Units by age:** warriors and slingers (Neolithic); archers, spearmen, horsemen, triremes;
   swordsmen, composite bowmen, catapults, quadriremes; pikemen, longswordsmen, knights,
   crossbowmen, trebuchets; musketmen, lancers, cannon, frigates; riflemen, cavalry, gatling guns,
   artillery, ironclads; infantry, machine guns, anti-tank guns, landships, submarines,
   battleships, fighters; tanks, helicopter gunships, rocket artillery, carriers, bombers;
-  mechanized infantry, modern armor, missile cruisers, nuclear submarines, jets, stealth bombers;
+  atomic bombs; mechanized infantry, modern armor, missile cruisers, nuclear submarines, jets,
+  stealth bombers, nuclear missiles;
   exosuit infantry and the Giant Death Robot (Future). Anti-cavalry units (spears, pikes,
   anti-tank guns, gunships) get +8 against mounted and armour.
 - **Social policies:** 9 trees plus 3 ideologies (Freedom / Order / Autocracy analogues, renamed).
@@ -115,6 +116,8 @@ Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
   resources count once a worker connects them with the right improvement: a farm, mine,
   pasture, plantation, camp or well, each taking 5–7 turns and needing a tech. Each connected
   strategic source supports 4 units that need it. Each distinct luxury gives +4 happiness.
+  Strategics are horses, iron, oil and **uranium** (hills, tundra and desert; hidden and unminable
+  until Atomic Theory, then mined for nuclear weapons).
 - **Great People:** Scientist, Engineer, Merchant, Writer, Artist, Musician, Prophet,
   **General**, **Admiral**.
 - **Religion:** pantheon → founding → enhancing → reformation beliefs.
@@ -296,6 +299,18 @@ A unit dies at 0 HP. A melee attacker **advances** into the tile when the defend
   aircraft strikes the enemy ground unit it expects to hurt most. Each enemy fighter can
   **intercept** one striker per round first. Planes that are shot down are lost, and damaged ones
   repair 20 HP per turn in the hangar. AA units and carriers are ⏳.
+- **Nuclear weapons** (Civ V): the **Atomic Bomb** (Nuclear Fission, range 10, blast radius 1) and
+  the **Nuclear Missile** (Advanced Ballistics, range 14, blast radius 2) each need a connected
+  **uranium** source (revealed by Atomic Theory, mined). They sit in city hangars, never fly
+  conventional strikes, and are launched by hand at any hex in range (city panel → Launch, then
+  click the target). Everything in the blast is hit: units at ground zero are destroyed and the
+  rest take heavy damage falling off with distance, cities lose half their citizens at ground zero
+  (65% to a missile) and a quarter at the edge, aircraft based in a city at ground zero are lost,
+  improvements are wrecked, and the land is left under **fallout** (no yields) for 10 turns. A
+  strike may only touch players you are at war with and never a city-state. Every other civ
+  remembers it (−25 opinion for 50 turns). The AI builds one weapon while at war with a major
+  power and fires it at the enemy army or city worth most, never close to its own troops.
+  ⏳ Manhattan Project, interception by anti-missile units, nuclear winter.
 - **Buying with gold:** 2 gold per missing production point plus 50% of the item's cost,
   rounded to 5. Progress on the current build counts. You can't buy in a besieged city.
 - **Missiles and nukes** are world-map strikes. Nukes destroy armies in their radius
@@ -391,7 +406,7 @@ crucible-of-ages/
 | M4 | Sieges ✅ | Siege declaration and lifting, militia (stay home, fight only for their city), siege progress → rams/towers/catapults (max 3), walls with HP (50/tier) that block melee from the centre, towers let adjacent infantry climb, rams ×3 / siege ×2 wall damage, breach removes the wall bonus, garrison holds the centre, sorties, AI assaults. ⏳ Gunpowder-era sappers & artillery engines |
 | M5 | Tech, policies, resources 🟡 | ✅ tech-gated units/buildings/improvements, army cap progression, 4 policy trees (Tradition, Liberty, Honor, Commerce) with Civ V cost curve, resources on the map (bonus/strategic/luxury), workers & 6 improvements, strategic caps (4 units per connected source), luxuries (+4 happiness each), worker automation, AI policy adoption. ⏳ Remaining Civ V trees & ideologies, roads, pillaging (Khaganate ability) |
 | M6 | AI v1 ✅ | Strategic AI: expansion (site scoring, settlers), garrison management, defence, one offensive at a time (rally → march → siege → engines → assault), governor plan (settlers, military target), AI-vs-AI skirmishes end in domination (tested). ⏳ Fog-aware targeting & scouting, diplomacy, spending gold (needs purchasing), multiple fronts |
-| M7 | Full-history content 🟡 | ✅ 64 techs across ten eras (Neolithic start, Future era), land units every era with their own models, 10 warships, 4 aircraft, 24 buildings (longhouse, fusion reactor, arcology); cities restyled per age (huts → mud brick → stone → brick and smokestacks → concrete → glass towers); fleets (triremes coast-only), embarking (Optics / Astronomy), sinking embarked armies, mixed land-sea battlefields, city hangars with air strikes & interception each round, buying with gold (players and AI). ⏳ Wonders, carriers, nukes, unit upgrades, remaining ~25 techs |
+| M7 | Full-history content 🟡 | ✅ 66 techs across ten eras (Neolithic start, Future era), land units every era with their own models, 10 warships, 4 aircraft, 2 nuclear weapons (uranium, fallout), 24 buildings (longhouse, fusion reactor, arcology); cities restyled per age (huts → mud brick → stone → brick and smokestacks → concrete → glass towers); fleets (triremes coast-only), embarking (Optics / Astronomy), sinking embarked armies, mixed land-sea battlefields, city hangars with air strikes & interception each round, buying with gold (players and AI). ⏳ Wonders, carriers, unit upgrades, remaining ~25 techs |
 | M8 | Remaining systems ✅ | Great people (scientist, engineer, merchant, artist, prophet, general) from building points, faith and battle; religion founding and pressure-based spread with founder/follower beliefs; city-states (maritime, cultured, mercantile, militaristic) with influence, friends/allies, bonuses; World Congress & World Leader votes; tourism from great works and late-era culture; Apollo Program + 6 spaceship parts with flight time. All five victories reachable (tested). ⏳ Missionaries, pantheons & chosen beliefs, Congress resolutions, diplomacy between majors, conquering city-states |
 | M9 | Victory & polish 🟡 | ✅ All five victories, save/load (deterministic, tested) with rolling autosaves, diplomacy between majors, quality of life from Civ/Humankind feedback (production queue, research goals keeping partial progress, Civ-style End Turn prompts, clickable notification log, key help), UI Toolkit HUD, map scripts with lakes, ice and natural wonders, procedural low-poly art (terrain decorations, unit miniatures, cities) and Civ-style unit flags. ⏳ Balance passes, tutorial, animation, options/menus |
 

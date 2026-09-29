@@ -233,10 +233,12 @@ namespace Crucible.View
         }
 
         /// <summary>
-        /// Resources (small spheres: green bonus, red strategic, violet luxury) and improvements (flat
-        /// tan slabs) on explored hexes. Rebuilt only when the map or fog changes.
+        /// Resources (small spheres: green bonus, red strategic, violet luxury, glowing yellow-green
+        /// uranium) and improvements (flat tan slabs) on explored hexes, and a sickly haze over fallout.
+        /// Resources the viewing player hasn't discovered (uranium before Atomic Theory) stay hidden.
+        /// Rebuilt only when the map, fog or the viewer's research changes.
         /// </summary>
-        public void SyncTerrainMarkers(GameState game, PlayerVisibility viewer)
+        public void SyncTerrainMarkers(GameState game, PlayerVisibility viewer, Crucible.Core.Empire.Player knower = null)
         {
             foreach (var m in _terrainMarkers) Destroy(m);
             _terrainMarkers.Clear();
@@ -252,18 +254,37 @@ namespace Crucible.View
                     Tint(slab, ImprovementColor(t.Improvement));
                     _terrainMarkers.Add(slab);
                 }
-                if (t.Resource != Crucible.Core.World.ResourceType.None)
+                if (t.Fallout > 0)
+                {
+                    var haze = Primitive(PrimitiveType.Quad, "Fallout");
+                    haze.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                    haze.transform.localScale = Vector3.one * _map.hexSize * 1.5f;
+                    haze.transform.position = center + Vector3.up * 0.06f;
+                    haze.GetComponent<Renderer>().sharedMaterial = _overlayMaterial;
+                    Tint(haze, new Color(0.55f, 0.8f, 0.1f, 0.12f + 0.25f * t.Fallout / Crucible.Core.Game.GameState.FalloutTurns));
+                    _terrainMarkers.Add(haze);
+                }
+                bool known = knower == null || Crucible.Core.Economy.Improvements.Knows(knower, t.Resource);
+                if (t.Resource != Crucible.Core.World.ResourceType.None && known)
                 {
                     var orb = Primitive(PrimitiveType.Sphere, t.Resource.ToString());
                     orb.transform.localScale = Vector3.one * 0.2f;
                     orb.transform.position = center + new Vector3(0.35f, 0.12f, 0.25f);
                     var kind = Crucible.Core.Economy.Improvements.KindOf(t.Resource);
-                    Tint(orb, kind == Crucible.Core.Economy.ResourceKind.Strategic ? new Color(0.85f, 0.25f, 0.2f)
+                    Tint(orb, t.Resource == Crucible.Core.World.ResourceType.Uranium ? new Color(0.75f, 1.2f, 0.2f)
+                        : kind == Crucible.Core.Economy.ResourceKind.Strategic ? new Color(0.85f, 0.25f, 0.2f)
                         : kind == Crucible.Core.Economy.ResourceKind.Luxury ? new Color(0.7f, 0.35f, 0.9f)
                         : new Color(0.4f, 0.85f, 0.35f));
                     _terrainMarkers.Add(orb);
                 }
             }
+        }
+
+        /// <summary>Plays a nuclear strike: flash, shock ring and mushroom cloud sized to the blast.</summary>
+        public void Detonate(Crucible.Core.Hex.HexCoord at, int radius)
+        {
+            var mesh = Cached("fx|mushroom", EffectModels.MushroomCloud);
+            NuclearBlast.Spawn(transform, _map.HexToWorld(at), _map.hexSize * (radius + 0.6f), mesh, HexMapRenderer.LowPolyMaterial, _overlayMaterial);
         }
 
         static Color ImprovementColor(Crucible.Core.World.ImprovementType i)

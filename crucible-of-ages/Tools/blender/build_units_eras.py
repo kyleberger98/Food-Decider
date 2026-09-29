@@ -432,6 +432,61 @@ def submarine(nuclear=False):
         p.append(box((0.08, 0.03, 0.004), hull_c, loc=(0, length / 2 - 0.02, 0.028)))
     return p
 
+# ---------------------------------------------------------------------------------------- nuclear weapons
+
+MUSTARD = a.hexcol(0xC9A447)
+
+
+def atomic_bomb():
+    """A fat implosion bomb on its wheeled loading cradle, with two handlers."""
+    p = []
+    for side in (-1, 1):
+        p.append(box((0.012, 0.3, 0.02), GUNMETAL, loc=(0.07 * side, 0.0, 0.05)))                           # cradle rails
+        for y in (-0.1, 0.1):
+            p += tyre(0.075 * side, y, 0.03, 0.016)
+    for y in (-0.08, 0.08):
+        p.append(box((0.15, 0.014, 0.02), GUNMETAL, loc=(0, y, 0.06)))
+        p.append(torus_arc(0.07, 0.006, 200, 340, GUNMETAL, loc=(0, y, 0.15), rot=(0, 0, 0), steps=8))      # cradle hoops
+    p.append(sphere(0.085, MUSTARD, loc=(0, -0.02, 0.15), subdiv=3, scale=(1.0, 1.45, 1.0)))                # the bomb
+    p.append(box((0.17, 0.006, 0.02), TEAM, loc=(0, -0.02, 0.15)))                                          # painted band
+    p.append(cylinder(0.087, 0.012, TEAM, loc=(0, -0.02, 0.15), rot=(90, 0, 0), sides=16))
+    p.append(segment((0, 0.08, 0.15), (0, 0.19, 0.15), 0.05, 0.035, BLACK, sides=8))                        # tail cone
+    for ang in (0, 90):                                                                                     # box tail
+        p.append(box((0.13, 0.08, 0.006), BLACK, loc=(0, 0.19, 0.15), rot=(0, ang, 0)))
+    p.append(box((0.13, 0.004, 0.13), BLACK, loc=(0, 0.23, 0.15)))
+    for k in range(5):                                                                                      # nose fuzes
+        ang = math.radians(k * 72)
+        p.append(sphere(0.008, BLACK, loc=(math.cos(ang) * 0.03, -0.14, 0.15 + math.sin(ang) * 0.03), subdiv=0))
+    p += crew("rifle", [(-0.19, -0.02, 20), (0.19, 0.06, -25)], 71)
+    return p
+
+
+def nuclear_missile():
+    """A ballistic missile raised on its eight-wheeled mobile launcher."""
+    p = []
+    green = a.hexcol(0x4E5A3A)
+    p.append(box((0.13, 0.46, 0.03), a.hexcol(0x3A3A36), loc=(0, 0.02, 0.06)))                              # chassis
+    for side in (-1, 1):
+        for y in (-0.15, -0.06, 0.08, 0.17):
+            p += tyre(0.07 * side, y, 0.036, 0.024)
+        p.append(box((0.02, 0.44, 0.012), green, loc=(0.068 * side, 0.02, 0.078)))                         # mudguards
+    p.append(prism([(-0.24, 0.07), (-0.23, 0.15), (-0.13, 0.16), (-0.13, 0.07)], -0.065, 0.065, green))    # cab
+    p.append(box((0.11, 0.004, 0.03), a.hexcol(0x9FC4D8), loc=(0, -0.236, 0.13), rot=(-8, 0, 0)))
+    p.append(box((0.004, 0.06, 0.03), TEAM, loc=(0.066, -0.18, 0.11)))
+    base, tip = Vector((0, 0.2, 0.1)), Vector((0, 0.02, 0.6))
+    axis = (tip - base).normalized()
+    p.append(segment(base + Vector((0, 0.02, -0.02)), base + axis * 0.42 + Vector((0, 0.02, -0.02)), 0.012, 0.012, green, sides=6))  # erector
+    p.append(segment((0, -0.02, 0.08), base + axis * 0.2 + Vector((0, 0.015, -0.015)), 0.008, 0.008, IRON, sides=6))  # hydraulic ram
+    body_end = base + axis * 0.42
+    p.append(segment(base, body_end, 0.028, 0.028, WHITE, sides=12))                                     # missile body
+    p.append(segment(body_end, tip, 0.028, 0.004, BLACK, sides=12))                                       # warhead
+    p.append(segment(base + axis * 0.28, base + axis * 0.31, 0.029, 0.029, TEAM, sides=12))              # team band
+    normal = Vector((0, -axis.z, axis.y))                                                                 # across the missile, in the YZ plane
+    for side in (Vector((1, 0, 0)), Vector((-1, 0, 0)), normal, -normal):                                 # fins
+        root = base + axis * 0.02
+        p.append(poly([root + side * 0.026, root + side * 0.06, root + axis * 0.08 + side * 0.026], [(0, 1, 2)], a.hexcol(0x5A6068)))
+    return p
+
 # ---------------------------------------------------------------------------------------- table
 
 UNITS = {
@@ -479,5 +534,9 @@ UNITS = {
     "battleship": battleship,
     "missile_cruiser": missile_cruiser,
     "nuclear_submarine": lambda: submarine(True),
+    # Nuclear weapons (unit_nuke is the flag symbol's model).
+    "nuke": atomic_bomb,
+    "atomic_bomb": atomic_bomb,
+    "nuclear_missile": nuclear_missile,
 }
 

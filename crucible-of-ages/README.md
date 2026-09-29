@@ -55,7 +55,9 @@ The terrain tiles, peaks, units, trees and cities are Blender models (see *Blend
   Each age has its own troops on top of that: Neolithic clubmen and slingers, galleys with banks of
   oars, men-at-arms and knights in caparisons, gatling guns, First World War field guns and
   landships, machine-gun nests, helicopter gunships, modern armour, missile cruisers, nuclear
-  submarines, a stealth bomber, exosuit infantry and a Giant Death Robot.
+  submarines, a stealth bomber, exosuit infantry and a Giant Death Robot. Nuclear weapons (an
+  atomic bomb on its loading cradle and a missile on a mobile launcher) go off with a flash, a
+  shock ring and a mushroom cloud, and leave a green haze of fallout.
 
   Cities grow houses with population and raise walls and towers when fortified, and they change with
   their owner's age: thatched huts round a longhouse behind a palisade, mud-brick houses under a
@@ -99,9 +101,9 @@ The terrain tiles, mountain peaks, unit miniatures, trees, palms, rocks and city
 - **Conventions:**
   - Models face Blender's **-Y** (front view) and stand on z = 0. A map hex has a corner radius of 1.
   - Keep flat shading for the low-poly look.
-  - Names follow the pattern `unit_<symbol>`: `unit_sword`, `unit_spear`, `unit_bow`, `unit_crossbow`, `unit_horse`, `unit_catapult`, `unit_cannon`, `unit_rocket`, `unit_musket`, `unit_helmet`, `unit_tank`, `unit_sailship`, `unit_steamship`, `unit_carrier`, `unit_fighter`, `unit_bomber`, `unit_jet`, `unit_scout`, `unit_settler`, `unit_worker`, `unit_ram`, `unit_siegetower`, `unit_helicopter`, `unit_robot`, `unit_submarine`, and the great people `unit_general`, `unit_scientist`, `unit_engineer`, `unit_merchant`, `unit_artist`, `unit_prophet`.
+  - Names follow the pattern `unit_<symbol>`: `unit_sword`, `unit_spear`, `unit_bow`, `unit_crossbow`, `unit_horse`, `unit_catapult`, `unit_cannon`, `unit_rocket`, `unit_musket`, `unit_helmet`, `unit_tank`, `unit_sailship`, `unit_steamship`, `unit_carrier`, `unit_fighter`, `unit_bomber`, `unit_jet`, `unit_scout`, `unit_settler`, `unit_worker`, `unit_ram`, `unit_siegetower`, `unit_helicopter`, `unit_robot`, `unit_submarine`, `unit_nuke`, and the great people `unit_general`, `unit_scientist`, `unit_engineer`, `unit_merchant`, `unit_artist`, `unit_prophet`.
   - A unit can also have a model of its own, `unit_<unit id>` (`unit_knight`, `unit_landship`, `unit_trireme`...), which the game prefers over its symbol's.
-  - Props are `prop_conifer`/`_b`, `prop_broadleaf`/`_b`, `prop_jungle`, `prop_palm` and `prop_rock`.
+  - Props are `prop_conifer`/`_b`, `prop_broadleaf`/`_b`, `prop_jungle`, `prop_palm` and `prop_rock`, plus the `prop_mushroom` cloud shown for nuclear strikes.
   - City parts are `city_house`, `city_keep`, `city_wall` (1.0 long along X, stretched along each hex edge) and `city_tower`. That is the medieval set (Medieval and Renaissance).
   - The other ages use `city_<style>_<part>` with the styles `neolithic`, `ancient` (Ancient, Classical), `industrial`, `modern` (Modern, Atomic) and `future` (Information, Future). Extra house variants are `city_<style>_house_2`, `_3`... A missing part falls back to the medieval one.
   - Mountain peaks are `prop_peak_1..3`.
@@ -137,6 +139,7 @@ The HUD is built with UI Toolkit entirely in code (no assets to set up):
 | Deployment | Click a unit, then a blue hex of your zone (swaps with friends). **Space** confirms. |
 | Battle | Click a unit, then a green hex to move or a red enemy to attack. Hover an enemy to see the combat breakdown. **Space** ends the battle turn, **R** retreats, **X** auto-resolves the round, **B** batters the walls with the selected unit. |
 | Reinforce | With an army next to an ongoing battle selected, click a battlefield hex to join it. |
+| Nuclear weapons | Mine **uranium** (it appears on the map once you know Atomic Theory) to build Atomic Bombs and Nuclear Missiles; they wait in the city's hangar. In the city panel click **Launch**, then a target within range (the yellow ring): the red hexes show the blast, the tooltip says why a target is off-limits (peace, city-states, battles). **Esc** cancels. |
 | Siege | Next to an enemy city, **G** declares a siege (militia rise, the city stops growing). The siege panel spends siege progress on rams, siege towers and catapults. Click the city to assault it. |
 | Camera | WASD/arrows, screen edges or middle-drag pan, Q/E rotate, mouse wheel zooms (scrolls panels when over the HUD) · **C** centres on the selection, **Home** on your capital · **Esc** closes a panel or deselects · **F1** lists every key |
 | Saving | **F5** quick-saves, **F9** quick-loads (`quicksave.crucible` in Unity's persistent data folder). The game autosaves at the start of each of your turns and keeps the last 5; **Load** lists them. |

@@ -386,7 +386,7 @@ namespace Crucible.Core.Game
             foreach (var side in new[] { battle.Attacker, battle.Defender })
                 battle.SetAirSupport(side.Id, _cities.Values
                     .Where(c => c.OwnerId == side.Player.Id)
-                    .SelectMany(c => c.AirUnits.Where(u => u.IsAlive && c.Position.DistanceTo(at) <= u.Def.Range)));
+                    .SelectMany(c => c.AirUnits.Where(u => u.IsAlive && !u.Def.IsNuclear && c.Position.DistanceTo(at) <= u.Def.Range)));
         }
 
         void PullInReinforcements(Battle battle)

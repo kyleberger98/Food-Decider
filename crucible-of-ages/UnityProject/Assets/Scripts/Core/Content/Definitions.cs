@@ -134,6 +134,12 @@ namespace Crucible.Core.Content
         /// <summary>Great people are civilians with a one-off (or, for generals, standing) ability.</summary>
         public GreatPersonType GreatPerson;
 
+        /// <summary>Nuclear weapons: hexes around the target caught in the blast (0 = conventional).</summary>
+        public int BlastRadius;
+
+        /// <summary>A one-shot nuclear weapon launched from a city (see GameState.LaunchNuke), never an air strike.</summary>
+        public bool IsNuclear => BlastRadius > 0;
+
         public bool IsRanged => RangedStrength > 0 && Range > 0 && Domain != UnitDomain.Air;
         public bool IsMilitary => Class != UnitClass.Civilian;
 

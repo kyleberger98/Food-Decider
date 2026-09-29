@@ -74,12 +74,16 @@ namespace Crucible.View
         MeshCollider _mapCollider;
         int _fogVersion = -1;
         int _mapVersion = -1;
+        int _techKnown = -1;
         HexCoord? _routeFor;
 
         public GameState Game { get; private set; }
         public TurnManager Turns { get; private set; }
         public HexMapRenderer MapRenderer => _map;
         public Camera Camera => _rig != null ? _rig.Camera : null;
+
+        /// <summary>A nuclear weapon waiting for its target: the next map click launches it (Esc cancels).</summary>
+        public (City city, Unit weapon)? NukeTargeting { get; private set; }
 
         public Army SelectedArmy { get; private set; }
         public City SelectedCity { get; private set; }
@@ -154,6 +158,15 @@ namespace Crucible.View
             Game.ReligionFounded += r => Post($"{r.Name} has been founded by {Game.Player(r.FounderId).Name}.");
             Game.WarDeclared += (a, b) => Post($"War: {a.Name} against {b.Name}!", NoticeKind.War);
             Game.PeaceMade += (a, b) => Post($"Peace between {a.Name} and {b.Name}.", NoticeKind.Good);
+            Game.NuclearStrikeLaunched += s =>
+            {
+                var who = Game.Player(s.PlayerId);
+                string cities = s.Cities.Count == 0 ? "" : " " + string.Join(", ", s.Cities.Select(c => $"{c.city.Name} lost {c.lost} citizens")) + ".";
+                Post($"NUCLEAR STRIKE: {who.Name} used {(s.Weapon.StartsWith("A") ? "an" : "a")} {s.Weapon}. {s.UnitsDestroyed} units destroyed, {s.UnitsDamaged} damaged.{cities} " +
+                     $"Fallout lingers for {GameState.FalloutTurns} turns.", NoticeKind.War, s.Target);
+                _markers.Detonate(s.Target, s.Radius);
+                if (Viewer.IsExplored(s.Target)) FocusOn(s.Target);
+            };
         }
 
         Player HumanPlayer => Game.Players.FirstOrDefault(p => !p.IsAI);
@@ -210,17 +223,22 @@ namespace Crucible.View
             if (SelectedUnit != null && !SelectedUnit.IsAlive) SelectedUnit = null;
             if (OpenPanel == HudPanel.Siege && BesiegedBySelection() == null) OpenPanel = HudPanel.None;
 
+            if (NukeTargeting is { } aim && (aim.city.OwnerId != Human.Id || !aim.city.AirUnits.Contains(aim.weapon)))
+                NukeTargeting = null;
+
             var viewer = Viewer;
-            if (viewer.Version != _fogVersion || Game.MapVersion != _mapVersion)
+            int techKnown = HumanPlayer?.Tech.Researched.Count ?? 0;
+            if (viewer.Version != _fogVersion || Game.MapVersion != _mapVersion || techKnown != _techKnown)
             {
                 _map.ApplyFog(viewer, MarkerLayer.ColorOf);
-                _markers.SyncTerrainMarkers(Game, viewer);
+                _markers.SyncTerrainMarkers(Game, viewer, HumanPlayer); // uranium shows once Atomic Theory is known
                 _fogVersion = viewer.Version;
                 _mapVersion = Game.MapVersion;
+                _techKnown = techKnown;
             }
 
             // Route preview for the selected army (cached per hovered hex).
-            if (battle == null && SelectedArmy != null && HoverHex.HasValue && !IsPointerOverUi())
+            if (battle == null && NukeTargeting == null && SelectedArmy != null && HoverHex.HasValue && !IsPointerOverUi())
             {
                 if (_routeFor != HoverHex)
                 {
@@ -232,14 +250,19 @@ namespace Crucible.View
 
             var shown = battle ?? Game.Battles.FirstOrDefault(b => b.Attacker.Player == Human || b.Defender.Player == Human);
             _markers.Sync(Game, viewer, shown, SelectedArmy, SelectedUnit);
-            _markers.ShowHighlights(battle != null ? BattleHighlights(battle) : RouteHighlights());
+            _markers.ShowHighlights(battle != null ? BattleHighlights(battle) : NukeTargeting != null ? NukeHighlights() : RouteHighlights());
         }
 
         void HandleKeys(Battle battle)
         {
             if (Input.GetKeyDown(KeyCode.F5)) QuickSave();
             if (Input.GetKeyDown(KeyCode.F9)) { QuickLoad(); return; }
-            if (Input.GetKeyDown(KeyCode.Escape)) { if (OpenPanel != HudPanel.None) ClosePanel(); else Deselect(); }
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (NukeTargeting != null) CancelNukeTargeting();
+                else if (OpenPanel != HudPanel.None) ClosePanel();
+                else Deselect();
+            }
             if (Input.GetKeyDown(KeyCode.F1)) TogglePanel(HudPanel.Help);
             if (Input.GetKeyDown(KeyCode.N)) TogglePanel(HudPanel.Log);
             if (Input.GetKeyDown(KeyCode.Home)) FocusCapital();
@@ -288,6 +311,41 @@ namespace Crucible.View
         {
             HoverRoute = null;
             _routeFor = null;
+        }
+
+        /// <summary>While aiming a nuke: the edge of its range, and the blast under the cursor (red if allowed, grey if not).</summary>
+        IEnumerable<(HexCoord, Color)> NukeHighlights()
+        {
+            if (!(NukeTargeting is { } aim)) yield break;
+            var (city, weapon) = aim;
+            foreach (var t in Game.Map.Tiles)
+                if (t.Coord.DistanceTo(city.Position) == weapon.Def.Range)
+                    yield return (t.Coord, new Color(1f, 0.85f, 0.2f, 0.3f));
+            if (!HoverHex.HasValue || IsPointerOverUi()) yield break;
+            bool ok = Game.NukeBlocker(city, weapon, HoverHex.Value) == null;
+            foreach (var h in Game.BlastArea(HoverHex.Value, weapon.Def.BlastRadius))
+                yield return (h, ok ? new Color(1f, 0.2f, 0.1f, h == HoverHex.Value ? 0.6f : 0.4f) : new Color(0.5f, 0.5f, 0.5f, 0.35f));
+        }
+
+        /// <summary>Why the hovered hex can't be nuked, or null (the HUD shows it in the tooltip).</summary>
+        public string NukeHoverBlocker() =>
+            NukeTargeting is { } aim && HoverHex.HasValue ? Game.NukeBlocker(aim.city, aim.weapon, HoverHex.Value) : null;
+
+        public void BeginNukeTargeting(City city, Unit weapon)
+        {
+            if (city.OwnerId != Human.Id || !weapon.Def.IsNuclear) return;
+            NukeTargeting = (city, weapon);
+            SelectedArmy = null;
+            OpenPanel = HudPanel.None;
+            FocusOn(city.Position);
+            Post($"{weapon.Def.Name} armed in {city.Name}: click a target within {weapon.Def.Range} hexes (Esc cancels).", NoticeKind.War, city.Position);
+        }
+
+        public void CancelNukeTargeting()
+        {
+            if (NukeTargeting == null) return;
+            NukeTargeting = null;
+            Post("Launch cancelled.");
         }
 
         IEnumerable<(HexCoord, Color)> RouteHighlights()
@@ -638,6 +696,15 @@ namespace Crucible.View
 
         void WorldClick(HexCoord hex)
         {
+            if (NukeTargeting is { } aim)
+            {
+                string blocker = Game.NukeBlocker(aim.city, aim.weapon, hex);
+                if (blocker != null) { Post(blocker, NoticeKind.Bad); return; }
+                NukeTargeting = null;
+                Game.LaunchNuke(aim.city, aim.weapon, hex); // reported through NuclearStrikeLaunched
+                return;
+            }
+
             var clickedCity = Game.CityAt(hex);
             var army = Game.ArmyAt(hex);
 

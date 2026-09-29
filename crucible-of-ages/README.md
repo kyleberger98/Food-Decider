@@ -46,9 +46,13 @@ The terrain tiles, peaks, units, trees and cities are Blender models (see *Blend
   pack ice at the poles, and decorations: conifer and broadleaf woods, jungle, marsh reeds,
   oasis palms, desert dunes, snow-capped mountain ranges, and three natural wonders (Emberfall
   Geyser, the Glass Dunes, the Worldspine).
-- **Units:** Humankind-style miniatures. Foot troops are squads of three, cavalry are pairs of
-  riders, and siege engines, tanks, ships and aircraft are single models, all in the owner's
-  colour. Cities grow houses with population and raise walls and towers when fortified.
+- **Units:** Civ V-style formations that stand straight on the terrain with no base. Foot troops are squads of three or four soldiers in period kit, with the owner's colour on tunics, shields and sails:
+  - legionaries with scuta, hoplites with round shields and spears, archers drawing bows, crossbowmen, musketmen in tricorns and cross belts, and riflemen with helmets and packs;
+  - lancers on horseback, and a mounted Great General with a standard;
+  - catapult and cannon crews, a battering ram, a siege tower, a rocket truck and a tank;
+  - a three-masted frigate, a destroyer, a carrier, and propeller and jet aircraft.
+
+  Cities grow houses with population and raise walls and towers when fortified.
 - **Unit flags:** Civ-style shields with a symbol for each unit type (sword, spear, bow,
   crossbow, horse, catapult, cannon, rocket, musket, helmet, tank, sail and steam ships,
   carrier, fighter, bomber, jet, scout, settler, worker, ram, siege tower and the six great

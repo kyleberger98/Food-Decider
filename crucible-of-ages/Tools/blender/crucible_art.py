@@ -146,13 +146,15 @@ def sphere(radius, color, loc=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1), subdiv=
     return _finish(_new(bm, "sph"), color, loc, rot, 0.0, 1)
 
 
-def poly(verts, faces, color, loc=(0, 0, 0), rot=(0, 0, 0), bevel=0.0, segments=1):
-    """Arbitrary mesh from vertices and faces (counter-clockwise seen from outside)."""
+def poly(verts, faces, color, loc=(0, 0, 0), rot=(0, 0, 0), bevel=0.0, segments=1, recalc=True):
+    """Arbitrary mesh from vertices and faces (counter-clockwise seen from outside). Pass
+    recalc=False for single flat faces, whose orientation Blender can't infer: they keep the given winding."""
     bm = bmesh.new()
     vs = [bm.verts.new(v) for v in verts]
     for f in faces:
         bm.faces.new([vs[i] for i in f])
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    if recalc:
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return _finish(_new(bm, "poly"), color, loc, rot, bevel, segments)
 
 
@@ -175,6 +177,17 @@ def torus_arc(major, minor, start_deg, end_deg, color, loc=(0, 0, 0), rot=(0, 0,
             bm.faces.new((rings[i][k], rings[i][k2], rings[i + 1][k2], rings[i + 1][k]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return _finish(_new(bm, "arc"), color, loc, rot, 0.0, 1)
+
+
+def segment(a, b, r0, r1, color, sides=6, cap=True):
+    """A tapered rod from point a (radius r0) to point b (radius r1): limbs, spars, weapons."""
+    a, b = Vector(a), Vector(b)
+    d = b - a
+    obj = cylinder(r0, max(d.length, 1e-5), color, sides=sides, top=r1, cap=cap)
+    obj.location = (a + b) / 2
+    obj.rotation_mode = "QUATERNION"
+    obj.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(d.normalized())
+    return obj
 
 
 def hex_ring(outer, inner, height, color, z=0.0, sides=6, phase_deg=30):

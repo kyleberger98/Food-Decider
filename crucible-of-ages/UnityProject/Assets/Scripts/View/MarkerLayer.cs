@@ -106,6 +106,7 @@ namespace Crucible.View
                 {
                     _armyLooks[army.Id] = look;
                     go.GetComponent<MeshFilter>().sharedMesh = UnitMesh(icon, army.OwnerId);
+                    go.transform.localScale = Vector3.one * UnitScale(icon);
                 }
                 go.transform.position = _map.HexToWorld(army.Position);
                 go.transform.rotation = Quaternion.Euler(0f, FacingYaw, 0f);
@@ -120,6 +121,13 @@ namespace Crucible.View
                 _armyLooks.Remove(id);
             }
         }
+
+        /// <summary>
+        /// Blender formations (Civ V style: no base, life-like proportions) are drawn larger so they
+        /// read at strategy zoom; the procedural stand-ins already carry a base and their own scale.
+        /// </summary>
+        static float UnitScale(UnitIcon icon) =>
+            ArtLibrary.Current != null && ArtLibrary.Current.Has(UnitModels.ModelName(icon)) ? 1.6f : 1f;
 
         /// <summary>Models face the default camera, turned a little for a three-quarter view.</summary>
         const float FacingYaw = 200f;
@@ -199,7 +207,7 @@ namespace Crucible.View
                     {
                         go = Model(unit.Def.Name);
                         go.GetComponent<MeshFilter>().sharedMesh = UnitMesh(IconArt.ForUnit(unit.Def), unit.OwnerId);
-                        go.transform.localScale = Vector3.one * 0.9f;
+                        go.transform.localScale = Vector3.one * 0.9f * UnitScale(IconArt.ForUnit(unit.Def));
                         _units[unit.Id] = go;
                     }
                     go.transform.position = _map.HexToWorld(battle.PositionOf(unit).Value);

@@ -63,18 +63,20 @@ namespace Crucible.Core.Content
             void T(string id, string name, Era era, int cost, int capBonus, params string[] pre) =>
                 db.Add(new TechDef { Id = id, Name = name, Era = era, ScienceCost = cost, ArmyCapBonus = capBonus, Prerequisites = new List<string>(pre) });
 
-            // Neolithic: cheap roots researched from the first turn, before settled farming.
+            // Neolithic (Humankind): the only roots of the tree. Every civilisation passes through them:
+            // Stone Tools leads to farming and mining, Hunting to herding and archery, Animism to writing
+            // and the calendar.
             T("hunting", "Hunting", Era.Neolithic, 15, 0);
             T("animism", "Animism", Era.Neolithic, 15, 0);
             T("stone_tools", "Stone Tools", Era.Neolithic, 15, 0);
 
-            T("agriculture", "Agriculture", Era.Ancient, 20, 0);
+            T("agriculture", "Agriculture", Era.Ancient, 20, 0, "stone_tools");
             T("pottery", "Pottery", Era.Ancient, 35, 0, "agriculture");
-            T("writing", "Writing", Era.Ancient, 55, 0, "pottery");
-            T("calendar", "Calendar", Era.Ancient, 70, 0, "pottery");
+            T("writing", "Writing", Era.Ancient, 55, 0, "pottery", "animism");
+            T("calendar", "Calendar", Era.Ancient, 70, 0, "pottery", "animism");
             T("sailing", "Sailing", Era.Ancient, 55, 0, "pottery");
-            T("animal_husbandry", "Animal Husbandry", Era.Ancient, 35, 0, "agriculture");
-            T("archery", "Archery", Era.Ancient, 35, 0, "agriculture");
+            T("animal_husbandry", "Animal Husbandry", Era.Ancient, 35, 0, "agriculture", "hunting");
+            T("archery", "Archery", Era.Ancient, 35, 0, "agriculture", "hunting");
             T("mining", "Mining", Era.Ancient, 35, 0, "agriculture");
             T("bronze_working", "Bronze Working", Era.Ancient, 55, 0, "mining");
             T("horseback_riding", "Horseback Riding", Era.Ancient, 55, 0, "animal_husbandry");

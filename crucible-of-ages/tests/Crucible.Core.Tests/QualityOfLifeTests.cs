@@ -39,6 +39,8 @@ namespace Crucible.Core.Tests
         {
             var g = TestWorld.Game(attackerAI: false);
             var tech = g.Player(0).Tech;
+            tech.Grant("stone_tools");                 // the Neolithic behind us
+            tech.Grant("hunting");
             tech.SetResearch("agriculture");
             tech.AddScience(10);
             tech.SetResearch("agriculture"); // no-op
@@ -153,7 +155,7 @@ namespace Crucible.Core.Tests
             g.FoundCity(1, TestWorld.H(13, 9), "Veii", true);
             g.SetProduction(city, ProductionItem.Building("monument"));
             g.EnqueueProduction(city, ProductionItem.Unit("warrior"));
-            g.Player(0).Tech.Grant("agriculture");
+            foreach (var id in new[] { "stone_tools", "hunting", "agriculture" }) g.Player(0).Tech.Grant(id);
             g.Player(0).Tech.SetTarget("horseback_riding");
             g.Player(0).Tech.AddScience(5);
             g.Player(0).Tech.SetResearch("archery");

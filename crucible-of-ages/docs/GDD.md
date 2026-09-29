@@ -94,8 +94,9 @@ Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
   cost 1 gold each. A bankrupt empire disbands one unit per turn.
 - **City governor:** it keeps at least one defender per city and never builds into
   negative income. Otherwise it follows its build priority list (monument, granary, market, library, walls, …).
-- **Tech tree:** 10 eras: a Neolithic start as in Humankind (Hunting, Animism, Stone Tools, the
-  roots of the tree), then Ancient, Classical, Medieval, Renaissance, Industrial, Modern, Atomic,
+- **Tech tree:** 10 eras: a Neolithic start as in Humankind (Hunting, Animism, Stone Tools: the
+  only roots of the tree, so every civ passes through it; Stone Tools leads to Agriculture, Hunting
+  to Archery and Animal Husbandry, Animism to Writing and Calendar), then Ancient, Classical, Medieval, Renaissance, Industrial, Modern, Atomic,
   Information, and a Future era after Civ VI (Smart Materials, Cybernetics, Fusion Power,
   Predictive Systems). An empire's age is its most advanced tech's era; it shows in the top bar
   and sets the look of its cities. 66 techs today, about 80 planned.

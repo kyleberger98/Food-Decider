@@ -28,8 +28,12 @@ namespace Crucible.Core.Tests
         {
             var roots = Content.Techs.Where(t => t.Prerequisites.Count == 0).ToList();
             Assert.NotEmpty(roots);
-            Assert.All(roots, t => Assert.True(t.Era <= Era.Ancient, t.Id));
-            Assert.Contains(roots, t => t.Era == Era.Neolithic);
+            Assert.All(roots, t => Assert.Equal(Era.Neolithic, t.Era));             // nobody skips the Neolithic
+            Assert.Equal(new[] { "animism", "hunting", "stone_tools" }, roots.Select(t => t.Id).OrderBy(id => id));
+            // Every Neolithic tech leads somewhere, and every later tech needs one of them somewhere up its tree.
+            Assert.All(roots, r => Assert.Contains(Content.Techs, t => t.Prerequisites.Contains(r.Id)));
+            var tree = new TechTree(Content);
+            Assert.All(Content.Techs.Where(t => t.Era > Era.Neolithic), t => Assert.Contains(tree.PathTo(t.Id), id => Content.Tech(id).Era == Era.Neolithic));
             foreach (var tech in Content.Techs)
                 foreach (var pre in tech.Prerequisites)
                     Assert.True(Content.Tech(pre).Era <= tech.Era, $"{tech.Id} needs later {pre}");
@@ -45,6 +49,8 @@ namespace Crucible.Core.Tests
             Assert.Equal(Era.Neolithic, tree.CurrentEra);
             tree.Grant("hunting");
             Assert.Equal(Era.Neolithic, tree.CurrentEra);
+            Assert.Equal(new[] { "stone_tools", "agriculture" }, tree.PathTo("agriculture"));
+            tree.Grant("stone_tools");
             tree.Grant("agriculture");
             Assert.Equal(Era.Ancient, tree.CurrentEra);
             foreach (var id in tree.PathTo("predictive_systems")) tree.Grant(id);

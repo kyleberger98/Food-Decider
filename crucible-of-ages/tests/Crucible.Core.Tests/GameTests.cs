@@ -26,6 +26,8 @@ namespace Crucible.Core.Tests
         public void Tech_research_respects_prerequisites_and_carries_overflow()
         {
             var tree = new TechTree(TestWorld.Content);
+            Assert.False(tree.CanResearch("agriculture"));   // needs Stone Tools first
+            tree.Grant("stone_tools");
             Assert.False(tree.CanResearch("bronze_working"));
             tree.SetResearch("agriculture");
             Assert.Equal("agriculture", tree.AddScience(25).Id);

@@ -11,9 +11,11 @@ Re-running this script regenerates everything from code and overwrites hand edit
 
 Models face -Y and stand on z = 0, one object per model, named <category>_<name>:
   unit_*  one per unit symbol, Civ V style (see build_units.py): squads of 3-4 soldiers, riders,
-          engines with crews, ships and aircraft, standing straight on the terrain
+          engines with crews, ships and aircraft, standing straight on the terrain; plus one per
+          unit id where an age needs its own look (build_units_eras.py: unit_knight, unit_landship...)
   prop_*  terrain decorations (trees, palms, rocks)
-  city_*  settlement parts (house, keep, wall segment, tower) assembled by the game per city
+  city_*  settlement parts (house, keep, wall segment, tower) assembled by the game per city;
+          city_<style>_* for the other ages (build_cities.py)
   tile_*  terrain tile tops (grassland, hills, desert, water, ice...) and prop_peak_* mountain peaks,
           see build_tiles.py
 """
@@ -47,7 +49,8 @@ BLEND_PATH = os.path.join(REPO, "Tools", "blender", "crucible_assets.blend")
 
 # Civ V-style formations, riders, engines, ships and aircraft live in build_units.py.
 import build_units  # noqa: E402
-UNITS = build_units.UNITS
+import build_units_eras  # noqa: E402
+UNITS = dict(build_units.UNITS, **build_units_eras.UNITS)   # per-symbol models, then per-unit ones for each age
 
 # ---------------------------------------------------------------------------------------- props
 
@@ -165,6 +168,10 @@ CITY = {
     "wall": wall_segment,
     "tower": tower,
 }
+
+# The other ages' settlements (neolithic huts .. glass towers) live in build_cities.py.
+import build_cities  # noqa: E402
+CITY.update(build_cities.all_parts())
 
 # ---------------------------------------------------------------------------------------- build
 

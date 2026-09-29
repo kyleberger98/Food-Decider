@@ -267,7 +267,7 @@ namespace Crucible.View.UI
             string sig = $"{stamp}|{income}|{happy}|{Me.Tech.Progress}|{research?.Id}|{Me.PolicyCulture}|{pending}|{Me.Faith}|{Me.Tourism}|{_c.OpenPanel}";
             if (!Changed("top", sig)) return;
 
-            var era = Me.Tech.Researched.Select(id => G.Content.Tech(id).Era).DefaultIfEmpty(Era.Ancient).Max();
+            var era = Me.Tech.CurrentEra;
             _turnLabel.text = $"TURN {G.Turn}  ·  {era.ToString().ToUpperInvariant()} ERA";
 
             _topStats.Clear();

@@ -10,6 +10,7 @@ namespace Crucible.View.Icons
         Sword, Spear, Bow, Crossbow, Horse, Catapult, Cannon, Rocket, Musket, Helmet, Tank,
         SailShip, Steamship, Carrier, Fighter, Bomber, Jet, Scout, Settler, Worker, Ram, SiegeTower,
         General, Scientist, Engineer, Merchant, Artist, Prophet,
+        Helicopter, Robot, Submarine,
     }
 
     /// <summary>
@@ -27,6 +28,15 @@ namespace Crucible.View.Icons
                 case DefaultContent.SettlerUnit: return UnitIcon.Settler;
                 case DefaultContent.WorkerUnit: return UnitIcon.Worker;
                 case "crossbowman": return UnitIcon.Crossbow;
+                case "slinger": return UnitIcon.Bow;
+                case "anti_tank_gun": case "gatling_gun": case "machine_gun": return UnitIcon.Cannon;
+                case "helicopter": return UnitIcon.Helicopter;
+                case "giant_death_robot": return UnitIcon.Robot;
+                case "submarine": case "nuclear_submarine": return UnitIcon.Submarine;
+                case "quadrireme": return UnitIcon.SailShip;
+                case "modern_armor": return UnitIcon.Tank;
+                case "stealth_bomber": return UnitIcon.Jet;
+                case "exosuit_infantry": return UnitIcon.Helmet;
                 case "battering_ram": return UnitIcon.Ram;
                 case "siege_tower": return UnitIcon.SiegeTower;
                 case "cannon": case "artillery": return UnitIcon.Cannon;
@@ -479,6 +489,33 @@ namespace Crucible.View.Icons
                     c.Circle(24, 60, 7, erase: true);
                     c.Circle(70, 36, 7, erase: true);
                     c.Line(92, 4, 58, 50, 5);
+                    break;
+
+                case UnitIcon.Helicopter:
+                    c.Poly(10, 52, 30, 40, 64, 40, 78, 50, 78, 62, 64, 70, 30, 70, 10, 60);   // body
+                    c.Poly(70, 50, 98, 44, 98, 50, 76, 58);                                   // tail boom
+                    c.Rect(94, 34, 98, 58);                                                   // tail rotor
+                    c.Rect(4, 28, 90, 33);                                                    // main rotor
+                    c.Rect(44, 33, 50, 40);
+                    c.Line(20, 82, 70, 82, 4);                                                // skids
+                    c.Line(30, 70, 28, 82, 3); c.Line(58, 70, 60, 82, 3);
+                    c.Cut(34, 46, 50, 46, 50, 56, 30, 56);                                    // canopy
+                    break;
+
+                case UnitIcon.Robot:
+                    c.Rect(36, 6, 64, 26);                                                    // head
+                    c.Rect(42, 13, 58, 18, erase: true);                                      // visor
+                    c.Rect(28, 28, 72, 58);                                                   // torso
+                    c.Rect(14, 30, 26, 62); c.Rect(74, 30, 86, 62);                           // arms
+                    c.Rect(30, 60, 46, 96); c.Rect(54, 60, 70, 96);                           // legs
+                    c.Circle(50, 43, 7, erase: true);
+                    break;
+
+                case UnitIcon.Submarine:
+                    c.Poly(4, 60, 20, 50, 80, 50, 96, 58, 96, 62, 80, 70, 20, 70);            // hull
+                    c.Poly(40, 50, 44, 30, 60, 30, 62, 50);                                   // sail
+                    c.Rect(50, 18, 53, 30);                                                   // periscope
+                    c.Line(2, 80, 98, 80, 3);                                                 // waterline
                     break;
 
                 case UnitIcon.Prophet:

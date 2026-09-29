@@ -1,4 +1,5 @@
 using System;
+using Crucible.Core.Content;
 using Crucible.View.Icons;
 
 namespace Crucible.View.Art
@@ -20,6 +21,29 @@ namespace Crucible.View.Art
 
         /// <summary>Library name of a unit's Blender model: unit_ plus the symbol in lower case (unit_siegetower).</summary>
         public static string ModelName(UnitIcon icon) => "unit_" + icon.ToString().ToLowerInvariant();
+
+        /// <summary>
+        /// Library name of a unit's own model (unit_knight, unit_landship). Units whose age gives them
+        /// a look of their own have one; the rest share their symbol's model.
+        /// </summary>
+        public static string ModelName(UnitDef def) => "unit_" + def.Id;
+
+        /// <summary>The library model a unit is drawn with: its own if exported, else its symbol's (null without either).</summary>
+        public static string AuthoredName(UnitDef def)
+        {
+            var lib = ArtLibrary.Current;
+            if (lib == null) return null;
+            if (lib.Has(ModelName(def))) return ModelName(def);
+            var symbol = ModelName(IconArt.ForUnit(def));
+            return lib.Has(symbol) ? symbol : null;
+        }
+
+        /// <summary>A unit's model: its own Blender model when there is one, else its symbol's.</summary>
+        public static MeshData Build(UnitDef def, Rgb team)
+        {
+            var own = ArtLibrary.Current?.Get(ModelName(def), team);
+            return own ?? Build(IconArt.ForUnit(def), team);
+        }
 
         public static MeshData Build(UnitIcon icon, Rgb team, bool plinth = true)
         {

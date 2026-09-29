@@ -4,8 +4,13 @@ using Crucible.Core.Economy;
 
 namespace Crucible.Core.Content
 {
+    /// <summary>
+    /// Ages of play, from Humankind's Neolithic start to a Civ VI-style Future era. A player's era is
+    /// the latest era among the techs they know (Neolithic until their first Ancient tech).
+    /// </summary>
     public enum Era
     {
+        Neolithic,
         Ancient,
         Classical,
         Medieval,
@@ -14,6 +19,7 @@ namespace Crucible.Core.Content
         Modern,
         Atomic,
         Information,
+        Future,
     }
 
     public enum UnitClass

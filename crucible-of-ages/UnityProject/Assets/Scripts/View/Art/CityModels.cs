@@ -1,21 +1,60 @@
 using System;
+using System.Collections.Generic;
+using Crucible.Core.Content;
 
 namespace Crucible.View.Art
 {
     /// <summary>
     /// Low-poly settlements (engine-free): a keep flying the owner's banner, a cluster of houses that
-    /// grows with population, and a ring of walls with towers once the city is fortified.
+    /// grows with population, and a ring of walls with towers once the city is fortified. With the
+    /// Blender library loaded the parts follow the owner's age (StyleFor): huts and a palisade in the
+    /// Neolithic, mud brick and a ziggurat in antiquity, stone keeps, brick and smokestacks, concrete
+    /// blocks and finally glass towers round a spire.
     /// </summary>
     public static class CityModels
     {
         static readonly Rgb Plaster = Rgb.Hex(0xE8DDC4), Timber = Rgb.Hex(0x9A7452), Roof = Rgb.Hex(0xB4553A);
         static readonly Rgb Stone = Rgb.Hex(0xA8A198), StoneDark = Rgb.Hex(0x7E776F), Paving = Rgb.Hex(0xB9AD92);
 
-        public static MeshData Build(int population, int wallTier, bool capital, Rgb team, int seed)
+        /// <summary>The part set a city of the given age is built from ("" is the plain medieval set).</summary>
+        public static string StyleFor(Era era)
+        {
+            switch (era)
+            {
+                case Era.Neolithic: return "neolithic";
+                case Era.Ancient: case Era.Classical: return "ancient";
+                case Era.Medieval: case Era.Renaissance: return "";
+                case Era.Industrial: return "industrial";
+                case Era.Modern: case Era.Atomic: return "modern";
+                default: return "future";
+            }
+        }
+
+        /// <summary>Library name of a part in a style, falling back to the plain set when the style lacks it.</summary>
+        public static string PartName(ArtLibrary lib, string style, string part)
+        {
+            string styled = style.Length > 0 ? $"city_{style}_{part}" : null;
+            return styled != null && lib.Has(styled) ? styled : "city_" + part;
+        }
+
+        static Rgb PavingFor(string style)
+        {
+            switch (style)
+            {
+                case "neolithic": return Rgb.Hex(0x9C8A64);
+                case "ancient": return Rgb.Hex(0xC8B48A);
+                case "industrial": return Rgb.Hex(0x8E8A82);
+                case "modern": return Rgb.Hex(0x77797D);
+                case "future": return Rgb.Hex(0xB4BEC6);
+                default: return Paving;
+            }
+        }
+
+        public static MeshData Build(int population, int wallTier, bool capital, Rgb team, int seed, Era era = Era.Medieval)
         {
             var lib = ArtLibrary.Current;
             if (lib != null && lib.Has("city_keep") && lib.Has("city_house") && lib.Has("city_wall") && lib.Has("city_tower"))
-                return FromParts(lib, population, wallTier, capital, team, seed);
+                return FromParts(lib, population, wallTier, capital, team, seed, StyleFor(era));
 
             var m = new MeshData();
             var o = Frame.At(0, 0, 0);
@@ -69,14 +108,21 @@ namespace Crucible.View.Art
             return m;
         }
 
-        /// <summary>The same layout assembled from Blender parts (city_keep, city_house, city_wall, city_tower).</summary>
-        static MeshData FromParts(ArtLibrary lib, int population, int wallTier, bool capital, Rgb team, int seed)
+        /// <summary>
+        /// The same layout assembled from Blender parts (city_keep, city_house, city_wall, city_tower,
+        /// or city_&lt;style&gt;_keep and so on); houses mix the style's variants (city_&lt;style&gt;_house_2...).
+        /// </summary>
+        static MeshData FromParts(ArtLibrary lib, int population, int wallTier, bool capital, Rgb team, int seed, string style)
         {
             var m = new MeshData();
             var o = Frame.At(0, 0, 0);
             var rng = new ArtRng(seed, population, 7);
-            m.Hexagon(o.Move(0, 0.012f, 0), 0.72f, Paving, Paving * 0.9f);
-            lib.AppendTo(m, "city_keep", o.Rotate(rng.Range(0, 360)).Scale(capital ? 1.25f : 1f), team);
+            var paving = PavingFor(style);
+            m.Hexagon(o.Move(0, 0.012f, 0), 0.72f, paving, paving * 0.9f);
+            lib.AppendTo(m, PartName(lib, style, "keep"), o.Rotate(rng.Range(0, 360)).Scale(capital ? 1.25f : 1f), team);
+
+            var houseParts = new List<string> { PartName(lib, style, "house") };
+            for (int v = 2; lib.Has($"{houseParts[0]}_{v}"); v++) houseParts.Add($"{houseParts[0]}_{v}");
 
             int houses = Math.Min(12, 4 + population);
             for (int i = 0; i < houses; i++)
@@ -85,7 +131,9 @@ namespace Crucible.View.Art
                 float r = (i % 2 == 0 ? 0.38f : 0.54f) + rng.Range(-0.04f, 0.04f);
                 // Houses face the keep (their door side, the model's front, points inward).
                 var f = o.Move((float)Math.Cos(a) * r, 0, (float)Math.Sin(a) * r).Rotate(-a * 180f / (float)Math.PI - 90);
-                lib.AppendTo(m, "city_house", f.Scale(rng.Range(0.8f, 1.1f)), team, rng.Range(0.9f, 1.05f));
+                // Mostly the first variant, every third house (by chance) another one.
+                var name = houseParts.Count > 1 && rng.Value < 0.35f ? houseParts[1 + (int)(rng.Value * (houseParts.Count - 1)) % (houseParts.Count - 1)] : houseParts[0];
+                lib.AppendTo(m, name, f.Scale(rng.Range(0.8f, 1.1f)), team, rng.Range(0.9f, 1.05f));
             }
 
             if (wallTier > 0)
@@ -98,8 +146,8 @@ namespace Crucible.View.Art
                     var p1 = new V3((float)Math.Cos(a1) * rad, 0, (float)Math.Sin(a1) * rad);
                     var mid = (p0 + p1) * 0.5f;
                     float yaw = -(float)(Math.Atan2(p1.Z - p0.Z, p1.X - p0.X) * 180 / Math.PI);
-                    lib.AppendTo(m, "city_wall", Frame.At(mid).Rotate(yaw).Scale((p1 - p0).Length, height, 1f), team);
-                    lib.AppendTo(m, "city_tower", Frame.At(p0).Scale(1f, height, 1f), team);
+                    lib.AppendTo(m, PartName(lib, style, "wall"), Frame.At(mid).Rotate(yaw).Scale((p1 - p0).Length, height, 1f), team);
+                    lib.AppendTo(m, PartName(lib, style, "tower"), Frame.At(p0).Scale(1f, height, 1f), team);
                 }
             }
             return m;

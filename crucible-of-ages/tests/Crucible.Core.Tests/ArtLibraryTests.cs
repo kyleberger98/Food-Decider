@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Crucible.Core.Content;
 using Crucible.Core.World;
 using Crucible.View.Art;
 using Crucible.View.Icons;
@@ -25,6 +26,37 @@ namespace Crucible.Core.Tests
                 Assert.True(lib.Has(UnitModels.ModelName(icon)), UnitModels.ModelName(icon));
             foreach (var name in new[] { "prop_conifer", "prop_broadleaf", "prop_jungle", "prop_palm", "prop_rock", "city_house", "city_keep", "city_wall", "city_tower" })
                 Assert.True(lib.Has(name), name);
+        }
+
+        [Fact]
+        public void Every_unit_has_a_model_and_every_age_its_own_cities()
+        {
+            var saved = ArtLibrary.Current;
+            try
+            {
+                var lib = ArtLibrary.Current = Library();
+                foreach (var unit in TestWorld.Content.Units)
+                    Assert.True(UnitModels.AuthoredName(unit) != null, unit.Id);
+                // Ages get their own look: knights are not the generic riders, landships not tanks.
+                foreach (var id in new[] { "warrior", "slinger", "knight", "longswordsman", "landship", "helicopter", "giant_death_robot", "trireme", "stealth_bomber" })
+                    Assert.Equal("unit_" + id, UnitModels.AuthoredName(TestWorld.Content.Unit(id)));
+                Assert.NotEqual(UnitModels.Build(TestWorld.Content.Unit("knight"), new Rgb(0, 0, 1)).VertexCount,
+                                UnitModels.Build(TestWorld.Content.Unit("horseman"), new Rgb(0, 0, 1)).VertexCount);
+
+                var looks = new System.Collections.Generic.HashSet<int>();
+                foreach (Era era in Enum.GetValues(typeof(Era)))
+                {
+                    var style = CityModels.StyleFor(era);
+                    foreach (var part in new[] { "keep", "house", "wall", "tower" })
+                        Assert.Equal(style.Length > 0 ? $"city_{style}_{part}" : "city_" + part, CityModels.PartName(lib, style, part));
+                    looks.Add(CityModels.Build(6, 1, false, new Rgb(0, 0, 1), 3, era).VertexCount);
+                }
+                Assert.Equal(6, looks.Count); // neolithic, ancient, medieval, industrial, modern, future
+            }
+            finally
+            {
+                ArtLibrary.Current = saved;
+            }
         }
 
         [Fact]

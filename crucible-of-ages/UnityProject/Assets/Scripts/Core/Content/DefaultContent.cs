@@ -63,6 +63,11 @@ namespace Crucible.Core.Content
             void T(string id, string name, Era era, int cost, int capBonus, params string[] pre) =>
                 db.Add(new TechDef { Id = id, Name = name, Era = era, ScienceCost = cost, ArmyCapBonus = capBonus, Prerequisites = new List<string>(pre) });
 
+            // Neolithic: cheap roots researched from the first turn, before settled farming.
+            T("hunting", "Hunting", Era.Neolithic, 15, 0);
+            T("animism", "Animism", Era.Neolithic, 15, 0);
+            T("stone_tools", "Stone Tools", Era.Neolithic, 15, 0);
+
             T("agriculture", "Agriculture", Era.Ancient, 20, 0);
             T("pottery", "Pottery", Era.Ancient, 35, 0, "agriculture");
             T("writing", "Writing", Era.Ancient, 55, 0, "pottery");
@@ -127,6 +132,12 @@ namespace Crucible.Core.Content
             T("nanotechnology", "Nanotechnology", Era.Information, 7500, 0, "robotics", "satellites");
             T("globalization", "Globalization", Era.Information, 7500, 0, "the_internet");
             T("space_flight", "Space Flight", Era.Information, 8000, 0, "satellites", "nanotechnology");
+
+            // Future (Civ VI): beyond the space race.
+            T("smart_materials", "Smart Materials", Era.Future, 9000, 1, "nanotechnology");
+            T("cybernetics", "Cybernetics", Era.Future, 9000, 0, "robotics", "the_internet");
+            T("fusion_power", "Fusion Power", Era.Future, 9500, 0, "nanotechnology", "globalization");
+            T("predictive_systems", "Predictive Systems", Era.Future, 10000, 0, "smart_materials", "cybernetics");
         }
 
         static void AddUnits(ContentDatabase db)
@@ -146,12 +157,14 @@ namespace Crucible.Core.Content
             }
 
             // Civilian
-            U(SettlerUnit, "Settler", UnitClass.Civilian, Era.Ancient, 0, 106, null);
-            U(WorkerUnit, "Worker", UnitClass.Civilian, Era.Ancient, 0, 70, null);
+            U(SettlerUnit, "Settler", UnitClass.Civilian, Era.Neolithic, 0, 106, null);
+            U(WorkerUnit, "Worker", UnitClass.Civilian, Era.Neolithic, 0, 70, null);
 
+            // Neolithic
+            U("scout", "Scout", UnitClass.Recon, Era.Neolithic, 5, 25, null, battleMp: 3, worldMp: 3);
+            U("warrior", "Warrior", UnitClass.Melee, Era.Neolithic, 8, 40, null);
+            U("slinger", "Slinger", UnitClass.Ranged, Era.Neolithic, 4, 35, "hunting", rs: 5, range: 2);
             // Ancient
-            U("scout", "Scout", UnitClass.Recon, Era.Ancient, 5, 25, null, battleMp: 3, worldMp: 3);
-            U("warrior", "Warrior", UnitClass.Melee, Era.Ancient, 8, 40, null);
             U("archer", "Archer", UnitClass.Ranged, Era.Ancient, 5, 40, "archery", rs: 7, range: 2);
             U("spearman", "Spearman", UnitClass.AntiCavalry, Era.Ancient, 11, 56, "bronze_working");
             U("horseman", "Horseman", UnitClass.Mounted, Era.Ancient, 12, 75, "horseback_riding", battleMp: 4, worldMp: 4, resource: "horses");
@@ -159,25 +172,38 @@ namespace Crucible.Core.Content
             U("catapult", "Catapult", UnitClass.Siege, Era.Classical, 7, 75, "mathematics", rs: 14, range: 2, indirect: true, resource: "iron");
             U("swordsman", "Swordsman", UnitClass.Melee, Era.Classical, 14, 75, "iron_working", resource: "iron");
             U("composite_bowman", "Composite Bowman", UnitClass.Ranged, Era.Classical, 7, 75, "construction", rs: 11, range: 2);
+            var quadrireme = U("quadrireme", "Quadrireme", UnitClass.NavalRanged, Era.Classical, 10, 70, "optics", rs: 16, range: 2, battleMp: 3, worldMp: 3);
+            quadrireme.CoastOnly = true;
             // Medieval
             U("pikeman", "Pikeman", UnitClass.AntiCavalry, Era.Medieval, 16, 90, "steel");
+            U("longswordsman", "Longswordsman", UnitClass.Melee, Era.Medieval, 21, 120, "steel", resource: "iron");
             U("knight", "Knight", UnitClass.Mounted, Era.Medieval, 20, 120, "chivalry", battleMp: 4, worldMp: 4, resource: "horses");
             U("crossbowman", "Crossbowman", UnitClass.Ranged, Era.Medieval, 13, 120, "machinery", rs: 18, range: 2);
             U("trebuchet", "Trebuchet", UnitClass.Siege, Era.Medieval, 12, 120, "machinery", rs: 20, range: 2, indirect: true);
             // Renaissance
             U("musketman", "Musketman", UnitClass.Gunpowder, Era.Renaissance, 24, 150, "gunpowder");
             U("cannon", "Cannon", UnitClass.Siege, Era.Renaissance, 14, 185, "metallurgy", rs: 26, range: 2, indirect: true);
+            U("lancer", "Lancer", UnitClass.Mounted, Era.Renaissance, 25, 185, "metallurgy", battleMp: 4, worldMp: 4, resource: "horses");
             // Industrial
             U("rifleman", "Rifleman", UnitClass.Gunpowder, Era.Industrial, 34, 225, "rifling");
             U("artillery", "Artillery", UnitClass.Siege, Era.Industrial, 21, 250, "military_science", rs: 32, range: 3, indirect: true);
+            U("cavalry", "Cavalry", UnitClass.Mounted, Era.Industrial, 34, 225, "military_science", battleMp: 4, worldMp: 4, resource: "horses");
+            U("gatling_gun", "Gatling Gun", UnitClass.Ranged, Era.Industrial, 30, 225, "industrialization", rs: 30, range: 1);
             // Modern
             U("infantry", "Infantry", UnitClass.Gunpowder, Era.Modern, 50, 320, "replaceable_parts");
             U("landship", "Landship", UnitClass.Armor, Era.Modern, 60, 350, "combustion", battleMp: 4, worldMp: 4, resource: "oil");
+            U("machine_gun", "Machine Gun", UnitClass.Ranged, Era.Modern, 50, 320, "replaceable_parts", rs: 60, range: 1);
+            U("anti_tank_gun", "Anti-Tank Gun", UnitClass.AntiCavalry, Era.Modern, 50, 300, "combustion");
             // Atomic
             U("tank", "Tank", UnitClass.Armor, Era.Atomic, 70, 375, "combined_arms", battleMp: 5, worldMp: 5, resource: "oil");
             U("rocket_artillery", "Rocket Artillery", UnitClass.Siege, Era.Atomic, 45, 425, "rocketry", rs: 60, range: 3, indirect: true);
+            U("helicopter", "Helicopter Gunship", UnitClass.AntiCavalry, Era.Atomic, 60, 425, "rocketry", battleMp: 6, worldMp: 6, resource: "oil");
             // Information
             U("mech_infantry", "Mechanized Infantry", UnitClass.Gunpowder, Era.Information, 90, 375, "robotics", battleMp: 3, worldMp: 3);
+            U("modern_armor", "Modern Armor", UnitClass.Armor, Era.Information, 100, 425, "computers", battleMp: 5, worldMp: 5, resource: "oil");
+            // Future
+            U("exosuit_infantry", "Exosuit Infantry", UnitClass.Gunpowder, Era.Future, 115, 450, "cybernetics", battleMp: 3, worldMp: 3);
+            U("giant_death_robot", "Giant Death Robot", UnitClass.Armor, Era.Future, 150, 600, "smart_materials", battleMp: 4, worldMp: 4, resource: "oil");
 
             // Navy (GDD §4.7)
             var trireme = U("trireme", "Trireme", UnitClass.NavalMelee, Era.Ancient, 10, 40, "sailing", battleMp: 3, worldMp: 3);
@@ -186,14 +212,19 @@ namespace Crucible.Core.Content
             U("ironclad", "Ironclad", UnitClass.NavalMelee, Era.Industrial, 45, 250, "steam_power", battleMp: 4, worldMp: 4);
             U("destroyer", "Destroyer", UnitClass.NavalMelee, Era.Modern, 55, 320, "combustion", battleMp: 5, worldMp: 6, resource: "oil");
             U("battleship", "Battleship", UnitClass.NavalRanged, Era.Modern, 55, 375, "electricity", rs: 65, range: 3, battleMp: 4, worldMp: 5, resource: "oil");
+            U("submarine", "Submarine", UnitClass.NavalRanged, Era.Modern, 35, 325, "refrigeration", rs: 60, range: 2, battleMp: 4, worldMp: 5);
+            U("carrier", "Carrier", UnitClass.Carrier, Era.Atomic, 40, 375, "radar", battleMp: 4, worldMp: 5, resource: "oil");
+            U("missile_cruiser", "Missile Cruiser", UnitClass.NavalRanged, Era.Information, 80, 425, "robotics", rs: 100, range: 3, battleMp: 5, worldMp: 6, resource: "oil");
+            U("nuclear_submarine", "Nuclear Submarine", UnitClass.NavalRanged, Era.Information, 70, 425, "satellites", rs: 85, range: 2, battleMp: 5, worldMp: 6);
 
             // Air (based in cities; Range = operational radius, RangedStrength = strike strength)
             U("fighter", "Fighter", UnitClass.Fighter, Era.Modern, 20, 300, "flight", rs: 45, range: 8, resource: "oil");
             U("bomber", "Bomber", UnitClass.Bomber, Era.Atomic, 25, 320, "radar", rs: 65, range: 10, resource: "oil");
             U("jet_fighter", "Jet Fighter", UnitClass.Fighter, Era.Information, 30, 375, "computers", rs: 70, range: 10);
+            U("stealth_bomber", "Stealth Bomber", UnitClass.Bomber, Era.Information, 45, 425, "satellites", rs: 85, range: 16);
 
             // Not buildable: spawned by besieged cities (GDD §4.6).
-            U(MilitiaUnit, "Militia", UnitClass.Melee, Era.Ancient, 6, 0, null);
+            U(MilitiaUnit, "Militia", UnitClass.Melee, Era.Neolithic, 6, 0, null);
 
             // Siege engines, built from siege progress while besieging.
             var ram = U("battering_ram", "Battering Ram", UnitClass.Siege, Era.Ancient, 10, 0, null);
@@ -301,6 +332,7 @@ namespace Crucible.Core.Content
                     Maintenance = upkeep, Yields = yields, Happiness = happiness, WallTiers = walls,
                 });
 
+            B("longhouse", "Longhouse", Era.Neolithic, 45, "stone_tools", 0, new Yields(food: 1, production: 1));
             B("monument", "Monument", Era.Ancient, 40, null, 1, new Yields(culture: 2));
             B("granary", "Granary", Era.Ancient, 60, "pottery", 1, new Yields(food: 2));
             B("library", "Library", Era.Ancient, 75, "writing", 1, new Yields(science: 3));
@@ -318,11 +350,13 @@ namespace Crucible.Core.Content
             B("research_lab", "Research Lab", Era.Information, 400, "computers", 3, new Yields(science: 8));
             B("amphitheater", "Amphitheater", Era.Classical, 100, "drama", 1, new Yields(culture: 3));
             B("temple", "Temple", Era.Medieval, 100, "theology", 1, new Yields(culture: 1, faith: 3), happiness: 2);
-            B("shrine", "Shrine", Era.Ancient, 40, "pottery", 1, new Yields(faith: 1));
+            B("shrine", "Shrine", Era.Neolithic, 40, "animism", 1, new Yields(faith: 1));
             B("stock_exchange", "Stock Exchange", Era.Renaissance, 250, "economics", 0, new Yields(gold: 5));
             B("public_school", "Public School", Era.Industrial, 300, "scientific_theory", 3, new Yields(science: 5));
             B("broadcast_tower", "Broadcast Tower", Era.Atomic, 350, "mass_media", 3, new Yields(culture: 5));
             B("data_center", "Data Center", Era.Information, 400, "the_internet", 3, new Yields(science: 5, gold: 3));
+            B("fusion_reactor", "Fusion Reactor", Era.Future, 500, "fusion_power", 4, new Yields(production: 10));
+            B("arcology", "Arcology", Era.Future, 500, "predictive_systems", 3, new Yields(food: 3, culture: 3), happiness: 5);
         }
     }
 }

@@ -174,7 +174,7 @@ namespace Crucible.Core.Combat
         public static int ClassBonus(UnitClass self, UnitClass opponent, bool attacking, bool targetOnCity)
         {
             int bonus = 0;
-            if (self == UnitClass.AntiCavalry && opponent == UnitClass.Mounted) bonus += 8;
+            if (self == UnitClass.AntiCavalry && (opponent == UnitClass.Mounted || opponent == UnitClass.Armor)) bonus += 8; // pikes vs horse, anti-tank vs armour
             if (self == UnitClass.Armor && opponent == UnitClass.Gunpowder) bonus += 5;
             if (attacking && self == UnitClass.Mounted && (opponent == UnitClass.Ranged || opponent == UnitClass.Siege)) bonus += 5;
             if (attacking && self == UnitClass.Siege) bonus += targetOnCity ? 10 : -10;

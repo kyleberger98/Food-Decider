@@ -114,7 +114,7 @@ namespace Crucible.Core.Economy
                 case ImprovementType.Farm: return "agriculture";
                 case ImprovementType.Mine: return "mining";
                 case ImprovementType.Pasture: return "animal_husbandry";
-                case ImprovementType.Camp: return "animal_husbandry";
+                case ImprovementType.Camp: return "hunting";
                 case ImprovementType.Plantation: return "calendar";
                 case ImprovementType.Well: return "combustion";
                 default: return null;

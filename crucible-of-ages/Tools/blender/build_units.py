@@ -95,6 +95,29 @@ def helmet(kind):
         return [cylinder(0.042, 0.018, STRAW, loc=(0, 0, z + 0.004), sides=10, top=0.012)]
     if kind == "hair":
         return [sphere(0.022, HAIR, loc=(0, 0.004, z - 0.002), subdiv=1, scale=(1, 1.05, 0.8))]
+    if kind == "topknot":
+        return [sphere(0.022, HAIR, loc=(0, 0.004, z - 0.002), subdiv=1, scale=(1, 1.05, 0.8)),
+                sphere(0.011, HAIR, loc=(0, 0.012, z + 0.02), subdiv=1),
+                box((0.05, 0.004, 0.006), a.hexcol(0xC0392B), loc=(0, -0.016, z - 0.004))]          # war paint band
+    if kind == "conical":
+        return [cylinder(0.024, 0.04, STEEL, loc=(0, 0, z + 0.01), sides=8, top=0.0)]
+    if kind == "greathelm":
+        return [cylinder(0.025, 0.045, STEEL, loc=(0, 0, z - 0.004), sides=10, top=0.023, bevel=0.002),
+                box((0.03, 0.004, 0.004), BLACK, loc=(0, -0.024, z - 0.002)),                           # eye slit
+                box((0.004, 0.03, 0.02), TEAM, loc=(0, 0.0, z + 0.03))]                                 # crest
+    if kind == "brodie":
+        return [sphere(0.024, OLIVE, loc=(0, 0, z + 0.002), subdiv=2, scale=(1, 1.05, 0.55)),
+                cylinder(0.038, 0.004, OLIVE, loc=(0, 0, z - 0.004), sides=12)]
+    if kind == "visor":
+        return [sphere(0.028, a.hexcol(0x2E3440), loc=(0, 0, z - 0.004), subdiv=2, scale=(1, 1.1, 1.05)),
+                box((0.04, 0.008, 0.01), a.hexcol(0x5FE3F0), loc=(0, -0.026, z - 0.006))]              # glowing visor
+    if kind == "fur_hat":
+        return [cylinder(0.026, 0.026, FUR, loc=(0, 0, z + 0.004), sides=8, top=0.02),
+                cylinder(0.028, 0.012, a.hexcol(0x5A4028), loc=(0, 0, z - 0.006), sides=8)]
+    if kind == "plumed":
+        return [cylinder(0.04, 0.005, BLACK, loc=(0, 0, z - 0.002), sides=12),
+                cylinder(0.02, 0.018, BLACK, loc=(0, 0, z + 0.008), sides=8, top=0.018),
+                segment((0.01, 0.01, z + 0.012), (0.03, 0.03, z + 0.05), 0.006, 0.002, TEAM, sides=4)]  # feather
     return []
 
 
@@ -193,6 +216,85 @@ def soldier(kit, seed=0):
         p += arm(-1, (0.005, -0.035, 0.17), TEAM)
         p.append(segment((0.0, -0.035, 0.12), (0.05, -0.03, 0.29), 0.0045, 0.0045, WOOD, sides=5))
         p.append(segment((0.02, -0.03, 0.29), (0.09, -0.03, 0.27), 0.006, 0.002, IRON, sides=4))       # pick head
+    elif kit == "club":           # Neolithic warrior
+        p += body(TEAM, SKIN, FUR, stride, skirt=0.036)
+        p += helmet("topknot")
+        p += arm(1, (0.04, 0.005, 0.255), SKIN, bend=(0.02, 0.02, 0.02))
+        p.append(segment((0.04, 0.0, 0.24), (0.05, 0.045, 0.32), 0.005, 0.012, WOOD_DARK, sides=6))       # club
+        p += arm(-1, (-0.036, -0.04, 0.17), SKIN)
+        p += round_shield((-0.04, -0.05, 0.17), FUR, r=0.032)
+    elif kit == "sling":          # Neolithic slinger
+        p += body(TEAM, SKIN, FUR, stride, skirt=0.036)
+        p += helmet("hair")
+        hand = Vector((0.03, 0.0, 0.31))
+        p += arm(1, hand, SKIN, bend=(0.03, 0.0, 0.0))
+        p.append(torus_arc(0.035, 0.0015, 0, 300, CANVAS, loc=hand + Vector((0, 0, 0.012)), rot=(90, 0, 0), steps=10, sides=3))
+        p.append(sphere(0.008, a.hexcol(0x8A8278), loc=hand + Vector((0.035, -0.012, 0.012)), subdiv=0))
+        p += arm(-1, (-0.02, -0.1, 0.23), SKIN)                                                            # aiming arm
+        p.append(sphere(0.02, LEATHER, loc=(0.03, 0.02, 0.14), subdiv=1))                                # stone pouch
+    elif kit == "legionary":      # the Aurel unique: centurion-crested legionaries
+        p += soldier("sword", seed)
+        p.append(box((0.055, 0.008, 0.014), GOLD, loc=(0, 0.004, HEAD + 0.031), bevel=0.003))       # transverse crest
+    elif kit == "compbow":
+        p += body(TEAM, a.hexcol(0x6A4A34), LEATHER, stride)
+        p += helmet("conical")
+        p.append(box((0.058, 0.04, 0.05), a.hexcol(0xA88A50), loc=(0, 0, 0.198), bevel=0.006))            # scale armour
+        bow_hand = Vector((-0.012, -0.11, 0.225))
+        p += arm(-1, bow_hand, TEAM, bend=(0.005, -0.01, 0.0))
+        p += arm(1, (0.022, -0.012, 0.228), TEAM, bend=(0.03, 0.02, 0.0))
+        p.append(torus_arc(0.07, 0.0042, -65, 65, a.hexcol(0x3A2A1E), loc=bow_hand + Vector((0, 0.07, 0)), rot=(0, 0, -90), steps=10))
+        p.append(segment(bow_hand + Vector((0, 0.04, 0.064)), (0.02, -0.012, 0.228), 0.0012, 0.0012, CANVAS, sides=3))
+        p.append(segment(bow_hand + Vector((0, 0.04, -0.064)), (0.02, -0.012, 0.228), 0.0012, 0.0012, CANVAS, sides=3))
+    elif kit == "longsword":      # dismounted men-at-arms
+        p += body(TEAM, a.hexcol(0x8A8C90), STEEL, stride, skirt=0.038, coat=True)
+        p += helmet("greathelm")
+        p.append(box((0.03, 0.006, 0.05), GOLD, loc=(0, -0.024, 0.19)))                                  # surcoat cross
+        p.append(box((0.05, 0.006, 0.012), GOLD, loc=(0, -0.024, 0.2)))
+        p += arm(1, (0.018, -0.04, 0.19), a.hexcol(0x8A8C90))
+        p += arm(-1, (0.0, -0.045, 0.18), a.hexcol(0x8A8C90))
+        p.append(segment((0.01, -0.045, 0.17), (0.035, 0.05, 0.42), 0.006, 0.002, STEEL, sides=4))       # sword on the shoulder
+        p.append(box((0.05, 0.008, 0.006), GOLD, loc=(0.012, -0.04, 0.195), rot=(0, 0, 10)))
+    elif kit == "rifleman":
+        p += body(TEAM, a.hexcol(0x9AA0A8), BLACK, stride, skirt=0.036, coat=True)
+        p += helmet("kepi")
+        p.append(box((0.006, 0.004, 0.1), WHITE, loc=(0, -0.019, 0.19), rot=(0, 35, 0)))
+        p += arm(1, (0.042, -0.012, 0.13), TEAM)
+        p += arm(-1, (-0.038, -0.01, 0.13), TEAM)
+        p.append(segment((0.046, -0.005, 0.1), (0.04, 0.012, 0.37), 0.0045, 0.0035, WOOD_DARK, sides=5))
+    elif kit == "infantry":       # world-war infantry
+        p += body(KHAKI, KHAKI, a.hexcol(0x4A3A2A), stride)
+        p += helmet("brodie")
+        p.append(box((0.05, 0.03, 0.05), a.hexcol(0x6B6245), loc=(0, 0.032, 0.195), bevel=0.006))       # pack
+        p.append(box((0.014, 0.034, 0.016), TEAM, loc=(0.036, 0.0, 0.21)))                              # armband
+        p += arm(1, (0.035, -0.04, 0.16), KHAKI)
+        p += arm(-1, (-0.02, -0.06, 0.22), KHAKI)
+        p.append(segment((0.05, -0.03, 0.12), (-0.03, -0.075, 0.3), 0.0045, 0.0035, a.hexcol(0x4A3A2A), sides=5))
+        p.append(segment((-0.03, -0.075, 0.3), (-0.038, -0.08, 0.33), 0.0015, 0.0, STEEL, sides=3))
+    elif kit == "militia":
+        p += body(TEAM, a.hexcol(0x6A5A44), LEATHER, stride)
+        p += helmet("straw" if seed % 2 else "hair")
+        p += arm(1, (0.042, -0.03, 0.17), TEAM)
+        p.append(segment((0.044, -0.03, 0.02), (0.046, -0.04, 0.36), 0.0035, 0.0035, WOOD, sides=5))
+        for k in (-1, 0, 1):
+            p.append(segment((0.046 + k * 0.01, -0.04, 0.35), (0.046 + k * 0.012, -0.042, 0.4), 0.0018, 0.001, IRON, sides=3))
+        p += arm(-1, (-0.038, -0.02, 0.14), TEAM)
+    elif kit == "exosuit":        # powered armour
+        dark = a.hexcol(0x3A3F48)
+        for side, fwd in ((-1, -stride), (1, stride * 0.6)):
+            p.append(segment((0.022 * side, 0, HIP), (0.025 * side, fwd * 0.6, KNEE), 0.017, 0.014, dark))
+            p.append(segment((0.025 * side, fwd * 0.6, KNEE), (0.025 * side, fwd, 0.02), 0.014, 0.012, dark))
+            p.append(box((0.028, 0.045, 0.024), dark, loc=(0.025 * side, fwd - 0.006, 0.012), bevel=0.004))
+            p.append(box((0.024, 0.012, 0.03), TEAM, loc=(0.025 * side, fwd * 0.6 - 0.012, KNEE)))        # knee plates
+        p.append(box((0.08, 0.05, 0.1), TEAM, loc=(0, 0, 0.19), taper=(1.15, 1.0), bevel=0.01))
+        p.append(box((0.05, 0.04, 0.04), dark, loc=(0, 0.035, 0.2), bevel=0.006))                       # power pack
+        p.append(sphere(0.005, a.hexcol(0x5FE3F0), loc=(0, 0.056, 0.2), subdiv=0))
+        for side in (-1, 1):
+            p.append(sphere(0.018, dark, loc=(0.048 * side, 0, 0.23), subdiv=1))                         # pauldrons
+        p += helmet("visor")
+        p += arm(1, (0.035, -0.05, 0.19), dark)
+        p += arm(-1, (-0.01, -0.1, 0.2), dark)
+        p.append(box((0.02, 0.16, 0.025), a.hexcol(0x2A2E36), loc=(0.02, -0.09, 0.2), bevel=0.004))     # rifle
+        p.append(box((0.005, 0.02, 0.006), a.hexcol(0x5FE3F0), loc=(0.02, -0.12, 0.214)))
     elif kit == "settler":
         p += body(TEAM, a.hexcol(0x6A5A44), LEATHER, stride)
         p += helmet("hair")
@@ -280,7 +382,7 @@ def crowd(builder, slots):
 
 # ---------------------------------------------------------------------------------------- horses
 
-def horse(coat=HORSE, dark=HORSE_DARK, barding=TEAM, gait=0.0):
+def horse(coat=HORSE, dark=HORSE_DARK, barding=TEAM, gait=0.0, caparison=False):
     """A horse about 0.25 at the shoulder, facing -Y, with a team-coloured saddle cloth."""
     p = []
     p.append(sphere(0.042, coat, loc=(0, 0.0, 0.15), subdiv=2, scale=(0.85, 2.0, 0.95)))                 # barrel
@@ -304,12 +406,15 @@ def horse(coat=HORSE, dark=HORSE_DARK, barding=TEAM, gait=0.0):
     p.append(segment((0, 0.1, 0.17), (0, 0.13, 0.085), 0.01, 0.004, dark, sides=5))                      # tail
     cloth = box((0.1, 0.075, 0.05), barding, loc=(0, 0.004, 0.17), bevel=0.01)
     p.append(cloth)
+    if caparison:  # a knight's long trapper down to the knees, front and back
+        p.append(box((0.098, 0.2, 0.09), barding, loc=(0, 0.0, 0.125), taper=(0.92, 0.95), bevel=0.01))
+        p.append(box((0.1, 0.03, 0.02), GOLD, loc=(0, -0.09, 0.08)))
     p.append(box((0.03, 0.05, 0.012), LEATHER, loc=(0, 0.0, 0.195), bevel=0.004))                       # saddle
     return p
 
 
-def rider(weapon="lance", tunic=TEAM, head="kettle"):
-    """A seated rider on top of `horse()`."""
+def rider(weapon="lance", tunic=TEAM, head="kettle", armor=None, shield=True):
+    """A seated rider on top of `horse()`. weapon: lance, banner, javelin, bow, sabre. armor: None, mail, plate."""
     p = []
     seat = 0.2
     for side in (-1, 1):
@@ -319,6 +424,8 @@ def rider(weapon="lance", tunic=TEAM, head="kettle"):
     torso = cylinder(0.025, 0.075, tunic, loc=(0, 0.004, seat + 0.04), sides=8, top=0.031)
     torso.scale = (1.12, 0.72, 1.0)
     p.append(torso)
+    if armor:
+        p.append(box((0.06, 0.042, 0.055), STEEL if armor == "plate" else a.hexcol(0x8A8C90), loc=(0, 0.004, seat + 0.05), bevel=0.008))
     top = seat + 0.078
     p.append(segment((0, 0.004, top), (0, 0.002, top + 0.015), 0.008, 0.007, SKIN))
     p.append(sphere(0.021, SKIN, loc=(0, 0.0, top + 0.037), subdiv=2, scale=(0.9, 0.95, 1.08)))
@@ -328,7 +435,7 @@ def rider(weapon="lance", tunic=TEAM, head="kettle"):
     elif head == "crown":
         p += [cylinder(0.022, 0.018, GOLD, loc=(0, 0, hz + 0.004), sides=8, top=0.025)]
     else:
-        p += [sphere(0.022, LEATHER, loc=(0, 0.002, hz), subdiv=1, scale=(1, 1.05, 0.7))]
+        p += group(helmet(head), offset=(0, 0, top + 0.037 - HEAD))
     sh = Vector((0.034, 0.004, top - 0.005))
     if weapon == "lance":
         hand = Vector((0.04, -0.03, seat + 0.03))
@@ -341,15 +448,32 @@ def rider(weapon="lance", tunic=TEAM, head="kettle"):
         p.append(segment((0.045, -0.02, seat - 0.02), (0.045, -0.02, seat + 0.3), 0.004, 0.004, WOOD, sides=5))
         p.append(box((0.003, 0.08, 0.06), TEAM, loc=(0.046, 0.02, seat + 0.26)))
         p.append(sphere(0.008, GOLD, loc=(0.045, -0.02, seat + 0.305), subdiv=1))
-    p.append(segment((-0.034, 0.004, top - 0.005), (-0.02, -0.05, seat + 0.03), 0.009, 0.008, tunic))       # reins arm
-    p += round_shield((-0.045, 0.01, seat + 0.03), TEAM_DARK, r=0.034)
+    elif weapon == "javelin":
+        hand = Vector((0.045, 0.02, top + 0.05))
+        p += [segment(sh, hand, 0.009, 0.008, tunic), sphere(0.008, SKIN, loc=hand, subdiv=1)]
+        p.append(segment(hand + Vector((0, 0.08, -0.02)), hand + Vector((0, -0.14, 0.04)), 0.003, 0.003, WOOD, sides=4))
+        p.append(segment(hand + Vector((0, -0.14, 0.04)), hand + Vector((0, -0.165, 0.045)), 0.005, 0.0, STEEL, sides=4))
+    elif weapon == "sabre":
+        hand = Vector((0.05, -0.02, top + 0.06))
+        p += [segment(sh, hand, 0.009, 0.008, tunic), sphere(0.008, SKIN, loc=hand, subdiv=1)]
+        p.append(segment(hand, hand + Vector((0.01, -0.03, 0.09)), 0.004, 0.0015, STEEL, sides=4))
+    elif weapon == "bow":
+        grip = Vector((-0.05, -0.05, top - 0.01))
+        p.append(segment(Vector((-0.034, 0.004, top - 0.005)), grip, 0.009, 0.008, tunic))
+        p.append(torus_arc(0.06, 0.0035, -60, 60, WOOD_DARK, loc=grip + Vector((0.03, 0.05, 0)), rot=(0, 0, -135), steps=8))
+        p += [segment(sh, (0.03, 0.01, top), 0.009, 0.008, tunic)]
+        p.append(segment((0.035, 0.03, seat + 0.0), (0.05, 0.06, seat + 0.09), 0.01, 0.009, LEATHER))          # quiver
+    if weapon != "bow":
+        p.append(segment((-0.034, 0.004, top - 0.005), (-0.02, -0.05, seat + 0.03), 0.009, 0.008, tunic))   # reins arm
+    if shield and weapon in ("lance", "banner", "javelin"):
+        p += round_shield((-0.045, 0.01, seat + 0.03), TEAM_DARK, r=0.034)
     return p
 
 
-def cavalry(riders, weapon="lance", head="kettle", tunic=TEAM, seed=0):
+def cavalry(riders, weapon="lance", head="kettle", tunic=TEAM, seed=0, armor=None, caparison=False, coat=HORSE, dark=HORSE_DARK):
     parts = []
     for i, (x, y, t) in enumerate(riders):
-        unit = horse(gait=0.012 * (1 if i % 2 else -1)) + rider(weapon, tunic, head)
+        unit = horse(coat=coat, dark=dark, gait=0.012 * (1 if i % 2 else -1), caparison=caparison) + rider(weapon, tunic, head, armor)
         parts += group(unit, offset=(x, y, 0), rot_z=t)
     return parts
 

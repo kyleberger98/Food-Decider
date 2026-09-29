@@ -52,7 +52,17 @@ The terrain tiles, peaks, units, trees and cities are Blender models (see *Blend
   - catapult and cannon crews, a battering ram, a siege tower, a rocket truck and a tank;
   - a three-masted frigate, a destroyer, a carrier, and propeller and jet aircraft.
 
-  Cities grow houses with population and raise walls and towers when fortified.
+  Each age has its own troops on top of that: Neolithic clubmen and slingers, galleys with banks of
+  oars, men-at-arms and knights in caparisons, gatling guns, First World War field guns and
+  landships, machine-gun nests, helicopter gunships, modern armour, missile cruisers, nuclear
+  submarines, a stealth bomber, exosuit infantry and a Giant Death Robot.
+
+  Cities grow houses with population and raise walls and towers when fortified, and they change with
+  their owner's age: thatched huts round a longhouse behind a palisade, mud-brick houses under a
+  ziggurat, the stone keep, brick rowhouses and factories round a clock tower, concrete blocks and
+  an office tower, and finally glass towers round a spire behind an energy barrier.
+
+  ![A city and troops of every age](docs/images/ages.png)
 - **Unit flags:** Civ-style shields with a symbol for each unit type (sword, spear, bow,
   crossbow, horse, catapult, cannon, rocket, musket, helmet, tank, sail and steam ships,
   carrier, fighter, bomber, jet, scout, settler, worker, ram, siege tower and the six great
@@ -76,7 +86,7 @@ The terrain tiles, mountain peaks, unit miniatures, trees, palms, rocks and city
 
 - **Files:**
   - `Tools/blender/crucible_assets.blend` is the model library: one object per model, in the `unit`, `prop` and `city` collections.
-  - `Tools/blender/build_assets.py` regenerates that library from code. The terrain tiles and peaks come from `build_tiles.py`.
+  - `Tools/blender/build_assets.py` regenerates that library from code. The unit symbols come from `build_units.py`, the per-age units from `build_units_eras.py`, the cities of the other ages from `build_cities.py`, and the terrain tiles and peaks from `build_tiles.py`.
   - `Tools/blender/export_assets.py` writes each model to `UnityProject/Assets/Resources/Art/<name>.bytes`. That is a small mesh format the game loads at startup (see `ArtLibrary`).
 - **Editing by hand:**
   1. Open the `.blend` and model or vertex-paint the colour attribute **Col**. Pure magenta (and darker magenta for shading) becomes the owner's colour in game.
@@ -89,9 +99,11 @@ The terrain tiles, mountain peaks, unit miniatures, trees, palms, rocks and city
 - **Conventions:**
   - Models face Blender's **-Y** (front view) and stand on z = 0. A map hex has a corner radius of 1.
   - Keep flat shading for the low-poly look.
-  - Names follow the pattern `unit_<symbol>`: `unit_sword`, `unit_spear`, `unit_bow`, `unit_crossbow`, `unit_horse`, `unit_catapult`, `unit_cannon`, `unit_rocket`, `unit_musket`, `unit_helmet`, `unit_tank`, `unit_sailship`, `unit_steamship`, `unit_carrier`, `unit_fighter`, `unit_bomber`, `unit_jet`, `unit_scout`, `unit_settler`, `unit_worker`, `unit_ram`, `unit_siegetower`, and the great people `unit_general`, `unit_scientist`, `unit_engineer`, `unit_merchant`, `unit_artist`, `unit_prophet`.
+  - Names follow the pattern `unit_<symbol>`: `unit_sword`, `unit_spear`, `unit_bow`, `unit_crossbow`, `unit_horse`, `unit_catapult`, `unit_cannon`, `unit_rocket`, `unit_musket`, `unit_helmet`, `unit_tank`, `unit_sailship`, `unit_steamship`, `unit_carrier`, `unit_fighter`, `unit_bomber`, `unit_jet`, `unit_scout`, `unit_settler`, `unit_worker`, `unit_ram`, `unit_siegetower`, `unit_helicopter`, `unit_robot`, `unit_submarine`, and the great people `unit_general`, `unit_scientist`, `unit_engineer`, `unit_merchant`, `unit_artist`, `unit_prophet`.
+  - A unit can also have a model of its own, `unit_<unit id>` (`unit_knight`, `unit_landship`, `unit_trireme`...), which the game prefers over its symbol's.
   - Props are `prop_conifer`/`_b`, `prop_broadleaf`/`_b`, `prop_jungle`, `prop_palm` and `prop_rock`.
-  - City parts are `city_house`, `city_keep`, `city_wall` (1.0 long along X, stretched along each hex edge) and `city_tower`.
+  - City parts are `city_house`, `city_keep`, `city_wall` (1.0 long along X, stretched along each hex edge) and `city_tower`. That is the medieval set (Medieval and Renaissance).
+  - The other ages use `city_<style>_<part>` with the styles `neolithic`, `ancient` (Ancient, Classical), `industrial`, `modern` (Modern, Atomic) and `future` (Information, Future). Extra house variants are `city_<style>_house_2`, `_3`... A missing part falls back to the medieval one.
   - Mountain peaks are `prop_peak_1..3`.
   - **Terrain tiles** are `tile_<kind>_<n>` (any number of variants). The kinds are `grassland`, `plains`, `desert`, `tundra`, `snow`, `hills_<same five>` (elevation 2+), `mountain`, `marsh`, `ocean`, `coast`, `lake` and `ice`.
   - A tile is the inside of a hex: a pointy-top hexagon with a corner radius of **0.84**. Its outline must sit exactly at height 0 so it meets the game's rim, beaches, cliffs and rivers. Keep the middle about level, because units and cities stand there.
@@ -131,6 +143,6 @@ The HUD is built with UI Toolkit entirely in code (no assets to set up):
 
 ## Status
 
-Milestone **M0 (scaffold)** is done. **M1–M8** are mostly done: pathfinding, move orders, fog of war, deployment, reinforcements, auto-resolve, and the city economy (growth, production, buildings, gold, happiness, borders, research, settlers) sieges (walls, engines, militia, sorties), resources, workers and social policies, fleets, embarking, coastal battles, air power and buying with gold across all eight eras, and great people, religion, city-states, the World Congress, tourism and the spaceship. All five victory conditions can now be won. Games can be saved and loaded, and major civs make war and peace through diplomacy. See GDD §8 for the milestone plan. The AI opponent now
+Milestone **M0 (scaffold)** is done. **M1–M8** are mostly done: pathfinding, move orders, fog of war, deployment, reinforcements, auto-resolve, and the city economy (growth, production, buildings, gold, happiness, borders, research, settlers) sieges (walls, engines, militia, sorties), resources, workers and social policies, fleets, embarking, coastal battles, air power and buying with gold across ten eras (from a Neolithic start to a Future era), and great people, religion, city-states, the World Congress, tourism and the spaceship. All five victory conditions can now be won. Games can be saved and loaded, and major civs make war and peace through diplomacy. See GDD §8 for the milestone plan. The AI opponent now
 expands, builds armies, besieges and assaults your cities (`StrategicAI`). The tests include
 AI-vs-AI skirmishes that end in domination.

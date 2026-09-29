@@ -203,8 +203,12 @@ namespace Crucible.Core.Tests
         {
             var (g, _) = OneCity();
             var p = g.Player(0);
-            for (int i = 0; i < 6; i++) EconomyProcessor.ProcessTurn(g, p);
+            Assert.Equal(Era.Neolithic, p.Tech.CurrentEra);
+            for (int i = 0; i < 25; i++) EconomyProcessor.ProcessTurn(g, p);
+            // The cheap Neolithic techs come first, then settled farming.
+            Assert.Contains("hunting", p.Tech.Researched);
             Assert.Contains("agriculture", p.Tech.Researched);
+            Assert.True(p.Tech.CurrentEra >= Era.Ancient);
             Assert.NotNull(p.Tech.CurrentResearch);
         }
 

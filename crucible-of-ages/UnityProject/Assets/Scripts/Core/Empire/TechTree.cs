@@ -126,6 +126,9 @@ namespace Crucible.Core.Empire
             Target = target;
         }
 
+        /// <summary>The latest era among known techs; Neolithic before the first Ancient tech.</summary>
+        public Era CurrentEra => _researched.Count == 0 ? Era.Neolithic : _researched.Max(id => _content.Tech(id).Era);
+
         public int ArmyCapBonus => _researched.Sum(id => _content.Tech(id).ArmyCapBonus);
     }
 }

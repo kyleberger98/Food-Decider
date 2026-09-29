@@ -13,7 +13,7 @@
 | Battle turns | Alternating (attacker then defender) |
 | Cities | Humankind-style sieges and assaults |
 | Opponents (v1) | AI |
-| Content span (v1) | Full history: Ancient → Information era |
+| Content span (v1) | Full history: Neolithic → Future era (ten ages) |
 | Victories (v1) | Domination, Science, Culture, Diplomatic, Score/turn limit |
 | Setting | Fictional factions on a historical tech arc |
 
@@ -94,8 +94,19 @@ Kept intentionally close to Civ V (Brave New World ruleset) so players know it:
   cost 1 gold each. A bankrupt empire disbands one unit per turn.
 - **City governor:** it keeps at least one defender per city and never builds into
   negative income. Otherwise it follows its build priority list (monument, granary, market, library, walls, …).
-- **Tech tree:** 8 eras (Ancient, Classical, Medieval, Renaissance, Industrial, Modern, Atomic,
-  Information), about 80 techs.
+- **Tech tree:** 10 eras: a Neolithic start as in Humankind (Hunting, Animism, Stone Tools, the
+  roots of the tree), then Ancient, Classical, Medieval, Renaissance, Industrial, Modern, Atomic,
+  Information, and a Future era after Civ VI (Smart Materials, Cybernetics, Fusion Power,
+  Predictive Systems). An empire's age is its most advanced tech's era; it shows in the top bar
+  and sets the look of its cities. 64 techs today, about 80 planned.
+- **Units by age:** warriors and slingers (Neolithic); archers, spearmen, horsemen, triremes;
+  swordsmen, composite bowmen, catapults, quadriremes; pikemen, longswordsmen, knights,
+  crossbowmen, trebuchets; musketmen, lancers, cannon, frigates; riflemen, cavalry, gatling guns,
+  artillery, ironclads; infantry, machine guns, anti-tank guns, landships, submarines,
+  battleships, fighters; tanks, helicopter gunships, rocket artillery, carriers, bombers;
+  mechanized infantry, modern armor, missile cruisers, nuclear submarines, jets, stealth bombers;
+  exosuit infantry and the Giant Death Robot (Future). Anti-cavalry units (spears, pikes,
+  anti-tank guns, gunships) get +8 against mounted and armour.
 - **Social policies:** 9 trees plus 3 ideologies (Freedom / Order / Autocracy analogues, renamed).
   Culture fills a policy pool. The next policy costs 25 + (3n)^2.01, +10% per extra city.
   Trees are linear. **Honor** carries the combat policies: +2 CS, +1 CS, and army cap +1
@@ -380,7 +391,7 @@ crucible-of-ages/
 | M4 | Sieges ✅ | Siege declaration and lifting, militia (stay home, fight only for their city), siege progress → rams/towers/catapults (max 3), walls with HP (50/tier) that block melee from the centre, towers let adjacent infantry climb, rams ×3 / siege ×2 wall damage, breach removes the wall bonus, garrison holds the centre, sorties, AI assaults. ⏳ Gunpowder-era sappers & artillery engines |
 | M5 | Tech, policies, resources 🟡 | ✅ tech-gated units/buildings/improvements, army cap progression, 4 policy trees (Tradition, Liberty, Honor, Commerce) with Civ V cost curve, resources on the map (bonus/strategic/luxury), workers & 6 improvements, strategic caps (4 units per connected source), luxuries (+4 happiness each), worker automation, AI policy adoption. ⏳ Remaining Civ V trees & ideologies, roads, pillaging (Khaganate ability) |
 | M6 | AI v1 ✅ | Strategic AI: expansion (site scoring, settlers), garrison management, defence, one offensive at a time (rally → march → siege → engines → assault), governor plan (settlers, military target), AI-vs-AI skirmishes end in domination (tested). ⏳ Fog-aware targeting & scouting, diplomacy, spending gold (needs purchasing), multiple fronts |
-| M7 | Full-history content 🟡 | ✅ 57 techs across all 8 eras, land units every era, 5 warships, 3 aircraft, rocket artillery, 20 buildings; fleets (triremes coast-only), embarking (Optics / Astronomy), sinking embarked armies, mixed land-sea battlefields, city hangars with air strikes & interception each round, buying with gold (players and AI). ⏳ Wonders, carriers, nukes, unit upgrades, remaining ~25 techs |
+| M7 | Full-history content 🟡 | ✅ 64 techs across ten eras (Neolithic start, Future era), land units every era with their own models, 10 warships, 4 aircraft, 24 buildings (longhouse, fusion reactor, arcology); cities restyled per age (huts → mud brick → stone → brick and smokestacks → concrete → glass towers); fleets (triremes coast-only), embarking (Optics / Astronomy), sinking embarked armies, mixed land-sea battlefields, city hangars with air strikes & interception each round, buying with gold (players and AI). ⏳ Wonders, carriers, nukes, unit upgrades, remaining ~25 techs |
 | M8 | Remaining systems ✅ | Great people (scientist, engineer, merchant, artist, prophet, general) from building points, faith and battle; religion founding and pressure-based spread with founder/follower beliefs; city-states (maritime, cultured, mercantile, militaristic) with influence, friends/allies, bonuses; World Congress & World Leader votes; tourism from great works and late-era culture; Apollo Program + 6 spaceship parts with flight time. All five victories reachable (tested). ⏳ Missionaries, pantheons & chosen beliefs, Congress resolutions, diplomacy between majors, conquering city-states |
 | M9 | Victory & polish 🟡 | ✅ All five victories, save/load (deterministic, tested) with rolling autosaves, diplomacy between majors, quality of life from Civ/Humankind feedback (production queue, research goals keeping partial progress, Civ-style End Turn prompts, clickable notification log, key help), UI Toolkit HUD, map scripts with lakes, ice and natural wonders, procedural low-poly art (terrain decorations, unit miniatures, cities) and Civ-style unit flags. ⏳ Balance passes, tutorial, animation, options/menus |
 

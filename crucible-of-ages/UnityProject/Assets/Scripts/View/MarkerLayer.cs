@@ -4,7 +4,6 @@ using Crucible.Core.Combat;
 using Crucible.Core.Game;
 using Crucible.Core.Units;
 using Crucible.View.Art;
-using Crucible.View.Icons;
 using UnityEngine;
 
 namespace Crucible.View
@@ -70,12 +69,14 @@ namespace Crucible.View
                 int walls = game.Map.Get(city.Position).WallTier;
                 bool capital = Crucible.Core.Economy.EconomyRules.IsCapital(game, city);
                 int size = Mathf.Min(8, city.Population);
-                string look = $"{city.OwnerId}|{size}|{walls}|{capital}";
+                // Cities rebuild in the style of their owner's age (mud brick, stone, brick, concrete, glass).
+                var era = game.Player(city.OwnerId).Tech.CurrentEra;
+                string look = $"{city.OwnerId}|{size}|{walls}|{capital}|{era}";
                 if (!_cityLooks.TryGetValue(city.Id, out var old) || old != look)
                 {
                     _cityLooks[city.Id] = look;
                     go.GetComponent<MeshFilter>().sharedMesh = Cached("city" + city.Id + "|" + look,
-                        () => CityModels.Build(size, walls, capital, ToRgb(ColorOf(city.OwnerId)), city.Id));
+                        () => CityModels.Build(size, walls, capital, ToRgb(ColorOf(city.OwnerId)), city.Id, era));
                 }
             }
         }
@@ -100,13 +101,12 @@ namespace Crucible.View
                 // The army is shown by its lead unit (strongest military unit, else its first civilian).
                 var lead = LeadUnit(army);
                 if (lead == null) continue;
-                var icon = IconArt.ForUnit(lead.Def);
-                string look = $"{icon}|{army.OwnerId}";
+                string look = $"{lead.Def.Id}|{army.OwnerId}";
                 if (!_armyLooks.TryGetValue(army.Id, out var old) || old != look)
                 {
                     _armyLooks[army.Id] = look;
-                    go.GetComponent<MeshFilter>().sharedMesh = UnitMesh(icon, army.OwnerId);
-                    go.transform.localScale = Vector3.one * UnitScale(icon);
+                    go.GetComponent<MeshFilter>().sharedMesh = UnitMesh(lead.Def, army.OwnerId);
+                    go.transform.localScale = Vector3.one * UnitScale(lead.Def);
                 }
                 go.transform.position = _map.HexToWorld(army.Position);
                 go.transform.rotation = Quaternion.Euler(0f, FacingYaw, 0f);
@@ -126,8 +126,7 @@ namespace Crucible.View
         /// Blender formations (Civ V style: no base, life-like proportions) are drawn larger so they
         /// read at strategy zoom; the procedural stand-ins already carry a base and their own scale.
         /// </summary>
-        static float UnitScale(UnitIcon icon) =>
-            ArtLibrary.Current != null && ArtLibrary.Current.Has(UnitModels.ModelName(icon)) ? 1.6f : 1f;
+        static float UnitScale(Crucible.Core.Content.UnitDef def) => UnitModels.AuthoredName(def) != null ? 1.6f : 1f;
 
         /// <summary>Models face the default camera, turned a little for a three-quarter view.</summary>
         const float FacingYaw = 200f;
@@ -137,8 +136,9 @@ namespace Crucible.View
                 .OrderByDescending(u => Mathf.Max(u.Def.CombatStrength, u.Def.RangedStrength)).FirstOrDefault()
             ?? army.Units.FirstOrDefault();
 
-        Mesh UnitMesh(UnitIcon icon, int ownerId) =>
-            Cached($"unit|{icon}|{ownerId}", () => UnitModels.Build(icon, ToRgb(ColorOf(ownerId))));
+        /// <summary>A unit's model in its owner's colour: its own era model (unit_knight) or its symbol's.</summary>
+        Mesh UnitMesh(Crucible.Core.Content.UnitDef def, int ownerId) =>
+            Cached($"unit|{def.Id}|{ownerId}", () => UnitModels.Build(def, ToRgb(ColorOf(ownerId))));
 
         Mesh Cached(string key, System.Func<MeshData> build)
         {
@@ -206,8 +206,8 @@ namespace Crucible.View
                     if (!_units.TryGetValue(unit.Id, out var go))
                     {
                         go = Model(unit.Def.Name);
-                        go.GetComponent<MeshFilter>().sharedMesh = UnitMesh(IconArt.ForUnit(unit.Def), unit.OwnerId);
-                        go.transform.localScale = Vector3.one * 0.9f * UnitScale(IconArt.ForUnit(unit.Def));
+                        go.GetComponent<MeshFilter>().sharedMesh = UnitMesh(unit.Def, unit.OwnerId);
+                        go.transform.localScale = Vector3.one * 0.9f * UnitScale(unit.Def);
                         _units[unit.Id] = go;
                     }
                     go.transform.position = _map.HexToWorld(battle.PositionOf(unit).Value);

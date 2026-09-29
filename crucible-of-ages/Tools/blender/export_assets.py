@@ -123,7 +123,7 @@ def render_previews(cols=7, spacing=0.95, size=(1400, 820), samples=24):
         if not objs:
             continue
         saved = {o.name: o.location.copy() for o in objs}
-        cols_here = min(cols, len(objs))
+        cols_here = min(max(cols, math.ceil(math.sqrt(len(objs) * size[0] / size[1]))), len(objs))  # wider sheets for long lists
         spacing_here = {"unit": spacing, "prop": spacing * 0.9, "city": spacing * 1.15, "tile": spacing * 1.9}.get(cat, spacing)
         rows = (len(objs) + cols_here - 1) // cols_here
         for i, o in enumerate(sorted(objs, key=lambda o: o.name)):

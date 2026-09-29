@@ -58,8 +58,10 @@ namespace Crucible.View
     /// <summary>
     /// Input and game actions. Every action is a public method so the HUD's buttons and the keyboard
     /// shortcuts share one code path; the HUD (<see cref="GameHud"/>) only reads state and calls these.
-    /// World: click your army, then a hex to march, an adjacent enemy to attack, or a battlefield hex to
-    /// reinforce. Battle: click a unit, then a green hex to move or a red enemy to attack.
+    /// Mouse (Humankind): left-click selects an army, unit or city (left-click on empty ground
+    /// deselects); right-click gives the order: march to a hex, attack an adjacent enemy, join a
+    /// battle; in battle, move to a green hex or attack a red enemy. Left-drag pans, middle-drag rotates
+    /// (see <see cref="CameraRig"/>). Right-click with nothing selected closes the open panel.
     /// Keys: Enter next action / end turn (Shift+Enter: end turn now) · Tab next unit · Space skip unit
     /// (in battle: confirm deployment / end battle turn) · Z sleep · H heal · R retreat · X auto-resolve ·
     /// B batter walls · G besiege · F found city · T research · P policies · L diplomacy · N notification log ·
@@ -76,6 +78,7 @@ namespace Crucible.View
         int _mapVersion = -1;
         int _techKnown = -1;
         HexCoord? _routeFor;
+        bool _leftPressOverUi;
 
         public GameState Game { get; private set; }
         public TurnManager Turns { get; private set; }
@@ -124,7 +127,7 @@ namespace Crucible.View
             _markers.Init(map);
             rig.BlockZoom = () => IsPointerOverUi();
             HookEvents();
-            Post("Select your army and click a hex to march. Tab jumps to the next unit, F1 lists every key.");
+            Post("Left-click your army to select it, right-click a hex to march there. Drag to pan, wheel to zoom, F1 lists every control.");
         }
 
         void HookEvents()
@@ -212,10 +215,19 @@ namespace Crucible.View
             HandleKeys(battle);
             if (Game == null) return; // a load may have replaced the game this frame
 
-            if (!Turns.IsGameOver && Input.GetMouseButtonDown(0) && HoverHex.HasValue && !IsPointerOverUi())
+            // Left-click (released without dragging the map) selects; right-click orders.
+            bool overUi = IsPointerOverUi();
+            if (Input.GetMouseButtonDown(0)) _leftPressOverUi = overUi;
+            if (!Turns.IsGameOver && Input.GetMouseButtonUp(0) && !_leftPressOverUi && !overUi && !_rig.WasDragged)
             {
-                if (battle != null) BattleClick(battle, HoverHex.Value);
-                else WorldClick(HoverHex.Value);
+                if (!HoverHex.HasValue) Deselect();
+                else if (battle != null) BattleSelect(battle, HoverHex.Value);
+                else WorldSelect(HoverHex.Value);
+            }
+            if (!Turns.IsGameOver && Input.GetMouseButtonDown(1) && !overUi)
+            {
+                if (battle != null) { if (HoverHex.HasValue) BattleOrder(battle, HoverHex.Value); }
+                else WorldOrder(HoverHex);
             }
 
             if (SelectedArmy != null && Game.Army(SelectedArmy.Id) == null) SelectedArmy = null;
@@ -338,7 +350,7 @@ namespace Crucible.View
             SelectedArmy = null;
             OpenPanel = HudPanel.None;
             FocusOn(city.Position);
-            Post($"{weapon.Def.Name} armed in {city.Name}: click a target within {weapon.Def.Range} hexes (Esc cancels).", NoticeKind.War, city.Position);
+            Post($"{weapon.Def.Name} armed in {city.Name}: left-click a target within {weapon.Def.Range} hexes (right-click or Esc cancels).", NoticeKind.War, city.Position);
         }
 
         public void CancelNukeTargeting()
@@ -694,7 +706,8 @@ namespace Crucible.View
             SelectedArmy.Position.Neighbors().Select(Game.CityAt)
                 .FirstOrDefault(c => c != null && c.IsBesieged && c.BesiegerId == SelectedArmy.OwnerId);
 
-        void WorldClick(HexCoord hex)
+        /// <summary>Left-click on the map: select (or, while aiming a nuclear weapon, fire it).</summary>
+        void WorldSelect(HexCoord hex)
         {
             if (NukeTargeting is { } aim)
             {
@@ -707,23 +720,38 @@ namespace Crucible.View
 
             var clickedCity = Game.CityAt(hex);
             var army = Game.ArmyAt(hex);
-
             if (army != null && army.OwnerId == Human.Id)
             {
                 SelectArmy(army);
                 if (clickedCity != null && clickedCity.OwnerId == Human.Id) OpenCity(clickedCity);
                 return;
             }
-            if (SelectedArmy == null)
+            if (clickedCity != null && clickedCity.OwnerId == Human.Id) { Deselect(); OpenCity(clickedCity); return; }
+            if (clickedCity != null && Game.Player(clickedCity.OwnerId).IsCityState)
             {
-                if (clickedCity != null && clickedCity.OwnerId == Human.Id) OpenCity(clickedCity);
-                else if (clickedCity != null && Game.Player(clickedCity.OwnerId).IsCityState)
-                {
-                    SelectedCityState = Game.Player(clickedCity.OwnerId);
-                    OpenPanel = HudPanel.CityState;
-                }
+                SelectedCityState = Game.Player(clickedCity.OwnerId);
+                OpenPanel = HudPanel.CityState;
                 return;
             }
+            // Empty ground (or someone else's army): let go of the selection, as in Humankind.
+            Deselect();
+        }
+
+        /// <summary>
+        /// Right-click on the map with an army selected: march, attack an adjacent enemy, or join a
+        /// battle. Without a selection it closes the open panel; while aiming a nuke it cancels.
+        /// </summary>
+        void WorldOrder(HexCoord? target)
+        {
+            if (NukeTargeting != null) { CancelNukeTargeting(); return; }
+            if (SelectedArmy == null || !target.HasValue)
+            {
+                if (OpenPanel != HudPanel.None) ClosePanel();
+                return;
+            }
+            var hex = target.Value;
+            var clickedCity = Game.CityAt(hex);
+            var army = Game.ArmyAt(hex);
 
             var ongoing = Game.BattleCovering(hex);
             if (ongoing != null)
@@ -764,21 +792,25 @@ namespace Crucible.View
 
         // ------------------------------------------------------------------ battle actions
 
-        void BattleClick(Battle battle, HexCoord hex)
+        /// <summary>Left-click in battle: pick one of your units (while deploying, a click on your zone also places it).</summary>
+        void BattleSelect(Battle battle, HexCoord hex)
         {
             var unit = battle.UnitAt(hex);
+            if (unit != null && battle.SideOf(unit) == battle.ActiveSide) { SelectedUnit = unit; return; }
+            if (battle.Status == BattleStatus.Deploying && SelectedUnit != null) battle.Redeploy(SelectedUnit, hex);
+        }
+
+        /// <summary>Right-click in battle: the selected unit moves to the hex or attacks the enemy on it.</summary>
+        void BattleOrder(Battle battle, HexCoord hex)
+        {
+            var unit = battle.UnitAt(hex);
+            if (SelectedUnit == null) return;
             if (battle.Status == BattleStatus.Deploying)
             {
-                if (SelectedUnit != null && battle.Redeploy(SelectedUnit, hex)) return;
-                if (unit != null && battle.SideOf(unit) == battle.ActiveSide) SelectedUnit = unit;
+                if (!battle.Redeploy(SelectedUnit, hex)) Post("Place units inside your blue deployment zone.", NoticeKind.Bad);
                 return;
             }
-            if (unit != null && battle.SideOf(unit) == battle.ActiveSide)
-            {
-                SelectedUnit = unit;
-                return;
-            }
-            if (SelectedUnit == null) return;
+            if (unit != null && battle.SideOf(unit) == battle.ActiveSide) { SelectedUnit = unit; return; }
 
             if (unit != null)
             {

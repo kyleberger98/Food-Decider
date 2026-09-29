@@ -25,6 +25,12 @@ namespace Crucible.View.UI
     {
         GameController _c;
         UIDocument _doc;
+        PanelSettings _settings;
+        Vector2Int _screenForScale;
+        float _userScale = 1f;
+
+        /// <summary>HUD size multiplier the player picks with Ctrl + / Ctrl − (Ctrl 0 resets); remembered between sessions.</summary>
+        public const string ScalePref = "crucible.uiScale";
         VisualElement _root;
 
         // Regions
@@ -54,16 +60,18 @@ namespace Crucible.View.UI
         {
             var go = new GameObject("HUD");
             go.SetActive(false); // configure the document before it enables
+            // Sized by screen height (see ApplyScale), so text stays readable in a small editor Game
+            // view as well as full screen, and the player can make it bigger or smaller.
             var settings = ScriptableObject.CreateInstance<PanelSettings>();
-            settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
-            settings.referenceResolution = new Vector2Int(1920, 1080);
-            settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
-            settings.match = 0.5f;
+            settings.scaleMode = PanelScaleMode.ConstantPixelSize;
             var doc = go.AddComponent<UIDocument>();
             doc.panelSettings = settings;
             var hud = go.AddComponent<GameHud>();
             hud._c = controller;
             hud._doc = doc;
+            hud._settings = settings;
+            hud._userScale = Mathf.Clamp(PlayerPrefs.GetFloat(ScalePref, 1f), 0.6f, 2f);
+            hud.ApplyScale(force: true);
             go.SetActive(true);
             hud.Build();
             controller.IsPointerOverUi = hud.PointerOverUi;
@@ -79,24 +87,28 @@ namespace Crucible.View.UI
             _root.Clear();
             _root.pickingMode = PickingMode.Ignore;
             _root.style.flexGrow = 1;
-            ApplyFont(_root);
+            Ui.LoadFonts();
+            Ui.ApplyFont(_root);
 
             _overlay = Layer();
             _root.Add(_overlay);
 
-            // Top bar
-            var top = Ui.Box(Theme.Chrome);
-            Ui.Absolute(top, 0, 0, 0);
+            // Top bar: a floating glass capsule (Humankind), era and turn on the left, empire stats,
+            // then research and the few screens you open often.
+            var top = Ui.Glass(0, 24, Theme.Chrome);
+            Ui.Absolute(top, 14, 12, 14);
             top.style.height = 50;
             top.style.flexDirection = FlexDirection.Row;
             top.style.alignItems = Align.Center;
-            top.style.paddingLeft = 16;
-            top.style.paddingRight = 12;
-            top.style.borderBottomWidth = 1;
-            top.style.borderBottomColor = Theme.Line;
-            _turnLabel = Ui.Text("", 14, Theme.Accent, bold: true);
-            _turnLabel.style.marginRight = 22;
-            top.Add(_turnLabel);
+            top.style.paddingLeft = 8;
+            top.style.paddingRight = 8;
+            _turnLabel = Ui.Text("", 13, Theme.Accent, bold: true);
+            var era = Ui.Box(new Color(Theme.Accent.r, Theme.Accent.g, Theme.Accent.b, 0.14f), 0, 18);
+            era.style.paddingLeft = era.style.paddingRight = 14;
+            era.style.paddingTop = era.style.paddingBottom = 7;
+            era.style.marginRight = 18;
+            era.Add(_turnLabel);
+            top.Add(era);
             _topStats = Ui.Row();
             top.Add(_topStats);
             top.Add(Ui.Spacer());
@@ -104,53 +116,52 @@ namespace Crucible.View.UI
             top.Add(_topRight);
             _root.Add(top);
 
-            _notices = Ui.Col(6);
-            Ui.Absolute(_notices, 16, 62);
+            _notices = Ui.Col(8);
+            Ui.Absolute(_notices, 18, 76);
             _notices.style.width = 400;
             _notices.pickingMode = PickingMode.Ignore;
             _root.Add(_notices);
 
             // Right-hand context panel
-            _panel = Ui.Box(Theme.Panel, 0, 10);
-            Ui.Absolute(_panel, null, 62, 16);
-            _panel.style.width = 430;
-            _panel.style.maxHeight = Length.Percent(80);
-            Ui.Border(_panel, Theme.Line, 1);
+            _panel = Ui.Glass(0);
+            Ui.Absolute(_panel, null, 76, 18);
+            _panel.style.width = 460;
+            _panel.style.maxHeight = Length.Percent(78);
             var header = Ui.Row();
-            header.style.paddingLeft = 14;
-            header.style.paddingRight = 8;
-            header.style.paddingTop = header.style.paddingBottom = 10;
+            header.style.paddingLeft = 20;
+            header.style.paddingRight = 12;
+            header.style.paddingTop = header.style.paddingBottom = 14;
             header.style.borderBottomWidth = 1;
             header.style.borderBottomColor = Theme.Line;
-            _panelTitle = Ui.Heading("");
+            _panelTitle = Ui.Text("", 18, Theme.Text, bold: true);
             header.Add(_panelTitle);
             header.Add(Ui.Spacer());
-            header.Add(Ui.Btn("×  Esc", () => _c.ClosePanel(), ButtonStyle.Ghost, size: 11));
+            header.Put(Ui.Btn("Close", () => _c.ClosePanel(), ButtonStyle.Ghost, size: 11)).tooltip = "Esc";
             _panel.Add(header);
             _panelScroll = new ScrollView(ScrollViewMode.Vertical);
             _panelScroll.style.flexShrink = 1;
-            Ui.Pad(_panelScroll.contentContainer, 12);
+            Ui.Pad(_panelScroll.contentContainer, 18);
             _panel.Add(_panelScroll);
             _root.Add(_panel);
 
-            _selection = Ui.Box(Theme.Panel, 12, 10);
-            Ui.Absolute(_selection, 16, null, null, 16);
-            _selection.style.width = 440;
-            Ui.Border(_selection, Theme.Line, 1);
+            _selection = Ui.Glass(16);
+            Ui.Absolute(_selection, 18, null, null, 18);
+            _selection.style.width = 480;
             _root.Add(_selection);
 
-            _endTurn = Ui.Col(6);
-            Ui.Absolute(_endTurn, null, null, 16, 16);
+            _endTurn = Ui.Col(8);
+            Ui.Absolute(_endTurn, null, null, 22, 20);
             _endTurn.style.alignItems = Align.FlexEnd;
             _endTurn.pickingMode = PickingMode.Ignore;
             _root.Add(_endTurn);
 
-            _battleBanner = Ui.Box(Theme.Panel, 12, 10);
-            Ui.Absolute(_battleBanner, null, 62);
+            _battleBanner = Ui.Glass(16);
+            Ui.Absolute(_battleBanner, null, 76);
             _battleBanner.style.left = Length.Percent(50);
-            _battleBanner.style.width = 560;
-            _battleBanner.style.marginLeft = -280;
-            Ui.Border(_battleBanner, new Color(Theme.War.r, Theme.War.g, Theme.War.b, 0.6f), 1);
+            _battleBanner.style.width = 600;
+            _battleBanner.style.marginLeft = -300;
+            _battleBanner.style.borderTopColor = new Color(Theme.War.r, Theme.War.g, Theme.War.b, 0.7f);
+            _battleBanner.style.borderTopWidth = 2;
             _root.Add(_battleBanner);
 
             _battleActions = Ui.Row(8);
@@ -162,18 +173,16 @@ namespace Crucible.View.UI
             _battleActions.pickingMode = PickingMode.Ignore; // only the buttons themselves block map clicks
             _root.Add(_battleActions);
 
-            _preview = Ui.Box(Theme.Panel, 12, 10);
-            Ui.Absolute(_preview, null, 180, 16);
-            _preview.style.width = 360;
-            Ui.Border(_preview, Theme.Line, 1);
+            _preview = Ui.Glass(16);
+            Ui.Absolute(_preview, null, 200, 18);
+            _preview.style.width = 380;
             _preview.pickingMode = PickingMode.Ignore;
             _root.Add(_preview);
 
-            _tooltip = Ui.Box(new Color(0.04f, 0.05f, 0.06f, 0.94f), 8, 6);
+            _tooltip = Ui.Glass(12, 12, new Color(0.06f, 0.08f, 0.11f, 0.94f));
             Ui.Absolute(_tooltip, 0, 0);
-            _tooltip.style.maxWidth = 300;
+            _tooltip.style.maxWidth = 340;
             _tooltip.pickingMode = PickingMode.Ignore;
-            Ui.Border(_tooltip, Theme.Line, 1);
             _root.Add(_tooltip);
 
             _gameOver = Ui.Box(new Color(0, 0, 0, 0.6f));
@@ -198,17 +207,32 @@ namespace Crucible.View.UI
             return e;
         }
 
-        /// <summary>Without a theme stylesheet, text needs an explicit font: use Unity's built-in one.</summary>
-        static void ApplyFont(VisualElement root)
+        /// <summary>
+        /// Scales the HUD with the screen height (1.0 at 900 px, never below 0.85 so small editor views
+        /// stay legible) times the player's own preference.
+        /// </summary>
+        void ApplyScale(bool force = false)
         {
-            Font font = null;
-            foreach (var name in new[] { "LegacyRuntime.ttf", "Arial.ttf" })
-            {
-                try { font = Resources.GetBuiltinResource<Font>(name); }
-                catch (System.ArgumentException) { font = null; }
-                if (font != null) break;
-            }
-            if (font != null) root.style.unityFontDefinition = FontDefinition.FromFont(font);
+            var size = new Vector2Int(Screen.width, Screen.height);
+            if (!force && size == _screenForScale) return;
+            _screenForScale = size;
+            _settings.scale = Mathf.Clamp(Screen.height / 900f, 0.85f, 2.4f) * _userScale;
+        }
+
+        /// <summary>Ctrl + / Ctrl − resize the HUD, Ctrl 0 resets it.</summary>
+        void HandleScaleKeys()
+        {
+            bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) || Input.GetKey(KeyCode.LeftCommand);
+            if (!ctrl) return;
+            float before = _userScale;
+            if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) _userScale += 0.1f;
+            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) _userScale -= 0.1f;
+            if (Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0)) _userScale = 1f;
+            _userScale = Mathf.Clamp(Mathf.Round(_userScale * 10f) / 10f, 0.6f, 2f);
+            if (Mathf.Approximately(before, _userScale)) return;
+            PlayerPrefs.SetFloat(ScalePref, _userScale);
+            ApplyScale(force: true);
+            _c.Post($"Interface size {Mathf.RoundToInt(_userScale * 100)}%  (Ctrl + / Ctrl − / Ctrl 0)");
         }
 
         void OnGameReplaced()
@@ -239,6 +263,8 @@ namespace Crucible.View.UI
         void LateUpdate()
         {
             if (_c == null || G == null || _root == null) return;
+            ApplyScale();
+            HandleScaleKeys();
             var battle = _c.HumanBattle;
             int n = _c.Notices.Count;
             string stamp = $"{G.Turn}|{_c.Turns.ActivePlayerIndex}|{n}|{Me.Gold}";
@@ -268,7 +294,7 @@ namespace Crucible.View.UI
             if (!Changed("top", sig)) return;
 
             var era = Me.Tech.CurrentEra;
-            _turnLabel.text = $"TURN {G.Turn}  ·  {era.ToString().ToUpperInvariant()} ERA";
+            _turnLabel.text = $"{era.ToString().ToUpperInvariant()} ERA   ·   TURN {G.Turn}";
 
             _topStats.Clear();
             _topStats.Add(Ui.Stat("gold", $"{Me.Gold} ({Ui.Signed(income.Gold)})", Theme.Gold, "Treasury and net gold per turn after upkeep"));
@@ -286,10 +312,12 @@ namespace Crucible.View.UI
 
             _topRight.Clear();
             // Research button with progress
-            var researchBtn = Ui.Box(Theme.Card, 0, 6);
-            researchBtn.style.paddingLeft = researchBtn.style.paddingRight = 10;
-            researchBtn.style.paddingTop = researchBtn.style.paddingBottom = 4;
-            researchBtn.style.width = 250;
+            var researchBtn = Ui.Box(Theme.Button, 0, 18);
+            researchBtn.style.paddingLeft = researchBtn.style.paddingRight = 14;
+            researchBtn.style.paddingTop = researchBtn.style.paddingBottom = 5;
+            researchBtn.style.width = 260;
+            researchBtn.RegisterCallback<PointerEnterEvent>(_ => researchBtn.style.backgroundColor = Theme.ButtonHover);
+            researchBtn.RegisterCallback<PointerLeaveEvent>(_ => researchBtn.style.backgroundColor = Theme.Button);
             var rCol = Ui.Col(3);
             rCol.Put(Ui.Text(research != null ? $"Researching {research.Name}" : "Choose research", 11, research != null ? Theme.Science : Theme.Accent, bold: true));
             int turnsLeft = research != null && income.Science > 0 ? Mathf.CeilToInt((research.ScienceCost - Me.Tech.Progress) / (float)income.Science) : 0;
@@ -307,9 +335,7 @@ namespace Crucible.View.UI
             _topRight.Put(Ui.Btn(pending > 0 ? $"Diplomacy  ({pending})" : "Diplomacy", () => _c.TogglePanel(HudPanel.Diplomacy),
                 pending > 0 ? ButtonStyle.Primary : ButtonStyle.Normal));
             _topRight.Put(Ui.Btn("Log", () => _c.TogglePanel(HudPanel.Log), ButtonStyle.Ghost)).tooltip = "Every notification this game (N)";
-            _topRight.Put(Ui.Btn("Save", _c.QuickSave, ButtonStyle.Ghost)).tooltip = "Quick save (F5)";
-            _topRight.Put(Ui.Btn("Load", () => _c.TogglePanel(HudPanel.Saves), ButtonStyle.Ghost)).tooltip = "Quicksave and autosaves (F9 loads the quicksave)";
-            _topRight.Put(Ui.Btn("?", () => _c.TogglePanel(HudPanel.Help), ButtonStyle.Ghost)).tooltip = "Keys (F1)";
+            _topRight.Put(Ui.Btn("Menu", () => _c.TogglePanel(HudPanel.Saves), ButtonStyle.Ghost)).tooltip = "Save, load, controls and interface size";
         }
 
         // ------------------------------------------------------------------ notifications
@@ -318,18 +344,22 @@ namespace Crucible.View.UI
 
         void UpdateNotices(int count)
         {
-            var recent = _c.Notices.Where(x => Time.time - x.Time < NoticeLifetime).Reverse().Take(5).ToList();
-            if (!Changed("notices", $"{count}|{recent.Count}")) return;
+            var recent = _c.Notices.Where(x => Time.time - x.Time < NoticeLifetime).Reverse().Take(4).ToList();
+            int fade = recent.Count(x => NoticeLifetime - (Time.time - x.Time) < 3f) == 0 ? 0 : Mathf.FloorToInt(Time.time * 4);
+            if (!Changed("notices", $"{count}|{recent.Count}|{fade}")) return;
             _notices.Clear();
             foreach (var note in recent)
             {
-                var card = Ui.Box(Theme.Chrome, 0, 6);
-                card.style.paddingLeft = 10;
-                card.style.paddingRight = card.style.paddingTop = card.style.paddingBottom = 7;
-                card.style.borderLeftWidth = 3;
+                var card = Ui.Glass(0, 14, Theme.Chrome);
+                card.style.paddingLeft = 14;
+                card.style.paddingRight = 14;
+                card.style.paddingTop = card.style.paddingBottom = 9;
+                card.style.borderLeftWidth = 4;
                 card.style.borderLeftColor = note.Kind == NoticeKind.Good ? Theme.Good
                     : note.Kind == NoticeKind.Bad ? Theme.Bad
                     : note.Kind == NoticeKind.War ? Theme.War : Theme.Info;
+                // Fade out gently over the last seconds.
+                card.style.opacity = Mathf.Clamp01((NoticeLifetime - (Time.time - note.Time)) / 3f) * 0.95f + 0.05f;
                 card.pickingMode = note.At.HasValue ? PickingMode.Position : PickingMode.Ignore;
                 var text = Ui.Text(note.At.HasValue ? note.Text + "  ›" : note.Text, 12, Theme.Text, wrap: true);
                 text.pickingMode = PickingMode.Ignore;
@@ -339,7 +369,7 @@ namespace Crucible.View.UI
                     // Click to jump there (Civ-style notification).
                     var captured = note;
                     card.RegisterCallback<ClickEvent>(_ => _c.OpenNotice(captured));
-                    card.RegisterCallback<PointerEnterEvent>(_ => card.style.backgroundColor = Theme.Panel);
+                    card.RegisterCallback<PointerEnterEvent>(_ => card.style.backgroundColor = new Color(0.16f, 0.2f, 0.26f, 0.95f));
                     card.RegisterCallback<PointerLeaveEvent>(_ => card.style.backgroundColor = Theme.Chrome);
                     card.tooltip = "Go there";
                 }
@@ -373,10 +403,8 @@ namespace Crucible.View.UI
             bool embarked = G.IsEmbarked(army);
             string kind = army.IsNaval ? "Fleet" : army.Units.All(u => !u.Def.IsMilitary) ? "Civilians" : embarked ? "Embarked army" : "Army";
             var header = _selection.Put(Ui.Row(8));
-            var stripe = Ui.Box(MarkerLayer.ColorOf(army.OwnerId), 0, 2);
-            stripe.style.width = 4;
-            stripe.style.height = 30;
-            header.Put(stripe);
+            var lead = MarkerLayer.LeadUnit(army);
+            if (lead != null) header.Put(Ui.Flag(Icons.IconArt.ForUnit(lead.Def), MarkerLayer.ColorOf(army.OwnerId), 44));
             var titleCol = header.Put(Ui.Col(2));
             titleCol.Put(Ui.Heading(kind));
             titleCol.Put(Ui.Text($"{army.Units.Count(u => u.Def.GreatPerson != GreatPersonType.General)}/{Me.ArmyCap} units  ·  {army.WorldMovesLeft}/{G.WorldMovementOf(army)} moves" +
@@ -407,7 +435,11 @@ namespace Crucible.View.UI
             if (route != null)
             {
                 _selection.Put(Ui.Divider());
-                _selection.Put(Ui.Text($"Route: {route.Steps.Count} hexes  ·  {route.Turns} turn{(route.Turns == 1 ? "" : "s")}  —  click to march", 11, Theme.Info));
+                _selection.Put(Ui.Text($"{route.Steps.Count} hexes  ·  {route.Turns} turn{(route.Turns == 1 ? "" : "s")}  —  right-click to march", 11, Theme.Info));
+            }
+            else
+            {
+                _selection.Put(Ui.Text("Right-click a hex to move · right-click an enemy to attack", 11, Theme.Muted)).style.marginTop = 8;
             }
 
             var actions = Ui.Row(6);
@@ -439,7 +471,7 @@ namespace Crucible.View.UI
             var enemyCity = _c.AdjacentEnemyCityOfSelection();
             if (enemyCity != null && !enemyCity.IsBesieged) actions.Put(Ui.Btn($"Besiege {enemyCity.Name}  (G)", _c.Besiege, ButtonStyle.Danger));
             if (_c.BesiegedBySelection() != null) actions.Put(Ui.Btn("Siege camp", () => _c.TogglePanel(HudPanel.Siege)));
-            actions.Put(Ui.Btn("Deselect  (Esc)", _c.Deselect, ButtonStyle.Ghost));
+
             _selection.Add(actions);
         }
 
@@ -458,7 +490,7 @@ namespace Crucible.View.UI
             _selection.Put(Ui.Text(unit.Def.IsRanged
                 ? $"Ranged {unit.Def.RangedStrength}  ·  range {unit.Def.Range}{(unit.Def.IndirectFire ? " (indirect)" : "")}  ·  defence {unit.Def.CombatStrength}"
                 : $"Strength {unit.Def.CombatStrength}", 12, Theme.Text));
-            _selection.Put(Ui.Text("Green hexes: move  ·  red: attack  ·  hover an enemy for the odds", 11, Theme.Muted, wrap: true));
+            _selection.Put(Ui.Text("Right-click a green hex to move, a red enemy to attack  ·  hover an enemy for the odds", 11, Theme.Muted, wrap: true));
         }
 
         // ------------------------------------------------------------------ end turn
@@ -470,23 +502,41 @@ namespace Crucible.View.UI
             int unset = G.Cities.Count(c => c.OwnerId == Me.Id && !c.CurrentProduction.HasValue);
             if (!Changed("endturn", $"{stamp}|{battle != null}|{blocker}|{idle}|{unset}|{G.Victory != null}")) return;
             _endTurn.Clear();
-            if (unset > 0) _endTurn.Put(Ui.Pill($"{unset} cit{(unset == 1 ? "y" : "ies")} idle — pick production", Theme.Gold));
-            if (idle > 0) _endTurn.Put(Ui.Pill($"{idle} arm{(idle == 1 ? "y needs" : "ies need")} orders  ·  Tab: next", Theme.Info));
+            if (unset > 0) _endTurn.Put(Ui.Pill($"{unset} cit{(unset == 1 ? "y" : "ies")} idle — pick production", Theme.Gold, null, 11));
+            if (idle > 0) _endTurn.Put(Ui.Pill($"{idle} arm{(idle == 1 ? "y needs" : "ies need")} orders  ·  Tab", Theme.Info, null, 11));
 
-            // Civ-style: the big button takes you to whatever still needs you, then ends the turn.
-            string label = battle != null ? "BATTLE IN PROGRESS"
-                : blocker == TurnBlocker.ChooseResearch ? "CHOOSE RESEARCH"
-                : blocker == TurnBlocker.ChooseProduction ? "CHOOSE PRODUCTION"
-                : blocker == TurnBlocker.UnitNeedsOrders ? "UNIT NEEDS ORDERS"
-                : "END TURN";
-            var btn = Ui.Btn(label, _c.NextAction, blocker == TurnBlocker.None ? ButtonStyle.Primary : ButtonStyle.Normal,
-                battle == null && G.Victory == null, size: 18);
-            btn.style.paddingLeft = btn.style.paddingRight = 34;
-            btn.style.paddingTop = btn.style.paddingBottom = 14;
-            btn.tooltip = blocker == TurnBlocker.None ? "Enter" : "Enter: go there  ·  Shift+Enter: end the turn anyway";
-            _endTurn.Put(btn);
-            if (blocker != TurnBlocker.None)
-                _endTurn.Put(Ui.Btn("End turn anyway  (Shift+Enter)", _c.EndTurn, ButtonStyle.Ghost, true, 11));
+            // Humankind's round end-turn button: it takes you to whatever still needs you, then ends the turn.
+            bool ready = blocker == TurnBlocker.None && battle == null && G.Victory == null;
+            string label = battle != null ? "BATTLE"
+                : blocker == TurnBlocker.ChooseResearch ? "CHOOSE\nRESEARCH"
+                : blocker == TurnBlocker.ChooseProduction ? "CHOOSE\nPRODUCTION"
+                : blocker == TurnBlocker.UnitNeedsOrders ? "NEXT\nUNIT"
+                : "END\nTURN";
+            var ring = Ui.Box(ready ? Theme.Glow : new Color(1, 1, 1, 0.12f), 6, 70);
+            ring.style.width = ring.style.height = 140;
+            var btn = new Button(_c.NextAction);
+            btn.style.width = btn.style.height = 128;
+            Ui.Radius(btn, 64);
+            Ui.Border(btn, new Color(1, 1, 1, ready ? 0.45f : 0.15f), 2);
+            btn.style.backgroundColor = ready ? Theme.Accent : new Color(0.12f, 0.16f, 0.21f, 0.95f);
+            btn.style.marginLeft = btn.style.marginRight = btn.style.marginTop = btn.style.marginBottom = 0;
+            btn.style.alignItems = Align.Center;
+            btn.style.justifyContent = Justify.Center;
+            var text = Ui.Text(label, 15, ready ? new Color(0.16f, 0.12f, 0.05f) : Theme.Text, bold: true);
+            text.style.unityTextAlign = TextAnchor.MiddleCenter;
+            btn.Add(text);
+            var turn = Ui.Text($"Turn {G.Turn}", 10, ready ? new Color(0.25f, 0.19f, 0.08f) : Theme.Muted);
+            turn.style.marginTop = 4;
+            btn.Add(turn);
+            var idleColor = btn.style.backgroundColor.value;
+            btn.RegisterCallback<PointerEnterEvent>(_ => btn.style.backgroundColor = ready ? new Color(1f, 0.87f, 0.60f) : new Color(0.18f, 0.23f, 0.30f, 0.95f));
+            btn.RegisterCallback<PointerLeaveEvent>(_ => btn.style.backgroundColor = idleColor);
+            btn.SetEnabled(battle == null && G.Victory == null);
+            btn.tooltip = blocker == TurnBlocker.None ? "End turn (Enter)" : "Enter: go there  ·  Shift+Enter: end the turn anyway";
+            ring.Add(btn);
+            _endTurn.Put(ring);
+            if (blocker != TurnBlocker.None && battle == null)
+                _endTurn.Put(Ui.Btn("End turn anyway", _c.EndTurn, ButtonStyle.Ghost, true, 11)).tooltip = "Shift+Enter";
         }
 
         // ------------------------------------------------------------------ battle HUD
@@ -511,7 +561,7 @@ namespace Crucible.View.UI
 
             if (battle.Status == BattleStatus.Deploying)
             {
-                _battleBanner.Put(Ui.Text("DEPLOYMENT — click a unit, then a blue hex of your zone to move or swap it. Confirm when ready.", 12, Theme.Info, wrap: true))
+                _battleBanner.Put(Ui.Text("DEPLOYMENT — select a unit, then right-click a blue hex of your zone to move or swap it. Confirm when ready.", 12, Theme.Info, wrap: true))
                     .style.marginTop = 8;
             }
             else
@@ -650,7 +700,7 @@ namespace Crucible.View.UI
                 : tile.IsMountain ? "mountain" : new[] { "lowland", "plains", "hills", "highlands" }[Mathf.Clamp(tile.Elevation, 0, 3)];
             string feature = tile.Feature != FeatureType.None && !tile.IsIce ? " · " + tile.Feature : "";
             if (_c.NukeTargeting is { } aim)
-                _tooltip.Put(Ui.Text(nukeBlocker ?? $"Launch {aim.weapon.Def.Name} here (click)", 12, nukeBlocker == null ? Theme.Bad : Theme.Muted, bold: true, wrap: true));
+                _tooltip.Put(Ui.Text(nukeBlocker ?? $"Left-click to launch {aim.weapon.Def.Name} here · right-click cancels", 12, nukeBlocker == null ? Theme.Bad : Theme.Muted, bold: true, wrap: true));
             _tooltip.Put(Ui.Text($"{tile.Terrain}{feature}  ({height})", 12, Theme.Text, bold: true));
             if (tile.Fallout > 0)
                 _tooltip.Put(Ui.Text($"Nuclear fallout: yields nothing for {tile.Fallout} more turns", 11, Theme.Bad, wrap: true));
@@ -904,10 +954,9 @@ namespace Crucible.View.UI
             Ui.Show(_gameOver, v != null && !_dismissedGameOver);
             if (v == null || !Changed("gameover", v.ToString())) return;
             _gameOver.Clear();
-            var card = Ui.Box(Theme.Panel, 28, 12);
-            card.style.width = 520;
+            var card = Ui.Glass(32, 24);
+            card.style.width = 560;
             card.style.alignItems = Align.Center;
-            Ui.Border(card, Theme.Accent, 2);
             var winner = G.Player(v.WinnerId);
             bool won = !winner.IsAI;
             card.Put(Ui.Text(won ? "VICTORY" : "DEFEAT", 40, won ? Theme.Accent : Theme.Bad, bold: true));

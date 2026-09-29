@@ -1,0 +1,7 @@
+Inter-Medium.ttf and Inter-Bold.ttf are static instances (weights 500 and 700, optical size 14)
+of the Inter variable font, converted from the copy distributed with Blender.
+
+Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is available with a FAQ at: https://openfontlicense.org

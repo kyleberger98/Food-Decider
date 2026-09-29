@@ -40,8 +40,8 @@ namespace Crucible.View.UI
                 case HudPanel.CityState when cs != null: _panelTitle.text = cs.Name; CityStatePanel(body, cs); break;
                 case HudPanel.Siege when siege != null: _panelTitle.text = $"Siege of {siege.Name}"; SiegePanel(body, siege); break;
                 case HudPanel.Log: _panelTitle.text = "Notifications"; LogPanel(body); break;
-                case HudPanel.Saves: _panelTitle.text = "Load game"; SavesPanel(body); break;
-                case HudPanel.Help: _panelTitle.text = "Keys"; HelpPanel(body); break;
+                case HudPanel.Saves: _panelTitle.text = "Menu"; SavesPanel(body); break;
+                case HudPanel.Help: _panelTitle.text = "Controls"; HelpPanel(body); break;
                 default: Ui.Show(_panel, false); break;
             }
             _panelScroll.scrollOffset = offset;
@@ -332,9 +332,22 @@ namespace Crucible.View.UI
 
         void SavesPanel(VisualElement body)
         {
-            body.Put(Ui.Caption("Quicksave"));
-            if (_c.HasQuickSave) body.Put(Ui.Btn("Load quicksave  (F9)", _c.QuickLoad, ButtonStyle.Primary)).style.marginTop = 4;
-            else body.Put(Ui.Text("None yet: F5 saves.", 12, Theme.Muted));
+            var top = body.Put(Ui.Row(8));
+            top.Put(Ui.Btn("Save game", _c.QuickSave, ButtonStyle.Primary)).tooltip = "F5";
+            top.Put(Ui.Btn("Load quicksave", _c.QuickLoad, ButtonStyle.Normal, _c.HasQuickSave)).tooltip = "F9";
+            top.Put(Ui.Btn("Controls", () => _c.TogglePanel(HudPanel.Help), ButtonStyle.Normal)).tooltip = "F1";
+
+            body.Put(Ui.Divider());
+            body.Put(Ui.Caption("Interface size"));
+            var size = body.Put(Ui.Row(8));
+            size.style.marginTop = 6;
+            size.Put(Ui.Btn("Smaller", () => SetUserScale(_userScale - 0.1f)));
+            size.Put(Ui.Text($"{Mathf.RoundToInt(_userScale * 100)}%", 14, Theme.Text, bold: true));
+            size.Put(Ui.Btn("Larger", () => SetUserScale(_userScale + 0.1f)));
+            size.Put(Ui.Btn("Reset", () => SetUserScale(1f), ButtonStyle.Ghost));
+            body.Put(Ui.Text("Also Ctrl + / Ctrl − / Ctrl 0", 11, Theme.Muted)).style.marginTop = 4;
+
+            body.Put(Ui.Divider());
             body.Put(Ui.Divider());
             body.Put(Ui.Caption($"Autosaves (start of each of your turns, last {GameController.AutosavesKept} kept)"));
             var autos = _c.Autosaves();
@@ -350,8 +363,22 @@ namespace Crucible.View.UI
             }
         }
 
+        void SetUserScale(float scale)
+        {
+            _userScale = Mathf.Clamp(Mathf.Round(scale * 10f) / 10f, 0.6f, 2f);
+            PlayerPrefs.SetFloat(ScalePref, _userScale);
+            ApplyScale(force: true);
+            _signatures.Remove("panel");
+        }
+
         static readonly (string key, string what)[] Keys =
         {
+            ("Left-click", "Select an army, unit or city"),
+            ("Right-click", "Move there, attack, or join a battle (in battle: move / attack with the unit)"),
+            ("Left-drag", "Pan the map"),
+            ("Middle-drag", "Rotate the camera (also Q / E)"),
+            ("Mouse wheel", "Zoom; the view tilts toward the horizon up close"),
+            ("WASD / arrows", "Pan"),
             ("Enter", "Next thing needing attention, then end turn"),
             ("Shift+Enter", "End the turn now"),
             ("Tab", "Next unit waiting for orders"),
@@ -367,9 +394,9 @@ namespace Crucible.View.UI
             ("C / Home", "Centre on selection / capital"),
             ("R / X / B", "Battle: retreat / auto-resolve round / batter walls"),
             ("F5 / F9", "Quick save / quick load"),
-            ("WASD, Q/E", "Pan, rotate (also screen edges and middle-drag)"),
             ("Shift+Build", "Add to a city's production queue"),
-            ("Esc", "Close panel / deselect / cancel a nuclear launch"),
+            ("Esc", "Close panel / deselect / cancel a nuclear launch (right-click on empty ground too)"),
+            ("Ctrl + / −", "Interface size (Ctrl 0 resets)"),
         };
 
         static void HelpPanel(VisualElement body)
@@ -379,7 +406,7 @@ namespace Crucible.View.UI
                 var row = body.Put(Ui.Row(10));
                 row.style.marginTop = 4;
                 var k = Ui.Pill(key, Theme.Card, Theme.Accent, 11);
-                k.style.width = 110;
+                k.style.width = 130;
                 row.Put(k);
                 row.Put(Ui.Text(what, 12, Theme.Text, wrap: true)).style.flexShrink = 1;
             }

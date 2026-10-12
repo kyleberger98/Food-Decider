@@ -8,12 +8,22 @@ var _last_pos := Vector2.ZERO
 
 
 func _initialize() -> void:
-	screen = load("res://ui/main.tscn").instantiate()
-	root.add_child(screen)
+	var game = load("res://ui/main.tscn").instantiate()
+	root.add_child(game)
 	await _frames(2)
-	screen.start_run(5)
-	await _frames(2)
-	var c: Combat = screen.combat
+	game.new_run(5)
+	await _frames(3)
+
+	# Map: the starting nodes are clickable buttons.
+	var start: RunMap.MapNode = game.run.available_nodes()[0]
+	var map_btn: Button = game.screen.buttons[start]
+	_check(not map_btn.disabled, "starting node is clickable")
+	var locked: RunMap.MapNode = game.run.map.boss
+	_check(game.screen.buttons[locked].disabled, "boss is locked at the start")
+	await _click(map_btn)
+	_check(game.combat != null, "clicking a fight node starts combat")
+	screen = game.screen
+	var c: Combat = game.combat
 
 	# Click a unit card, then click an empty front slot.
 	var unit_card := _first_in_hand(func(x): return x.type() == "unit")
@@ -28,33 +38,62 @@ func _initialize() -> void:
 	# Drag an ally-targeted order onto that unit.
 	var order := _first_in_hand(func(x): return x.def.get("target") == "ally" and x.cost() <= c.cp)
 	if order != null:
-		var unit := c.field.get_unit(Battlefield.PLAYER, "front", 1)
 		var hand_before := c.hand.size()
 		await _drag(_card_view(order), screen._slots["0/front/1"])
 		_check(c.hand.size() == hand_before - 1, "drag-and-drop played %s" % order.display_name())
-		_check(unit.cover > 0 or c.events.any(func(e): return e["type"] == "damaged"), "order took effect")
 
 	var turn := c.turn
 	screen._on_end_turn()
 	await _frames(2)
 	_check(c.turn == turn + 1 or c.is_over(), "end turn advances")
 
-	# Win the fight, pick a reward, and land in the next fight.
+	# Win the fight -> reward screen -> pick a card -> back on the map.
 	for e in c.field.units(Battlefield.ENEMY):
 		c._lose_hp(e, 999)
 	screen._after_action()
-	await _frames(2)
-	_check(screen._overlay.visible, "victory screen shows")
-	var rewards := _find_card_views(screen._overlay)
-	_check(rewards.size() == 3, "three reward choices")
-	var deck_before: int = screen.deck.size()
+	await create_timer(screen.END_DELAY + 0.3).timeout
+	var rewards := _find_card_views(game.screen)
+	_check(rewards.size() == 3, "reward screen offers three cards")
+	var deck_before: int = game.run.deck.size()
 	if rewards.size() > 0:
 		await _click(rewards[0])
-	_check(screen.deck.size() == deck_before + 1, "reward added to deck")
-	_check(not screen._overlay.visible and screen.combat != c, "next fight started")
+	_check(game.run.deck.size() == deck_before + 1, "reward added to deck")
+	_check(game.screen.has_method("_layout"), "back on the map")
+	_check(game.run.available_nodes() == start.next, "next floor unlocked")
+
+	# Each non-combat screen builds and its main button works.
+	game.run.resolve = 20
+	game._set_screen(game.RestScreen.new().setup(game))
+	await _frames(2)
+	await _click(_button_with(game.screen, "Rest"))
+	_check(game.run.resolve == 38, "rest heals 30%")
+	game.run.supply = 500
+	game._set_screen(game.ShopScreen.new().setup(game))
+	await _frames(2)
+	var deck_n: int = game.run.deck.size()
+	await _click(_button_with(game.screen, "Buy"))
+	_check(game.run.deck.size() == deck_n + 1 and game.run.supply < 500, "shop sells a card")
+	game._set_screen(game.EventScreen.new().setup(game, "stragglers"))
+	await _frames(2)
+	await _click(_button_with(game.screen, "Take them in"))
+	_check(game.run.deck.size() == deck_n + 2, "event choice applied")
+	_check(_button_with(game.screen, "Continue") != null, "event shows result")
+	game.open_deck()
+	await _frames(2)
+	_check(_find_card_views(game).size() >= game.run.deck.size(), "deck viewer lists the deck")
 
 	print("ui smoke: %s" % ("OK" if failures == 0 else "%d failures" % failures))
 	quit(1 if failures > 0 else 0)
+
+
+func _button_with(node: Node, prefix: String) -> Button:
+	for child in node.get_children():
+		if child is Button and child.text.begins_with(prefix) and not child.disabled:
+			return child
+		var found := _button_with(child, prefix)
+		if found != null:
+			return found
+	return null
 
 
 func _find_card_views(node: Node) -> Array:

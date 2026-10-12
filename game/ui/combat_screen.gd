@@ -1,17 +1,13 @@
 extends Control
-## The playable fight screen. Owns a short series of fights (deck, Resolve and casualties carry over)
-## with a pick-1-of-3 reward after each win.
+## The fight screen. Drives one Combat; emits `finished` a moment after it ends.
 
-const MAX_RESOLVE := 60
-const REWARD_CHOICES := 3
+signal finished(combat: Combat)
+
+const END_DELAY := 1.4
 
 var combat: Combat
-var deck: Array[CardInstance] = []
-var resolve := MAX_RESOLVE
-var fights_won := 0
-var encounter_id := ""
+var title := ""
 var selected: CardInstance = null
-var rng := RandomNumberGenerator.new()
 
 var _slots := {}  # "side/row/slot" -> SlotView
 var _event_cursor := 0
@@ -25,32 +21,18 @@ var _end_turn_btn: Button
 var _hand_box: HBoxContainer
 var _log: RichTextLabel
 var _fx_layer: Control
-var _overlay: ColorRect
-var _overlay_box: VBoxContainer
+var _ended := false
+
+
+func setup(c: Combat, fight_title: String) -> Control:
+	combat = c
+	title = fight_title
+	return self
 
 
 func _ready() -> void:
 	_build_ui()
-	start_run(randi())
-
-
-func start_run(seed_value: int) -> void:
-	rng.seed = seed_value
-	deck = CardDB.starter_deck()
-	resolve = MAX_RESOLVE
-	fights_won = 0
-	_start_fight()
-
-
-func _start_fight() -> void:
-	var ids := CardDB.encounters().keys()
-	encounter_id = ids[rng.randi() % ids.size()]
-	combat = Combat.from_encounter(deck, encounter_id, resolve, MAX_RESOLVE, rng.randi())
-	_event_cursor = 0
-	selected = null
-	_overlay.hide()
-	_log.clear()
-	_log.append_text("[b]Fight %d: %s[/b]\n" % [fights_won + 1, CardDB.encounters()[encounter_id].get("name", encounter_id)])
+	_log.append_text("[b]%s[/b]\n" % title)
 	_after_action()
 
 
@@ -149,11 +131,11 @@ func _after_action() -> void:
 
 
 func _refresh() -> void:
-	_resolve_label.text = "Resolve %d/%d" % [combat.resolve, MAX_RESOLVE]
+	_resolve_label.text = "Resolve %d/%d" % [combat.resolve, combat.max_resolve]
 	_cp_label.text = "Command %d/%d" % [combat.cp, Combat.CP_PER_TURN]
 	_turn_label.text = "Turn %d" % combat.turn
-	_piles_label.text = "Draw %d   Discard %d   Expended %d   Deck %d" % [
-		combat.draw_pile.size(), combat.discard_pile.size(), combat.expended.size(), deck.size()]
+	_piles_label.text = "Draw %d   Discard %d   Expended %d" % [
+		combat.draw_pile.size(), combat.discard_pile.size(), combat.expended.size()]
 	var doctrine_names := combat.doctrines.map(func(c): return c.display_name())
 	_doctrine_label.text = ("Doctrines: " + ", ".join(PackedStringArray(doctrine_names))) if not doctrine_names.is_empty() else ""
 	_end_turn_btn.disabled = combat.phase != Combat.Phase.PLAYER
@@ -277,73 +259,19 @@ func _spawn_fx(e: Dictionary, delay: float) -> float:
 	return 0.12
 
 
-# --- Between fights ---------------------------------------------------------
+# --- End of fight -------------------------------------------------------------
 
 func _on_fight_over() -> void:
-	_clear_overlay()
-	if combat.phase == Combat.Phase.LOST:
-		_overlay_title("Your line has broken", Palette.DAMAGE)
-		_overlay_text("Fights won: %d" % fights_won)
-		_overlay_button("New run", func(): start_run(randi()))
-		_overlay.show()
+	if _ended:
 		return
-
-	fights_won += 1
-	resolve = combat.resolve
-	var lost := combat.lost_cards()
-	for c in lost:
-		deck.erase(c)
-	_overlay_title("Victory", Palette.HEAL)
-	if not lost.is_empty():
-		_overlay_text("Lost for good: " + ", ".join(PackedStringArray(lost.map(func(c): return c.display_name()))), Palette.DAMAGE)
-	_overlay_text("Choose a card to add to your deck:")
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 16)
-	for id in _reward_ids():
-		var cv := CardView.new().setup(CardDB.make_card(id))
-		cv.draggable = false
-		cv.pressed.connect(func(v: CardView):
-			deck.append(v.card)
-			_start_fight())
-		row.add_child(cv)
-	_overlay_box.add_child(row)
-	_overlay_button("Skip", _start_fight)
-	_overlay.show()
-
-
-func _reward_ids() -> Array:
-	var pool := CardDB.cards().keys().filter(func(id): return CardDB.cards()[id].get("rarity") != "starter")
-	var picks := []
-	while picks.size() < REWARD_CHOICES and not pool.is_empty():
-		picks.append(pool.pop_at(rng.randi() % pool.size()))
-	return picks
-
-
-func _clear_overlay() -> void:
-	for c in _overlay_box.get_children():
-		c.queue_free()
-
-
-func _overlay_title(text: String, color: Color) -> void:
-	var l := Palette.label(text, 36, color)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_overlay_box.add_child(l)
-
-
-func _overlay_text(text: String, color := Palette.TEXT) -> void:
-	var l := Palette.label(text, 16, color)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_overlay_box.add_child(l)
-
-
-func _overlay_button(text: String, action: Callable) -> void:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(160, 40)
-	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	b.pressed.connect(action)
-	_overlay_box.add_child(b)
+	_ended = true
+	_end_turn_btn.disabled = true
+	var won := combat.phase == Combat.Phase.WON
+	_hint_label.text = "VICTORY" if won else "YOUR LINE HAS BROKEN"
+	_hint_label.add_theme_color_override("font_color", Palette.HEAL if won else Palette.DAMAGE)
+	_hint_label.add_theme_font_size_override("font_size", 24)
+	await get_tree().create_timer(END_DELAY).timeout
+	finished.emit(combat)
 
 
 # --- Layout -------------------------------------------------------------------
@@ -427,18 +355,6 @@ func _build_ui() -> void:
 	_fx_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_fx_layer)
-
-	_overlay = ColorRect.new()
-	_overlay.color = Color(0, 0, 0, 0.75)
-	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_overlay)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_overlay.add_child(center)
-	_overlay_box = VBoxContainer.new()
-	_overlay_box.add_theme_constant_override("separation", 16)
-	center.add_child(_overlay_box)
-	_overlay.hide()
 
 
 func _column(side: int, row: String, title: String) -> VBoxContainer:

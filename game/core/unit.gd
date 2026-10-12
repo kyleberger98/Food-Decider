@@ -29,6 +29,9 @@ var card: CardInstance = null
 var intents: Array = []
 var intent_index := 0
 var intent: Dictionary = {}
+## Enemies: ops run once when first brought to half HP or below.
+var on_half_hp: Array = []
+var half_hp_triggered := false
 
 
 func is_on_field() -> bool:

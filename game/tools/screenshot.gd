@@ -1,37 +1,61 @@
 extends SceneTree
-## Renders the combat screen after a few scripted plays and saves a PNG (needs a display, e.g. xvfb-run).
-## godot --path game -s res://tools/screenshot.gd -- out.png [seed] [turns] [victory]
+## Renders one screen of the game to a PNG (needs a display, e.g. xvfb-run).
+## godot --path game -s res://tools/screenshot.gd -- out.png [map|combat|boss|reward|rest|shop|event|end] [seed]
 
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0] if args.size() > 0 else "screenshot.png"
-	var seed_value := int(args[1]) if args.size() > 1 else 1
-	var turns := int(args[2]) if args.size() > 2 else 1
-	var screen = load("res://ui/main.tscn").instantiate()
-	root.add_child(screen)
+	var mode: String = args[1] if args.size() > 1 else "combat"
+	var seed_value := int(args[2]) if args.size() > 2 else 1
+	var game = load("res://ui/main.tscn").instantiate()
+	root.add_child(game)
 	await process_frame
-	screen.start_run(seed_value)
-	for t in turns:
-		_autoplay(screen)
-		if t < turns - 1:
-			screen._on_end_turn()
-	await create_timer(2.5).timeout  # let damage numbers fade
-	if args.size() > 3 and args[3] == "victory":
-		for e in screen.combat.field.units(Battlefield.ENEMY):
-			screen.combat._lose_hp(e, 999)
-		screen._after_action()
-	elif not screen.combat.hand.is_empty():
-		# Leave a card selected so target highlights show.
-		screen._select(screen.combat.hand[0])
-	for i in 10:
+	game.new_run(seed_value)
+	var run: RunState = game.run
+	match mode:
+		"map":
+			# Walk a few floors so the map shows a travelled path.
+			for i in 4:
+				run.enter(run.available_nodes()[0])
+			game.show_map()
+		"combat", "boss":
+			if mode == "boss":
+				for i in RunMap.FLOORS:
+					run.enter(run.available_nodes()[0])
+			game.enter_node(run.available_nodes()[0])
+			await process_frame
+			_autoplay(game.screen)
+			game.screen._on_end_turn()
+			_autoplay(game.screen)
+			await create_timer(2.5).timeout
+			if not game.combat.hand.is_empty():
+				game.screen._select(game.combat.hand[0])
+		"reward":
+			run.enter(run.available_nodes()[0])
+			var c := run.start_combat("bunker_line")
+			for e in c.field.units(Battlefield.ENEMY):
+				c._lose_hp(e, 999)
+			game._set_screen(game.RewardScreen.new().setup(game, run.finish_combat(c, "elite")))
+		"rest":
+			run.resolve = 31
+			game._set_screen(game.RestScreen.new().setup(game))
+		"shop":
+			run.supply = 180
+			game._set_screen(game.ShopScreen.new().setup(game))
+		"event":
+			game._set_screen(game.EventScreen.new().setup(game, "resistance"))
+		"end":
+			run.won = true
+			game.show_end()
+	for i in 20:
 		await process_frame
 	root.get_texture().get_image().save_png(out)
 	print("saved ", out)
 	quit()
 
 
-## Deploy whatever units fit, then play cover on the first unit.
+## Deploy whatever units fit, then cover the first unit.
 func _autoplay(screen) -> void:
 	var c: Combat = screen.combat
 	for card in c.hand.duplicate():

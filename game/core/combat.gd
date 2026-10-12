@@ -35,27 +35,44 @@ var cp := 0
 var turn := 0
 var phase := Phase.PLAYER
 var events: Array[Dictionary] = []
+## Commendation (relic) ids in effect for this combat.
+var relics: Array = []
+var _first_deploy_done := false
+var _zippo_used := false
 
 
 ## enemy_layout: {"front": [enemy ids], "back": [enemy ids]}, as in an encounter.
-func _init(deck: Array[CardInstance], enemy_layout: Dictionary, start_resolve: int, max_res: int, seed_value: int) -> void:
+## An empty string in a row leaves that slot empty (e.g. to center a boss).
+func _init(deck: Array[CardInstance], enemy_layout: Dictionary, start_resolve: int, max_res: int, seed_value: int, relic_ids: Array = []) -> void:
 	rng.seed = seed_value
 	resolve = start_resolve
 	max_resolve = max_res
+	relics = relic_ids
 	draw_pile = deck.duplicate()
 	_shuffle(draw_pile)
 	for row in [Battlefield.FRONT, Battlefield.BACK]:
 		var ids: Array = enemy_layout.get(row, [])
 		for i in ids.size():
-			var e := CardDB.make_enemy(ids[i])
-			field.place(e, Battlefield.ENEMY, row, i)
+			if ids[i] != "":
+				field.place(CardDB.make_enemy(ids[i]), Battlefield.ENEMY, row, i)
 	_emit("combat_started", {})
+	if has_relic("signal_flare"):
+		for e in field.units(Battlefield.ENEMY):
+			e.add_status("exposed", 1)
 	_roll_intents()
 	_start_player_turn()
+	if has_relic("bronze_star"):
+		cp += 1
+	if has_relic("field_manual"):
+		draw(1)
 
 
-static func from_encounter(deck: Array[CardInstance], encounter_id: String, start_resolve: int, max_res: int, seed_value: int) -> Combat:
-	return Combat.new(deck, CardDB.encounters()[encounter_id], start_resolve, max_res, seed_value)
+static func from_encounter(deck: Array[CardInstance], encounter_id: String, start_resolve: int, max_res: int, seed_value: int, relic_ids: Array = []) -> Combat:
+	return Combat.new(deck, CardDB.encounters()[encounter_id], start_resolve, max_res, seed_value, relic_ids)
+
+
+func has_relic(id: String) -> bool:
+	return relics.has(id)
 
 
 func is_over() -> bool:
@@ -254,14 +271,18 @@ func _deploy(card: CardInstance, row: String, slot: int) -> void:
 	field.place(u, Battlefield.PLAYER, row, slot)
 	deployed.append(card)
 	_emit("unit_deployed", {"unit": u})
+	if has_relic("cib") and not _first_deploy_done:
+		u.cover += 4
+		_emit("cover_gained", {"unit": u, "amount": 4})
+	_first_deploy_done = true
 	for d in doctrines:
 		_apply_effects(d.def.get("triggers", {}).get("on_deploy", []), Battlefield.PLAYER, null, u)
 
 
-func _fire_unit(u: Unit, bonus := 0) -> void:
+func _fire_unit(u: Unit, bonus := 0, attack_override := "") -> void:
 	if u.firepower <= 0 and bonus <= 0:
 		return
-	_attack(u, u.firepower + bonus, u.shots, u.attack, "")
+	_attack(u, u.firepower + bonus, u.shots, attack_override if attack_override != "" else u.attack, "")
 
 
 ## One attack of `hits` shots. `rule` overrides automatic target picking (see Battlefield.pick_target).
@@ -287,10 +308,13 @@ func attack_damage(source: Unit, amount: int, attack: String, target: Unit) -> i
 	if source != null:
 		if source.side == Battlefield.PLAYER and attack == "direct" and source.row == Battlefield.FRONT:
 			dmg += FRONT_BONUS
+		dmg += source.status("strength")
 		if source.status("suppressed") > 0:
 			dmg = floor(dmg * SUPPRESSED_MULT)
 	var anti_armor := source != null and source.traits.has("anti_armor")
 	if target != null:
+		if target.traits.has("immune_" + attack):
+			return 0
 		if target.status("exposed") > 0:
 			dmg = floor(dmg * EXPOSED_MULT)
 		if target.armor > 0:
@@ -315,8 +339,16 @@ func _lose_hp(t: Unit, amount: int) -> void:
 	if amount <= 0:
 		return
 	t.hp -= amount
+	if t.hp <= 0 and t.side == Battlefield.PLAYER and has_relic("lucky_zippo") and not _zippo_used:
+		_zippo_used = true
+		t.hp = 1
+		_emit("zippo", {"unit": t})
 	if t.hp <= 0:
 		_kill(t)
+	elif t.side == Battlefield.ENEMY and not t.half_hp_triggered and not t.on_half_hp.is_empty() and t.hp * 2 <= t.max_hp:
+		t.half_hp_triggered = true
+		_emit("half_hp", {"unit": t})
+		_apply_effects(t.on_half_hp, Battlefield.ENEMY, t, null)
 
 
 func _kill(t: Unit) -> void:
@@ -359,6 +391,9 @@ func _apply_effects(effects: Array, side: int, source: Unit, target: Unit) -> vo
 			"smoke":
 				field.set_smoke(side, eff.get("row", Battlefield.FRONT), true)
 				_emit("smoke", {"side": side, "row": eff.get("row", Battlefield.FRONT)})
+			"summon":
+				for i in int(eff.get("count", 1)):
+					_summon(eff["enemy"], side)
 			_:
 				for u in _scope(eff, side, source, target):
 					if not u.is_on_field():
@@ -373,7 +408,13 @@ func _apply_effects(effects: Array, side: int, source: Unit, target: Unit) -> vo
 func _apply_unit_effect(eff: Dictionary, op: String, amount: int, u: Unit) -> void:
 	match op:
 		"fire":
-			_fire_unit(u, int(eff.get("bonus", 0)))
+			_fire_unit(u, int(eff.get("bonus", 0)), eff.get("attack", ""))
+		"buff_fp":
+			u.firepower += amount
+			_emit("status_applied", {"unit": u, "status": "firepower", "amount": amount})
+		"cleanse":
+			for s in ["suppressed", "pinned", "exposed", "bleeding"]:
+				u.statuses.erase(s)
 		"cover":
 			u.cover += amount
 			_emit("cover_gained", {"unit": u, "amount": amount})
@@ -408,9 +449,27 @@ func _scope(eff: Dictionary, side: int, source: Unit, target: Unit) -> Array[Uni
 			return field.units(foe)
 		"row":
 			return field.row_units(foe, eff.get("row", Battlefield.FRONT))
+		"random_enemy":
+			var foes := field.units(foe)
+			return _one(foes[rng.randi() % foes.size()] if not foes.is_empty() else null)
+		"foe_toughest":
+			return _one(field.pick_target(source, "indirect", foe, "highest_hp"))
 		_:
 			# Enemy ops with no explicit target (e.g. cover) apply to the acting unit.
 			return _one(target if target != null else source)
+
+
+func _summon(enemy_id: String, side: int) -> void:
+	for row in [Battlefield.FRONT, Battlefield.BACK]:
+		var s := field.first_free(side, row)
+		if s >= 0:
+			var e := CardDB.make_enemy(enemy_id)
+			field.place(e, side, row, s)
+			_emit("summoned", {"unit": e})
+			if phase == Phase.PLAYER:
+				e.intent = e.intents[0]
+				e.intent_index = 1
+			return
 
 
 func _one(u: Unit) -> Array[Unit]:
@@ -440,6 +499,8 @@ func describe_intent(e: Unit) -> String:
 				parts.append("Cover %d" % int(op["amount"]))
 			"status":
 				parts.append("%s %d" % [String(op["status"]).capitalize(), int(op["amount"])])
+			"summon":
+				parts.append("Call reinforcements")
 			_:
 				parts.append(String(op["op"]).capitalize())
 	return ", ".join(parts)

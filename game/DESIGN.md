@@ -31,7 +31,7 @@ A run is one act (prototype) of ~15 floors on a branching map, ending in a boss 
 |---|---|---|
 | **Skirmish** | Monster | Standard fight |
 | **Strongpoint** | Elite | Hard fight, guaranteed Commendation (relic) |
-| **Field Aid Station** | Rest site | Heal 30% Resolve **or** promote (upgrade) a card |
+| **Field Aid Station** | Rest site | Heal 30% Resolve **or** promote (upgrade) a card **or** rotate troops (clear a card's casualties) |
 | **Workshop** | — (new) | Apply an attachment **or** merge two cards |
 | **Quartermaster** | Shop | Buy cards, attachments, commendations; remove a card |
 | **Intel** | Event (?) | Text event with choices |
@@ -193,8 +193,11 @@ At a **Workshop**, pick two cards → they're removed and replaced by one merged
 | Sniper | 12 | Back; alternates 9 Precision at your back row (or Resolve if empty) / 3 Cover |
 | Panzerfaust Team | 6 | Front; 10 Direct to your Armor unit if any, else 4 |
 | Feldwebel (Officer) | 12 | Back; buffs allies +2 dmg, calls Reinforcement (Grenadier) every 3 turns |
-| **Elite: Fortified Bunker** | 40 | Front, Entrenched 8 Cover; 3×4 Direct; immune to Precision |
-| **Boss: Tiger I** | 120 | Front, Armor (Direct −3). Cycle: *Main Gun* 18 to one slot → *Coaxial MG* 4×3 → *Reposition* (gains 15 Cover, Pins a unit). At 50% HP calls infantry support. |
+| Panzerfaust Team | 12 | Front; alternates 4 Cover / 8 Direct; anti-armor (ignores Armor, +50% vs armored) |
+| Feldwebel (Officer) | 16 | Back; cycles +2 Strength to all allies / 4 Precision / calls a Grenadier |
+| **Elite: Fortified Bunker** | 40 | Front, Entrenched 8 Cover; alternates 3×4 Direct / +6 Cover; immune to Precision. Flanked by two Grenadiers. |
+| **Elite: Sniper Nest** | — | MG42 in front, two Snipers behind |
+| **Boss: Tiger I** | 100 | Front, Armor 3 (Direct −3). Cycle: *Main Gun* 18 to one slot → *Coaxial MG* 4×3 → *Reposition* (gains 15 Cover, Pins your toughest unit). At 50% HP calls two Grenadiers. |
 
 ### 5.4 Commendations (relics, ~6)
 - *Purple Heart* — heal 6 Resolve after each combat.
@@ -243,7 +246,7 @@ game/
 
 1. **M1 — Combat core (headless):** battlefield, targeting, units, starter deck, 4 enemies, tests. ✅
 2. **M2 — Combat UI:** playable single fight with drag-to-deploy, intents, rows. ✅ (plus back-to-back fights with card rewards as a stopgap until M3)
-3. **M3 — Run loop:** map, rewards, Field Aid Station, Quartermaster, events, boss.
+3. **M3 — Run loop:** map, rewards, Field Aid Station, Quartermaster, events, boss. ✅
 4. **M4 — Crafting:** Workshop, attachments, merges.
 5. **M5 — Content & balance:** full card pool, elite, Tiger boss, commendations.
 
@@ -257,5 +260,5 @@ game/
 - Title: *Hedgerow*. ✅
 
 **Open**
-1. **Attrition balance:** the greedy-bot sim loses ~2 units per fight, so Resolve barely drops and the real cost is casualties. With the 3-casualty rule, that may drain decks too fast over 15 floors. Revisit in M5 (e.g. a Field Aid Station option to clear casualties, or fewer deaths per fight).
+1. **Attrition balance:** units soak almost all damage, so Resolve barely drops and the real cost is casualties (~2 unit deaths per fight). In the full-run sim (greedy bot, 300 runs) the bot wins ~62% and loses ~4 cards per run to the 3-casualty rule; most losses come from the Tiger and the elites. The rest stop's "rotate troops" option and the Field Hospital event help. Tune in M5.
 2. **Field cap:** is 5 unit slots enough, or should some cards *reinforce* an existing unit instead of taking a slot?

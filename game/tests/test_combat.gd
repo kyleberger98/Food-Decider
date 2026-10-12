@@ -220,3 +220,83 @@ func test_deck_reshuffles_when_empty() -> void:
 	eq(c.draw_pile.size() + c.discard_pile.size() + c.hand.size(), 10)
 	c.end_turn()
 	eq(c.hand.size(), 5, "discard reshuffled into draw pile")
+
+
+func test_relic_bronze_star_field_manual_flare() -> void:
+	var c := Combat.new(CardDB.starter_deck(), ONE_GRUNT_LAYOUT(), 60, 60, 1, ["bronze_star", "field_manual", "signal_flare"])
+	eq(c.cp, 4)
+	eq(c.hand.size(), 6)
+	eq(enemy(c).status("exposed"), 1)
+
+
+func ONE_GRUNT_LAYOUT() -> Dictionary:
+	return {"front": ["t_grunt"]}
+
+
+func test_relic_cib_covers_first_deploy_only() -> void:
+	var c := Combat.new(CardDB.starter_deck(), ONE_GRUNT_LAYOUT(), 60, 60, 1, ["cib"])
+	c.draw_pile.append_array(c.hand)
+	c.hand.clear()
+	var a := deploy(c, "rifle_squad", "front", 0)
+	var b := deploy(c, "rifle_squad", "front", 1)
+	eq(a.cover, 4)
+	eq(b.cover, 0)
+
+
+func test_relic_lucky_zippo() -> void:
+	var c := Combat.new(CardDB.starter_deck(), ONE_GRUNT_LAYOUT(), 60, 60, 1, ["lucky_zippo"])
+	c.hand.clear()
+	var a := deploy(c, "rifle_squad", "front", 0)
+	c._lose_hp(a, 50)
+	eq(a.hp, 1)
+	check(a.is_on_field())
+	c._lose_hp(a, 50)
+	check(not a.is_on_field(), "only once per combat")
+
+
+func test_summon_and_half_hp_trigger() -> void:
+	var c := make_combat({"front": ["", "tiger", ""]})
+	var tiger := enemy(c, "front", 1)
+	c._lose_hp(tiger, tiger.max_hp / 2 - 1)
+	eq(c.field.units(Battlefield.ENEMY).size(), 1, "not yet at half")
+	c._lose_hp(tiger, 1)
+	eq(c.field.units(Battlefield.ENEMY).size(), 3, "two grenadiers called in")
+	check(not enemy(c, "front", 0).intent.is_empty(), "summoned during your turn: shows an intent")
+	c._lose_hp(tiger, 10)
+	eq(c.field.units(Battlefield.ENEMY).size(), 3, "triggers only once")
+
+
+func test_tiger_armor_and_anti_armor() -> void:
+	var c := make_combat({"front": ["", "tiger", ""]})
+	var tiger := enemy(c, "front", 1)
+	var rifle := deploy(c, "rifle_squad", "front", 1)
+	eq(c.attack_damage(rifle, rifle.firepower, "direct", tiger), 2, "3 + 2 front - 3 armor")
+
+
+func test_bunker_immune_to_precision() -> void:
+	var c := make_combat({"front": ["bunker"]})
+	eq(c.attack_damage(null, 10, "precision", enemy(c)), 0)
+	eq(c.attack_damage(null, 10, "indirect", enemy(c)), 10)
+
+
+func test_strength_adds_damage() -> void:
+	var c := make_combat(ONE_GRUNT_LAYOUT())
+	enemy(c).add_status("strength", 2)
+	eq(c.attack_damage(enemy(c), 3, "direct", null), 5)
+
+
+func test_flank_fires_as_precision() -> void:
+	var c := make_combat({"front": ["t_grunt"], "back": ["t_mortar"]})
+	var rifle := deploy(c, "rifle_squad", "back")
+	var mortar := enemy(c, "back", 0)
+	enemy(c).hp = 20
+	eq(c.play_card(give(c, "flank"), {"unit": rifle}), "")
+	eq(mortar.hp, 4, "precision picks the weakest enemy, even in the back row")
+
+
+func test_artillery_barrage_hits_everyone() -> void:
+	var c := make_combat({"front": ["t_grunt", "t_grunt"], "back": ["t_mortar"]})
+	var grunt := enemy(c, "front", 0)
+	eq(c.play_card(give(c, "artillery_barrage")), "")
+	check(not grunt.is_on_field(), "8 HP grunt dies")
+	eq(c.phase, Combat.Phase.WON)

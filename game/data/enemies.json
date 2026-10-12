@@ -27,12 +27,49 @@
         {"ops": [{"op": "attack", "amount": 9, "attack": "precision", "target": "back"}]},
         {"ops": [{"op": "cover", "amount": 3}]}
       ]
+    },
+    "panzerfaust": {
+      "name": "Panzerfaust Team", "hp": 12, "traits": {"anti_armor": 1},
+      "intents": [
+        {"ops": [{"op": "cover", "amount": 4}]},
+        {"ops": [{"op": "attack", "amount": 8, "attack": "direct"}]}
+      ]
+    },
+    "feldwebel": {
+      "name": "Feldwebel", "hp": 16,
+      "intents": [
+        {"ops": [{"op": "status", "status": "strength", "amount": 2, "scope": "all_allies"}]},
+        {"ops": [{"op": "attack", "amount": 4, "attack": "precision"}]},
+        {"ops": [{"op": "summon", "enemy": "grenadier"}]}
+      ]
+    },
+    "bunker": {
+      "name": "Fortified Bunker", "hp": 40, "entrenched": true, "cover": 8, "traits": {"immune_precision": 1},
+      "intents": [
+        {"ops": [{"op": "attack", "amount": 4, "hits": 3, "attack": "direct"}]},
+        {"ops": [{"op": "cover", "amount": 6}]}
+      ]
+    },
+    "tiger": {
+      "name": "Tiger I", "hp": 100, "armor": 3,
+      "intents": [
+        {"ops": [{"op": "attack", "amount": 18, "attack": "direct"}]},
+        {"ops": [{"op": "attack", "amount": 4, "hits": 3, "attack": "direct"}]},
+        {"ops": [{"op": "cover", "amount": 15}, {"op": "status", "status": "pinned", "amount": 1, "scope": "foe_toughest"}]}
+      ],
+      "on_half_hp": [{"op": "summon", "enemy": "grenadier", "count": 2}]
     }
   },
   "encounters": {
-    "patrol": {"name": "Patrol", "front": ["grenadier", "grenadier"], "back": []},
-    "mg_nest": {"name": "Machine-Gun Nest", "front": ["grenadier", "mg42"], "back": []},
-    "mortar_line": {"name": "Mortar Line", "front": ["grenadier", "grenadier"], "back": ["mortar_crew"]},
-    "overwatch": {"name": "Overwatch", "front": ["grenadier"], "back": ["sniper", "mortar_crew"]}
+    "patrol": {"name": "Patrol", "tier": "easy", "front": ["grenadier", "grenadier"]},
+    "scouts": {"name": "Scouts", "tier": "easy", "front": ["grenadier"], "back": ["sniper"]},
+    "mg_nest": {"name": "Machine-Gun Nest", "tier": "normal", "front": ["grenadier", "mg42"]},
+    "mortar_line": {"name": "Mortar Line", "tier": "normal", "front": ["grenadier", "grenadier"], "back": ["mortar_crew"]},
+    "overwatch": {"name": "Overwatch", "tier": "normal", "front": ["grenadier"], "back": ["sniper", "mortar_crew"]},
+    "ambush": {"name": "Ambush", "tier": "normal", "front": ["panzerfaust", "grenadier", "panzerfaust"]},
+    "command_post": {"name": "Command Post", "tier": "normal", "front": ["grenadier", "grenadier"], "back": ["feldwebel"]},
+    "bunker_line": {"name": "Fortified Bunker", "tier": "elite", "front": ["grenadier", "bunker", "grenadier"]},
+    "sniper_nest": {"name": "Sniper Nest", "tier": "elite", "front": ["mg42"], "back": ["sniper", "sniper"]},
+    "tiger": {"name": "Tiger I", "tier": "boss", "front": ["", "tiger", ""]}
   }
 }

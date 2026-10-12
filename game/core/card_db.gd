@@ -4,11 +4,15 @@ extends RefCounted
 
 const CARDS_PATH := "res://data/cards.json"
 const ENEMIES_PATH := "res://data/enemies.json"
+const RELICS_PATH := "res://data/relics.json"
+const EVENTS_PATH := "res://data/events.json"
 
 const STARTER_DECK := {"rifle_squad": 3, "bar_gunner": 1, "open_fire": 3, "dig_in": 3}
 
 static var _cards := {}
 static var _enemy_data := {}
+static var _relics := {}
+static var _events := {}
 
 
 static func cards() -> Dictionary:
@@ -23,6 +27,25 @@ static func enemies() -> Dictionary:
 
 static func encounters() -> Dictionary:
 	return _enemy_data_cached()["encounters"]
+
+
+static func relics() -> Dictionary:
+	if _relics.is_empty():
+		_relics = _load_json(RELICS_PATH)
+	return _relics
+
+
+static func events() -> Dictionary:
+	if _events.is_empty():
+		_events = _load_json(EVENTS_PATH)
+	return _events
+
+
+## Card ids that can show up as rewards/shop stock, optionally of one rarity.
+static func reward_pool(rarity := "") -> Array:
+	return cards().keys().filter(func(id):
+		var r: String = cards()[id].get("rarity", "")
+		return r != "starter" and (rarity == "" or r == rarity))
 
 
 static func card_def(id: String, upgraded := false) -> Dictionary:
@@ -77,6 +100,7 @@ static func make_enemy(id: String) -> Unit:
 	unit.cover = int(e.get("cover", 0))
 	unit.traits = e.get("traits", {}).duplicate()
 	unit.intents = e["intents"]
+	unit.on_half_hp = e.get("on_half_hp", [])
 	return unit
 
 

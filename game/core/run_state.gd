@@ -20,6 +20,8 @@ const ATTACHMENT_PRICE := 40
 const ATTACHMENT_DROP := 0.3
 ## Floors (0-based) that use the easy encounter pool.
 const EASY_FLOORS := 3
+## Enemy HP grows by this fraction per floor (the boss is fixed).
+const HP_SCALING_PER_FLOOR := 0.04
 
 var rng := RandomNumberGenerator.new()
 var deck: Array[CardInstance] = []
@@ -86,8 +88,14 @@ func pick_encounter(tier: String) -> String:
 	return _last_encounter
 
 
+func enemy_hp_mult(encounter_id: String) -> float:
+	if position == null or CardDB.encounters()[encounter_id]["tier"] == "boss":
+		return 1.0
+	return 1.0 + HP_SCALING_PER_FLOOR * position.row
+
+
 func start_combat(encounter_id: String) -> Combat:
-	return Combat.from_encounter(deck, encounter_id, resolve, max_resolve, rng.randi(), relics)
+	return Combat.from_encounter(deck, encounter_id, resolve, max_resolve, rng.randi(), relics, enemy_hp_mult(encounter_id))
 
 
 ## Applies a finished combat to the run. Returns the rewards on offer:
@@ -172,7 +180,7 @@ func heal(amount: int) -> int:
 # --- Field Aid Station ------------------------------------------------------------
 
 func rest_heal_amount() -> int:
-	return int(ceil(max_resolve * REST_HEAL))
+	return int(ceil(max_resolve * REST_HEAL)) + (15 if relics.has("mess_kit") else 0)
 
 
 func rest_heal() -> int:
@@ -361,6 +369,13 @@ func _run_ops(ops: Array, out: PackedStringArray) -> void:
 				var att := random_attachment()
 				attachments.append(att)
 				out.append("Gained attachment: " + CardDB.attachments()[att]["name"])
+			"upgrade_random":
+				var fresh := deck.filter(func(c): return not c.upgraded)
+				if not fresh.is_empty():
+					out.append("Promoted: " + promote(fresh[rng.randi() % fresh.size()]).display_name())
+			"max_resolve":
+				max_resolve += int(op["amount"])
+				out.append("+%d max Resolve" % int(op["amount"]))
 			"clear_casualties":
 				for c in deck:
 					c.casualties = 0

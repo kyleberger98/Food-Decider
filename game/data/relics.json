@@ -5,5 +5,9 @@
   "field_manual": {"name": "Field Manual", "rarity": "common", "text": "Draw 1 extra card on the first turn of each combat."},
   "lucky_zippo": {"name": "Lucky Zippo", "rarity": "uncommon", "text": "The first unit that would die each combat survives at 1 HP."},
   "signal_flare": {"name": "Signal Flare", "rarity": "uncommon", "text": "At the start of combat, all enemies are Exposed for 1 turn."},
-  "spare_parts": {"name": "Spare Parts Crate", "rarity": "uncommon", "text": "Workshops let you do two jobs instead of one."}
+  "spare_parts": {"name": "Spare Parts Crate", "rarity": "uncommon", "text": "Workshops let you do two jobs instead of one."},
+  "dog_tags": {"name": "Dog Tags", "rarity": "uncommon", "text": "Cards are lost after 4 casualties instead of 3."},
+  "mess_kit": {"name": "Mess Kit", "rarity": "common", "text": "Resting at a Field Aid Station heals 15 more Resolve."},
+  "spare_ammo": {"name": "Spare Ammo Crate", "rarity": "common", "text": "Your units deal +1 damage."},
+  "engineers_manual": {"name": "Engineer's Manual", "rarity": "common", "text": "Your units deploy with 2 extra Cover."}
 }

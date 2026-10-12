@@ -22,7 +22,7 @@ func test_attachments_change_units() -> void:
 	var u := CardDB.unit_from_card(card)
 	eq([u.shots, u.firepower], [2, 2])
 	card.attachment = "ration_pack"
-	eq(CardDB.unit_from_card(card).max_hp, 10)
+	eq(CardDB.unit_from_card(card).max_hp, int(card.def["unit"]["hp"]) + 4)
 
 
 func test_bayonet_and_sandbags_in_combat() -> void:
@@ -74,11 +74,13 @@ func test_generic_unit_merge() -> void:
 	eq(m.type(), "unit")
 	eq(m.cost(), 2)
 	var u: Dictionary = m.def["unit"]
-	eq(u["hp"], 3 + 4 / 2)
-	eq(u["fp"], 6 + 4 / 2)
+	var sniper: Dictionary = CardDB.cards()["sniper"]["unit"]
+	var mortar: Dictionary = CardDB.cards()["mortar_team"]["unit"]
+	eq(u["hp"], sniper["hp"] + mortar["hp"] / 2)
+	eq(u["fp"], sniper["fp"] + mortar["fp"] / 2)
 	eq(u["attack"], "precision")
 	eq(u["rows"], ["back"])
-	check(m.def["text"].begins_with("Deploy to back row. 5 HP"))
+	check(m.def["text"].begins_with("Deploy to back row. %d HP" % u["hp"]))
 
 
 func test_generic_order_merge_plays_both_effects() -> void:

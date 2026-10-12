@@ -2,7 +2,7 @@
 
 A WWII deck-building roguelike in the style of Slay the Spire, built in Godot 4.3. See [DESIGN.md](DESIGN.md).
 
-**Status:** M4 done. You can play a full run: a branching map of 12 floors with fights, elites, rest stops, a shop, Workshops and random events, ending in a fight against a Tiger I tank. At Workshops you fit attachments to cards or merge two cards into one. Graphics are placeholders. Content and balance come next (M5).
+**Status:** All five prototype milestones are done. You can play a full run: a branching 12-floor map through Normandy with fights, elites, rest stops, a shop, Workshops and random events, ending in a fight against a Tiger I tank. There are about 26 reward cards plus 9 merge-only cards, 11 enemies, 15 fights, 11 Commendations and 9 events. Graphics are placeholders.
 
 ![Map](docs/map.png)
 ![Combat screen](docs/combat.png)

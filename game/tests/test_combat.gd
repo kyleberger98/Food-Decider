@@ -54,7 +54,7 @@ func test_dig_in_cover_absorbs_damage() -> void:
 	eq(c.play_card(give(c, "dig_in"), {"unit": rifle}), "")
 	eq(rifle.cover, 5)
 	c.end_turn()  # grenadier attacks for 3 (rifle fires first and doesn't kill it: 8hp - 5)
-	eq(rifle.hp, 6, "cover took the hit")
+	eq(rifle.hp, rifle.max_hp, "cover took the hit")
 	eq(enemy(c).hp, 3)
 	eq(rifle.cover, 0, "cover resets at the start of your turn")
 
@@ -70,7 +70,7 @@ func test_smoke_makes_direct_fire_miss() -> void:
 	var rifle := deploy(c, "rifle_squad")
 	c.play_card(give(c, "smoke_screen"))
 	c.end_turn()
-	eq(rifle.hp, 6)
+	eq(rifle.hp, rifle.max_hp)
 	check(c.events.any(func(e): return e["type"] == "missed"))
 
 
@@ -165,8 +165,8 @@ func test_mortar_crew_targets_toughest_unit() -> void:
 	var weak := deploy(c, "medic", "front", 0)
 	var tough := deploy(c, "rifle_squad", "back", 0)
 	c.end_turn()
-	eq(tough.hp, 1, "6 HP rifle squad took 5 indirect")
-	eq(weak.hp, 4)
+	eq(tough.hp, tough.max_hp - 5, "rifle squad (most HP) took 5 indirect")
+	eq(weak.hp, weak.max_hp)
 
 
 func test_advance_moves_and_fires() -> void:
@@ -257,7 +257,7 @@ func test_relic_lucky_zippo() -> void:
 func test_summon_and_half_hp_trigger() -> void:
 	var c := make_combat({"front": ["", "tiger", ""]})
 	var tiger := enemy(c, "front", 1)
-	c._lose_hp(tiger, tiger.max_hp / 2 - 1)
+	c._lose_hp(tiger, tiger.max_hp - (tiger.max_hp / 2 + 1))
 	eq(c.field.units(Battlefield.ENEMY).size(), 1, "not yet at half")
 	c._lose_hp(tiger, 1)
 	eq(c.field.units(Battlefield.ENEMY).size(), 3, "two grenadiers called in")
@@ -300,3 +300,67 @@ func test_artillery_barrage_hits_everyone() -> void:
 	eq(c.play_card(give(c, "artillery_barrage")), "")
 	check(not grunt.is_on_field(), "8 HP grunt dies")
 	eq(c.phase, Combat.Phase.WON)
+
+
+func test_unit_death_costs_morale() -> void:
+	var c := make_combat(ONE_GRUNT_LAYOUT())
+	var u := deploy(c, "rifle_squad")
+	c._lose_hp(u, 99)
+	eq(c.resolve, 60 - Combat.MORALE_LOSS)
+
+
+func test_dog_tags_raise_casualty_limit() -> void:
+	var c := Combat.new(CardDB.starter_deck(), ONE_GRUNT_LAYOUT(), 60, 60, 1, ["dog_tags"])
+	var card := CardDB.make_card("rifle_squad")
+	card.casualties = Combat.MAX_CASUALTIES
+	c.discard_pile.append(card)
+	check(c.lost_cards().is_empty())
+
+
+func test_spotter_boosts_indirect() -> void:
+	var c := make_combat(ONE_GRUNT_LAYOUT())
+	deploy(c, "spotter", "back")
+	eq(c.attack_damage(null, 6, "indirect", enemy(c)), 8)
+	eq(c.attack_damage(null, 6, "direct", enemy(c)), 6, "only indirect")
+	eq(c.attack_damage(enemy(c), 6, "indirect", null), 6, "not for the enemy")
+
+
+func test_engineer_and_lieutenant() -> void:
+	var c := make_combat({"back": ["bunker"]})
+	deploy(c, "engineer", "front", 0)
+	var rifle := deploy(c, "rifle_squad", "front", 1)
+	c.cp = 2
+	deploy(c, "lieutenant", "back", 0)
+	c.end_turn()
+	check(c.events.any(func(e): return e["type"] == "cover_gained" and e["unit"] == rifle), "engineer dug in the neighbour")
+	eq(c.cp, Combat.CP_PER_TURN + 1, "lieutenant adds command")
+
+
+func test_flamethrower_ignores_cover_and_burns() -> void:
+	var c := make_combat(ONE_GRUNT_LAYOUT())
+	var g := enemy(c)
+	g.cover = 10
+	var flame := deploy(c, "flamethrower")
+	c._fire_unit(flame)
+	eq(g.hp, 8 - 6, "4 + 2 front bonus, cover ignored")
+	eq(g.cover, 10)
+	eq(g.status("bleeding"), 2)
+
+
+func test_medevac_returns_card_without_casualty() -> void:
+	var c := make_combat(ONE_GRUNT_LAYOUT())
+	var u := deploy(c, "rifle_squad")
+	var card := u.card
+	eq(c.play_card(give(c, "medevac"), {"unit": u}), "")
+	check(not u.is_on_field() and c.hand.has(card))
+	eq(card.casualties, 0)
+	eq(c.resolve, 60, "no morale loss")
+
+
+func test_bangalore_strips_cover() -> void:
+	var c := make_combat({"front": ["bunker"]})
+	var b := enemy(c)
+	c.cp = 3
+	eq(c.play_card(give(c, "bangalore")), "")
+	eq(b.cover, 0)
+	eq(b.hp, b.max_hp - 6)

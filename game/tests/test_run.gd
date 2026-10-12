@@ -171,3 +171,29 @@ func test_encounter_pick_avoids_repeats() -> void:
 		var b := run.pick_encounter("normal")
 		check(a != b, "same fight twice in a row")
 		a = b
+
+
+func test_new_event_ops() -> void:
+	var run := RunState.create(13)
+	run.apply_event_choice("mail_call", 1)
+	eq(run.deck.filter(func(c): return c.upgraded).size(), 1)
+	run.apply_event_choice("liberated_village", 0)
+	eq(run.max_resolve, RunState.START_RESOLVE + 6)
+
+
+func test_mess_kit() -> void:
+	var run := RunState.create(14)
+	var base := run.rest_heal_amount()
+	run.relics.append("mess_kit")
+	eq(run.rest_heal_amount(), base + 15)
+
+
+func test_enemy_hp_scales_with_floor() -> void:
+	var run := RunState.create(15)
+	eq(run.enemy_hp_mult("patrol"), 1.0, "no scaling before the first node")
+	for i in 5:
+		run.enter(run.available_nodes()[0])
+	var c := run.start_combat("patrol")
+	var g: Unit = c.field.units(Battlefield.ENEMY)[0]
+	eq(g.max_hp, int(round(CardDB.enemies()["grenadier"]["hp"] * (1.0 + RunState.HP_SCALING_PER_FLOOR * 4))))
+	eq(run.enemy_hp_mult("tiger"), 1.0, "boss doesn't scale")

@@ -79,7 +79,8 @@ Your units fire automatically; enemies act only through their telegraphed intent
 
 ### 3.3b Casualties (decided)
 - When a unit dies, its card goes to the **discard pile** and can be redeployed.
-- Each card tracks **casualties** across the run. On its **3rd** death the card is **lost** from your deck after the combat.
+- Each card tracks **casualties** across the run. On its **3rd** death (4th with *Dog Tags*) the card is **lost** from your deck after the combat.
+- Each death also costs **2 Resolve** (morale). *Medevac* pulls a unit out before it dies; the rest stop's *Rotate troops* and the *Field Hospital* event clear casualties.
 
 ### 3.4 Card types
 
@@ -88,7 +89,7 @@ Your units fire automatically; enemies act only through their telegraphed intent
 | **Unit** | Deploy into an empty slot. Has HP, Firepower, attack type. Fires every end of turn. | (new) |
 | **Order** | One-shot effect. | Attack / Skill |
 | **Doctrine** | Permanent effect for this combat. | Power |
-| **Status** | Junk cards added by enemies (e.g. *Shell Shock*: unplayable, exhausts). | Status |
+| **Status** | Junk cards added by enemies (e.g. *Shell Shock*: unplayable, exhausts). Not used yet. | Status |
 
 ### 3.5 Keywords & status effects
 
@@ -102,6 +103,7 @@ Your units fire automatically; enemies act only through their telegraphed intent
 | **Bleeding X** | Lose X HP per turn, decreases by 1. | Poison |
 | **Smoke** | Direct fire against this row misses this round. | (new) |
 | **Expend** | Removed from the deck for this combat after use. | Exhaust |
+| **Strength X** | Deals +X damage (enemy officers hand it out). | Strength |
 
 ---
 
@@ -131,10 +133,10 @@ At a **Workshop**, pick two cards → they're removed and replaced by one merged
 
 | A | + B | = Result |
 |---|---|---|
-| Rifle Squad | Rifle Squad | **Reinforced Squad**: 1 CP, 10 HP, 4 Direct |
-| Rifle Squad | Bazooka | **Bazooka Team**: 2 CP, 7 HP, 8 Direct, anti-armor |
-| Rifle Squad | Medic | **Combat Medic Squad**: 1 CP, 8 HP, 3 Direct, heals adjacent 2 |
-| BAR Gunner | Dig In | **MG Nest**: 2 CP, 8 HP, 3 Direct ×3, deploys with 4 Cover, Entrenched |
+| Rifle Squad | Rifle Squad | **Reinforced Squad**: 1 CP, 12 HP, 4 Direct |
+| Rifle Squad | Bazooka | **Bazooka Team**: 2 CP, 9 HP, 8 Direct, anti-armor |
+| Rifle Squad | Medic | **Combat Medic Squad**: 1 CP, 10 HP, 3 Direct, heals adjacent 2 |
+| BAR Gunner | Dig In | **MG Nest**: 2 CP, 10 HP, 3 Direct ×3, deploys with 4 Cover, Entrenched |
 | Grenade | Grenade | **Satchel Charge**: 14 Indirect to one enemy, Expend |
 | Smoke Screen | Advance | **Covered Advance**: smoke front row, move a unit up, it fires |
 | Dig In | Dig In | **Foxholes**: 8 Cover and Entrenched |
@@ -152,93 +154,116 @@ At a **Workshop**, pick two cards → they're removed and replaced by one merged
 | **Field Radio** | Any | When played, draw 1 |
 | **Ration Pack** | Unit | +4 max HP |
 
-### 4.3 Merging (big upgrades)
-At a **Workshop**, pick two cards → they're removed and replaced by one merged card.
-
-- **Recipes** produce named, hand-designed cards:
-
-| A | + B | = Result |
-|---|---|---|
-| Rifle Squad | Bazooka | **Bazooka Team** — Unit, 7 HP, 8 Direct dmg, +50% vs armor |
-| Rifle Squad | Medic | **Combat Medic Squad** — Unit, heals adjacent unit 2/turn |
-| Grenade | Grenade | **Satchel Charge** — 14 Indirect dmg to one slot, Expend |
-| Smoke Screen | Advance | **Covered Advance** — move a unit + Smoke on its row |
-| BAR Gunner | Dig In | **MG Nest** — Unit, Entrenched, 3×3 Direct, back row immune |
-| Mortar Team | Spotter | **Fire Mission** — Doctrine: each turn, 6 Indirect to the highest-HP enemy |
-
-- **Generic merge** (no recipe): only two cards of the **same type** can merge. Result: name of A, cost = max(costs), effects of both, attachments of both (if two, keep the first). This keeps merging always useful while recipes are the jackpot.
-- Merging thins the deck (2 → 1), which is a real StS-style power lever, so a Workshop visit only allows **one** action.
-
----
-
 ## 5. Prototype Content
 
+*Tables below are generated from `data/`; the JSON is the source of truth.*
+
 ### 5.1 Commander: Captain (US Army, 29th Infantry Division)
-- **Resolve:** 60 · **CP:** 3/turn · **Starting Supply (gold):** 99
-- **Starting Commendation:** *Combat Infantryman Badge* — first Unit deployed each combat gains 4 Cover.
+- **Resolve:** 60 · **CP:** 3/turn · **Starting Supply:** 99
+- **Starting Commendation:** *Combat Infantryman Badge*: the first unit you deploy each combat gains 4 Cover.
+- **Morale:** every time one of your units dies you lose 2 Resolve. Casualties cost you twice: Resolve now, and the card itself on its third death.
 
-**Starter deck (10):**
+**Starter deck (10):** 3× Rifle Squad, 1× BAR Gunner, 3× Open Fire!, 3× Dig In.
 
-| Card | Type | Cost | Effect |
+### 5.2 Cards
+
+| Card | Type | Rarity | CP | Text |
+|---|---|---|---|---|
+| Rifle Squad | Unit | starter | 1 | Deploy. 8 HP, fires 3 Direct. |
+| BAR Gunner | Unit | starter | 2 | Deploy. 7 HP, fires 2 Direct twice. |
+| Open Fire! | Order | starter | 1 | A unit fires immediately with +3 damage. |
+| Dig In | Order | starter | 1 | Give a unit 5 Cover. |
+| Medic | Unit | common | 1 | Deploy. 6 HP. End of turn: heal adjacent units 2. |
+| Mortar Team | Unit | common | 2 | Deploy to back row. 6 HP, fires 4 Indirect at the toughest enemy. |
+| Sniper | Unit | uncommon | 2 | Deploy to back row. 5 HP, fires 6 Precision at the weakest enemy. |
+| Bazooka | Unit | common | 2 | Deploy. 6 HP, fires 6 Direct. Ignores Armor and deals +50% to armored targets. |
+| Sherman | Unit | rare | 3 | Deploy to front row. 18 HP, Armor 2, fires 6 Direct. |
+| Grenade | Order | common | 1 | Deal 6 Indirect damage to any enemy. |
+| Smoke Screen | Order | common | 1 | Smoke your front row: enemy Direct fire against it misses this round. |
+| Advance | Order | common | 0 | Move a back-row unit to the front row. It fires. |
+| Fall Back | Order | common | 0 | Move a front-row unit to the back row. Heal it 3. |
+| Suppressing Fire | Order | common | 1 | Apply 2 Suppressed to every enemy in the front row. |
+| Requisition | Order | common | 0 | Draw 2. Expend. |
+| Hold the Line | Doctrine | uncommon | 2 | Doctrine. Start of turn: your front-row units gain 2 Cover. |
+| Flank | Order | common | 1 | A unit fires immediately as Precision (can hit any enemy). |
+| Reinforcements | Order | common | 1 | Heal all your units 4. |
+| Rally | Order | uncommon | 0 | Remove Suppressed, Pinned, Exposed and Bleeding from your units. Gain 1 Command. |
+| Field Promotion | Order | uncommon | 1 | A unit gains +2 firepower for this combat. |
+| Artillery Barrage | Order | rare | 3 | Deal 8 Indirect damage to every enemy. Expend. |
+| Combined Arms | Doctrine | uncommon | 1 | Doctrine. Whenever you deploy a unit, draw 1. |
+| Air Superiority | Doctrine | rare | 3 | Doctrine. Start of turn: deal 5 Indirect damage to a random enemy. |
+| Spotter | Unit | uncommon | 1 | Deploy to back row. 5 HP. Your Indirect attacks deal +2 damage while it's on the field. |
+| Combat Engineers | Unit | common | 1 | Deploy. 6 HP, fires 2 Direct. End of turn: adjacent units gain 3 Cover. |
+| Lieutenant | Unit | rare | 2 | Deploy to back row. 6 HP, fires 2 Direct. Start of turn: +1 Command while on the field. |
+| Flamethrower | Unit | uncommon | 2 | Deploy to front row. 7 HP, fires 4 Direct that ignores Cover and applies 2 Bleeding. |
+| Covering Fire | Order | common | 1 | All your units gain 3 Cover. |
+| Medevac | Order | uncommon | 1 | Pull a unit off the field: its card returns to your hand. No casualty. |
+| Pin Down | Order | common | 1 | Pin any enemy: it skips its next action. |
+| Recon Patrol | Order | common | 0 | All enemies are Exposed for 1 turn (take 50% more damage). Draw 1. |
+| Bangalore Torpedo | Order | uncommon | 2 | Destroy all Cover on the enemy front row, then deal 6 Indirect damage to each enemy there. |
+| Dig Deep | Doctrine | rare | 3 | Doctrine. Your units are Entrenched: their Cover no longer resets. |
+
+Merge-only cards are listed in 4.3.
+
+### 5.3 Enemies (Act 1: Normandy)
+
+Enemy HP grows 4% per floor (the boss doesn't scale). The first three floors draw from the easy fights.
+
+| Enemy | HP | Intent cycle | Notes |
 |---|---|---|---|
-| Rifle Squad ×3 | Unit | 1 | 6 HP, 3 Direct |
-| BAR Gunner ×1 | Unit | 2 | 5 HP, 2×2 Direct |
-| Open Fire! ×3 | Order | 1 | A unit fires immediately with +3 damage |
-| Dig In ×3 | Order | 1 | Give a unit 5 Cover |
+| Grenadier | 20 | 6 Direct |  |
+| MG42 Team | 28 | 4×2 Direct → 4×2 Direct → Suppressed 1 (row) + 4 Direct |  |
+| Mortar Crew | 16 | 7 Indirect → +4 Cover |  |
+| Sniper | 12 | 9 Precision → +3 Cover |  |
+| Panzerfaust Team | 12 | +4 Cover → 8 Direct | anti armor |
+| Feldwebel | 16 | Strength 1 (all allies) → 4 Precision → calls 1 Grenadier |  |
+| Fortified Bunker | 40 | 4×3 Direct → +6 Cover | Entrenched, starts with 8 Cover, immune precision |
+| Tiger I | 85 | 18 Direct → 4×3 Direct → +15 Cover + Pinned 1 (foe toughest) | Armor 3, at half HP: calls 2 Grenadier |
+| StuG III | 38 | 10 Direct → +8 Cover → 10 Direct | Armor 2 |
+| Fallschirmjäger | 16 | 4×2 Direct → Exposed 1 (row) + 3 Direct |  |
+| Flak 88 | 22 | +6 Cover → 14 Indirect |  |
 
-### 5.2 Reward card pool (~20)
-
-| Card | Type | Cost | Effect |
+| Fight | Tier | Front row | Back row |
 |---|---|---|---|
-| Medic | Unit | 1 | 4 HP, no attack; heals adjacent units 2 at end of turn |
-| Mortar Team | Unit | 2 | Back row only, 4 HP, 4 Indirect |
-| Sniper | Unit | 2 | Back row only, 3 HP, 6 Precision |
-| Bazooka | Unit | 2 | 4 HP, 6 Direct, +50% vs Armor |
-| Sherman | Unit | 3 | Front only, 18 HP, 6 Direct, Armor |
-| Spotter | Unit | 1 | Back row, 3 HP; your Indirect attacks deal +2 |
-| Grenade | Order | 1 | 6 Indirect to one slot |
-| Smoke Screen | Order | 1 | Smoke on your front row |
-| Advance | Order | 0 | Move a unit back→front; it fires |
-| Fall Back | Order | 0 | Move a unit front→back; heal 3 |
-| Suppressing Fire | Order | 1 | Suppress 2 all enemy front row |
-| Flank | Order | 1 | A unit fires as Precision this turn |
-| Reinforcements | Order | 1 | Heal all units 4 |
-| Requisition | Order | 0 | Draw 2, Expend |
-| Artillery Barrage | Order | 3 | 8 Indirect to every enemy, Expend |
-| Hold the Line | Doctrine | 2 | Front-row units gain 2 Cover each turn |
-| Combined Arms | Doctrine | 1 | When you deploy a Unit, draw 1 |
-| Air Superiority | Doctrine | 3 | Start of turn: 4 Indirect to a random enemy |
-| Field Promotion | Order | 1 | A unit gets +2 Firepower permanently this combat |
-| Rally | Order | 1 | Remove Suppressed/Pinned from all units, +1 CP |
+| Patrol | easy | Grenadier, Grenadier |  |
+| Scouts | easy | Grenadier | Sniper |
+| Machine-Gun Nest | normal | Grenadier, MG42 Team |  |
+| Mortar Line | normal | Grenadier, Grenadier | Mortar Crew |
+| Overwatch | normal | Grenadier | Sniper, Mortar Crew |
+| Ambush | normal | Panzerfaust Team, Grenadier, Panzerfaust Team |  |
+| Command Post | normal | Grenadier, Grenadier | Feldwebel |
+| Fortified Bunker | elite | Grenadier, Fortified Bunker, Grenadier |  |
+| Sniper Nest | elite | MG42 Team | Sniper, Sniper |
+| Assault Gun | normal | Grenadier, StuG III |  |
+| Fallschirmjäger Drop | normal | Fallschirmjäger, Fallschirmjäger |  |
+| Flak Position | normal | Grenadier, Grenadier | Flak 88 |
+| Panzergrenadier Company | elite | Fallschirmjäger, Grenadier, Fallschirmjäger | Feldwebel |
+| Tiger I | boss | Tiger I |  |
 
-### 5.3 Enemies (Act 1: Normandy bocage)
+### 5.4 Commendations (relics)
 
-| Enemy | HP | Pattern |
-|---|---|---|
-| Grenadier | 18 | Front; 6 Direct |
-| MG42 Team | 26 | Front; 2×4 Direct; every 3rd turn *Suppress* your front row + 4 Direct |
-| Mortar Crew | 16 | Back; alternates 7 Indirect at your highest-HP unit / 4 Cover |
-| Sniper | 12 | Back; alternates 9 Precision at your back row (or Resolve if empty) / 3 Cover |
-| Panzerfaust Team | 6 | Front; 10 Direct to your Armor unit if any, else 4 |
-| Feldwebel (Officer) | 12 | Back; buffs allies +2 dmg, calls Reinforcement (Grenadier) every 3 turns |
-| Panzerfaust Team | 12 | Front; alternates 4 Cover / 8 Direct; anti-armor (ignores Armor, +50% vs armored) |
-| Feldwebel (Officer) | 16 | Back; cycles +2 Strength to all allies / 4 Precision / calls a Grenadier |
-| **Elite: Fortified Bunker** | 40 | Front, Entrenched 8 Cover; alternates 3×4 Direct / +6 Cover; immune to Precision. Flanked by two Grenadiers. |
-| **Elite: Sniper Nest** | — | MG42 in front, two Snipers behind |
-| **Boss: Tiger I** | 100 | Front, Armor 3 (Direct −3). Cycle: *Main Gun* 18 to one slot → *Coaxial MG* 4×3 → *Reposition* (gains 15 Cover, Pins your toughest unit). At 50% HP calls two Grenadiers. |
+- *Combat Infantryman Badge* (starter): The first unit you deploy each combat gains 4 Cover.
+- *Purple Heart* (common): Heal 6 Resolve after each combat.
+- *Bronze Star* (common): +1 Command on the first turn of each combat.
+- *Field Manual* (common): Draw 1 extra card on the first turn of each combat.
+- *Lucky Zippo* (uncommon): The first unit that would die each combat survives at 1 HP.
+- *Signal Flare* (uncommon): At the start of combat, all enemies are Exposed for 1 turn.
+- *Spare Parts Crate* (uncommon): Workshops let you do two jobs instead of one.
+- *Dog Tags* (uncommon): Cards are lost after 4 casualties instead of 3.
+- *Mess Kit* (common): Resting at a Field Aid Station heals 15 more Resolve.
+- *Spare Ammo Crate* (common): Your units deal +1 damage.
+- *Engineer's Manual* (common): Your units deploy with 2 extra Cover.
 
-### 5.4 Commendations (relics, ~6)
-- *Purple Heart* — heal 6 Resolve after each combat.
-- *Bronze Star* — +1 CP on the first turn of each combat.
-- *Lucky Zippo* — the first unit killed each combat survives at 1 HP.
-- *Field Manual* — draw 1 extra card on turn 1.
-- *Spare Parts Crate* — Workshops allow two actions.
-- *Signal Flare* — Start of combat: apply Exposed 1 to all enemies.
+### 5.5 Intel events
 
-### 5.5 Intel events (~3)
-- **Abandoned Farmhouse** — Search (gain an attachment, 50%: take 8 Resolve dmg) / Move on.
-- **French Resistance Contact** — Pay 50 Supply for a rare card / Share rations: heal 10 / Leave.
-- **Stragglers** — Add a free Rifle Squad / Lose 5 Resolve, gain a Commendation.
+- **Abandoned Farmhouse**: Search it (gain an attachment; 50% chance: lose 8 Resolve) / Move on
+- **French Resistance Contact**: Pay 50 Supply (gain a random rare card) / Share rations (heal 10 Resolve) / Leave
+- **Stragglers**: Take them in (add a Rifle Squad) / Send them to scout ahead (lose 5 Resolve, gain a Commendation)
+- **Field Hospital**: Pay 30 Supply (clear all casualties in your deck) / Leave
+- **Abandoned Supply Dump**: Salvage gear (gain 2 attachments) / Sell the fuel to the motor pool (+60 Supply)
+- **Mail Call**: Read the letters (heal 15 Resolve) / Study the manuals (upgrade a random card)
+- **Liberated Village**: Celebrate with them (+6 max Resolve, heal 6) / Take the volunteers (add a Combat Engineers card)
+- **Captured Officer**: Send him to the rear with the map (gain a Commendation) / Trade the watch with the Quartermaster (+50 Supply)
 
 ---
 
@@ -276,7 +301,7 @@ game/
 2. **M2 — Combat UI:** playable single fight with drag-to-deploy, intents, rows. ✅ (plus back-to-back fights with card rewards as a stopgap until M3)
 3. **M3 — Run loop:** map, rewards, Field Aid Station, Quartermaster, events, boss. ✅
 4. **M4 — Crafting:** Workshop, attachments, merges. ✅
-5. **M5 — Content & balance:** full card pool, elite, Tiger boss, commendations.
+5. **M5 — Content & balance:** full card pool, elites, Tiger boss, commendations, morale rule, floor scaling. ✅
 
 ---
 
@@ -287,6 +312,9 @@ game/
 - Cards are lost after 3 casualties in a run. ✅
 - Title: *Hedgerow*. ✅
 
+**Balance snapshot (greedy-bot simulator, 300 runs):** wins ~56%, ~2.4 cards lost to casualties per run, ~0.9 merges per run. Most run-ending fights: Tiger I, Panzergrenadier Company, Sniper Nest, Fortified Bunker. The bot is simple (no smart targeting or Medevac), so a human should do better; we may want to make it harder after playtesting.
+
 **Open**
-1. **Attrition balance:** units soak almost all damage, so Resolve barely drops and the real cost is casualties (~2 unit deaths per fight). In the full-run sim (greedy bot, 300 runs) the bot wins ~62% and loses ~4 cards per run to the 3-casualty rule; most losses come from the Tiger and the elites. The rest stop's "rotate troops" option and the Field Hospital event help. Tune in M5.
+1. **Playtest feel:** the numbers above come from a bot. Real play will show whether units feel too fragile or too safe, and whether the Tiger fight drags.
 2. **Field cap:** is 5 unit slots enough, or should some cards *reinforce* an existing unit instead of taking a slot?
+3. **More acts:** Act 2 (e.g. Operation Cobra / Falaise Pocket) with new enemies and a new boss.

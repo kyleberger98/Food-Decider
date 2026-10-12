@@ -1,8 +1,8 @@
 extends TestCase
 ## Sanity checks over the shipped content in data/.
 
-const KNOWN_OPS := ["attack", "draw", "cp", "smoke", "summon", "fire", "buff_fp", "cleanse", "entrench", "cover", "damage", "heal", "status", "move"]
-const RUN_OPS := ["supply", "resolve", "card", "relic", "attachment", "chance", "clear_casualties"]
+const KNOWN_OPS := ["attack", "draw", "cp", "smoke", "summon", "fire", "buff_fp", "cleanse", "entrench", "withdraw", "strip_cover", "cover", "damage", "heal", "status", "move"]
+const RUN_OPS := ["supply", "resolve", "card", "relic", "attachment", "chance", "clear_casualties", "upgrade_random", "max_resolve"]
 const CARD_TYPES := ["unit", "order", "doctrine", "status"]
 
 

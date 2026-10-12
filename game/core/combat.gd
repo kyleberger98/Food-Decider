@@ -10,8 +10,10 @@ const MAX_HAND := 10
 const CP_PER_TURN := 3
 ## Your Direct-fire units deal this much extra damage from the front row.
 const FRONT_BONUS := 2
-## A card whose unit has died this many times in a run is lost.
+## A card whose unit has died this many times in a run is lost (4 with Dog Tags).
 const MAX_CASUALTIES := 3
+## Resolve lost whenever one of your units dies.
+const MORALE_LOSS := 2
 const SUPPRESSED_MULT := 0.75
 const EXPOSED_MULT := 1.5
 const ANTI_ARMOR_MULT := 1.5
@@ -43,7 +45,8 @@ var _zippo_used := false
 
 ## enemy_layout: {"front": [enemy ids], "back": [enemy ids]}, as in an encounter.
 ## An empty string in a row leaves that slot empty (e.g. to center a boss).
-func _init(deck: Array[CardInstance], enemy_layout: Dictionary, start_resolve: int, max_res: int, seed_value: int, relic_ids: Array = []) -> void:
+## hp_mult scales enemy HP (the run uses it to make later floors tougher).
+func _init(deck: Array[CardInstance], enemy_layout: Dictionary, start_resolve: int, max_res: int, seed_value: int, relic_ids: Array = [], hp_mult := 1.0) -> void:
 	rng.seed = seed_value
 	resolve = start_resolve
 	max_resolve = max_res
@@ -54,7 +57,10 @@ func _init(deck: Array[CardInstance], enemy_layout: Dictionary, start_resolve: i
 		var ids: Array = enemy_layout.get(row, [])
 		for i in ids.size():
 			if ids[i] != "":
-				field.place(CardDB.make_enemy(ids[i]), Battlefield.ENEMY, row, i)
+				var e := CardDB.make_enemy(ids[i])
+				e.max_hp = int(round(e.max_hp * hp_mult))
+				e.hp = e.max_hp
+				field.place(e, Battlefield.ENEMY, row, i)
 	_emit("combat_started", {})
 	if has_relic("signal_flare"):
 		for e in field.units(Battlefield.ENEMY):
@@ -67,12 +73,16 @@ func _init(deck: Array[CardInstance], enemy_layout: Dictionary, start_resolve: i
 		draw(1)
 
 
-static func from_encounter(deck: Array[CardInstance], encounter_id: String, start_resolve: int, max_res: int, seed_value: int, relic_ids: Array = []) -> Combat:
-	return Combat.new(deck, CardDB.encounters()[encounter_id], start_resolve, max_res, seed_value, relic_ids)
+static func from_encounter(deck: Array[CardInstance], encounter_id: String, start_resolve: int, max_res: int, seed_value: int, relic_ids: Array = [], hp_mult := 1.0) -> Combat:
+	return Combat.new(deck, CardDB.encounters()[encounter_id], start_resolve, max_res, seed_value, relic_ids, hp_mult)
 
 
 func has_relic(id: String) -> bool:
 	return relics.has(id)
+
+
+func casualty_limit() -> int:
+	return MAX_CASUALTIES + (1 if has_relic("dog_tags") else 0)
 
 
 func is_over() -> bool:
@@ -83,7 +93,7 @@ func is_over() -> bool:
 func lost_cards() -> Array[CardInstance]:
 	var out: Array[CardInstance] = []
 	for c in draw_pile + hand + discard_pile + expended + deployed + doctrines:
-		if c.casualties >= MAX_CASUALTIES and not out.has(c):
+		if c.casualties >= casualty_limit() and not out.has(c):
 			out.append(c)
 	return out
 
@@ -176,11 +186,15 @@ func end_turn() -> void:
 			return
 	for u in field.units(Battlefield.PLAYER):
 		var heal_amt := int(u.traits.get("medic", 0))
-		if heal_amt > 0:
-			for a in field.adjacent(u):
+		var dig := int(u.traits.get("engineer", 0))
+		for a in field.adjacent(u):
+			if heal_amt > 0:
 				var healed := a.heal(heal_amt)
 				if healed > 0:
 					_emit("healed", {"unit": a, "amount": healed})
+			if dig > 0:
+				a.cover += dig
+				_emit("cover_gained", {"unit": a, "amount": dig})
 	_end_of_side_turn(Battlefield.PLAYER)
 	if is_over():
 		return
@@ -202,6 +216,7 @@ func _start_player_turn() -> void:
 	for u in field.units(Battlefield.PLAYER):
 		if not u.entrenched:
 			u.cover = 0
+		cp += int(u.traits.get("lieutenant", 0))
 	_emit("turn_started", {"turn": turn})
 	for d in doctrines:
 		_apply_effects(d.def.get("triggers", {}).get("turn_start", []), Battlefield.PLAYER, null, null)
@@ -273,7 +288,7 @@ func _deploy(card: CardInstance, row: String, slot: int) -> void:
 	field.place(u, Battlefield.PLAYER, row, slot)
 	deployed.append(card)
 	_emit("unit_deployed", {"unit": u})
-	var deploy_cover := int(u.traits.get("deploy_cover", 0))
+	var deploy_cover := int(u.traits.get("deploy_cover", 0)) + (2 if has_relic("engineers_manual") else 0)
 	if deploy_cover > 0:
 		u.cover += deploy_cover
 		_emit("cover_gained", {"unit": u, "amount": deploy_cover})
@@ -309,8 +324,16 @@ func _attack(source: Unit, amount: int, hits: int, attack: String, rule: String)
 
 
 ## Final damage of one hit after all modifiers (not counting Cover or Smoke).
+## A null source means one of your cards (orders, doctrines).
 func attack_damage(source: Unit, amount: int, attack: String, target: Unit) -> int:
 	var dmg := float(amount)
+	var players := source == null or source.side == Battlefield.PLAYER
+	if players:
+		if attack == "indirect":
+			for u in field.units(Battlefield.PLAYER):
+				dmg += int(u.traits.get("spotter", 0))
+		if source != null and has_relic("spare_ammo"):
+			dmg += 1
 	if source != null:
 		if source.side == Battlefield.PLAYER and attack == "direct" and source.row == Battlefield.FRONT:
 			dmg += FRONT_BONUS
@@ -337,10 +360,14 @@ func _damage_unit(t: Unit, dmg: int, attack: String, source: Unit) -> void:
 	if attack == "direct" and field.has_smoke(t.side, t.row):
 		_emit("missed", {"target": t, "source": source})
 		return
-	var blocked := mini(t.cover, dmg)
+	var blocked := 0 if source != null and source.traits.has("ignores_cover") else mini(t.cover, dmg)
 	t.cover -= blocked
 	_emit("damaged", {"target": t, "source": source, "amount": dmg - blocked, "blocked": blocked})
 	_lose_hp(t, dmg - blocked)
+	var burn := int(source.traits.get("burn", 0)) if source != null else 0
+	if burn > 0 and t.is_on_field():
+		t.add_status("bleeding", burn)
+		_emit("status_applied", {"unit": t, "status": "bleeding", "amount": burn})
 
 
 func _lose_hp(t: Unit, amount: int) -> void:
@@ -367,15 +394,25 @@ func _kill(t: Unit) -> void:
 		discard_pile.append(t.card)
 	_emit("unit_killed", {"unit": t})
 	field.remove(t)
+	if side == Battlefield.PLAYER:
+		_lose_resolve(MORALE_LOSS, "morale")
+		if is_over():
+			return
 	if side == Battlefield.ENEMY and field.units(Battlefield.ENEMY).is_empty():
 		phase = Phase.WON
 		_emit("combat_won", {})
 
 
 func _hit_hq(dmg: int, source: Unit) -> void:
-	resolve -= dmg
 	_emit("hq_damaged", {"amount": dmg, "source": source})
-	if resolve <= 0:
+	_lose_resolve(dmg, "")
+
+
+func _lose_resolve(amount: int, reason: String) -> void:
+	resolve -= amount
+	if reason != "":
+		_emit(reason, {"amount": amount})
+	if resolve <= 0 and phase != Phase.LOST:
 		resolve = 0
 		phase = Phase.LOST
 		_emit("combat_lost", {})
@@ -420,6 +457,19 @@ func _apply_unit_effect(eff: Dictionary, op: String, amount: int, u: Unit) -> vo
 		"buff_fp":
 			u.firepower += amount
 			_emit("status_applied", {"unit": u, "status": "firepower", "amount": amount})
+		"withdraw":
+			# Pull a unit off the field: its card returns to your hand with no casualty.
+			_emit("withdrawn", {"unit": u})
+			field.remove(u)
+			deployed.erase(u.card)
+			if hand.size() < MAX_HAND:
+				hand.append(u.card)
+			else:
+				discard_pile.append(u.card)
+		"strip_cover":
+			if u.cover > 0:
+				_emit("status_applied", {"unit": u, "status": "cover removed", "amount": u.cover})
+			u.cover = 0
 		"entrench":
 			u.entrenched = true
 			_emit("status_applied", {"unit": u, "status": "entrenched", "amount": 1})

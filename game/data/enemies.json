@@ -1,64 +1,16 @@
 {
   "enemies": {
-    "grenadier": {
-      "name": "Grenadier", "hp": 18,
-      "intents": [
-        {"ops": [{"op": "attack", "amount": 6, "attack": "direct"}]}
-      ]
-    },
-    "mg42": {
-      "name": "MG42 Team", "hp": 26,
-      "intents": [
-        {"ops": [{"op": "attack", "amount": 4, "hits": 2, "attack": "direct"}]},
-        {"ops": [{"op": "attack", "amount": 4, "hits": 2, "attack": "direct"}]},
-        {"ops": [{"op": "status", "status": "suppressed", "amount": 1, "scope": "row", "row": "front"}, {"op": "attack", "amount": 4, "attack": "direct"}]}
-      ]
-    },
-    "mortar_crew": {
-      "name": "Mortar Crew", "hp": 16,
-      "intents": [
-        {"ops": [{"op": "attack", "amount": 7, "attack": "indirect", "target": "highest_hp"}]},
-        {"ops": [{"op": "cover", "amount": 4}]}
-      ]
-    },
-    "sniper": {
-      "name": "Sniper", "hp": 12,
-      "intents": [
-        {"ops": [{"op": "attack", "amount": 9, "attack": "precision", "target": "back"}]},
-        {"ops": [{"op": "cover", "amount": 3}]}
-      ]
-    },
-    "panzerfaust": {
-      "name": "Panzerfaust Team", "hp": 12, "traits": {"anti_armor": 1},
-      "intents": [
-        {"ops": [{"op": "cover", "amount": 4}]},
-        {"ops": [{"op": "attack", "amount": 8, "attack": "direct"}]}
-      ]
-    },
-    "feldwebel": {
-      "name": "Feldwebel", "hp": 16,
-      "intents": [
-        {"ops": [{"op": "status", "status": "strength", "amount": 2, "scope": "all_allies"}]},
-        {"ops": [{"op": "attack", "amount": 4, "attack": "precision"}]},
-        {"ops": [{"op": "summon", "enemy": "grenadier"}]}
-      ]
-    },
-    "bunker": {
-      "name": "Fortified Bunker", "hp": 40, "entrenched": true, "cover": 8, "traits": {"immune_precision": 1},
-      "intents": [
-        {"ops": [{"op": "attack", "amount": 4, "hits": 3, "attack": "direct"}]},
-        {"ops": [{"op": "cover", "amount": 6}]}
-      ]
-    },
-    "tiger": {
-      "name": "Tiger I", "hp": 100, "armor": 3,
-      "intents": [
-        {"ops": [{"op": "attack", "amount": 18, "attack": "direct"}]},
-        {"ops": [{"op": "attack", "amount": 4, "hits": 3, "attack": "direct"}]},
-        {"ops": [{"op": "cover", "amount": 15}, {"op": "status", "status": "pinned", "amount": 1, "scope": "foe_toughest"}]}
-      ],
-      "on_half_hp": [{"op": "summon", "enemy": "grenadier", "count": 2}]
-    }
+    "grenadier": {"name": "Grenadier", "hp": 20, "intents": [{"ops": [{"op": "attack", "amount": 6, "attack": "direct"}]}]},
+    "mg42": {"name": "MG42 Team", "hp": 28, "intents": [{"ops": [{"op": "attack", "amount": 4, "hits": 2, "attack": "direct"}]}, {"ops": [{"op": "attack", "amount": 4, "hits": 2, "attack": "direct"}]}, {"ops": [{"op": "status", "status": "suppressed", "amount": 1, "scope": "row", "row": "front"}, {"op": "attack", "amount": 4, "attack": "direct"}]}]},
+    "mortar_crew": {"name": "Mortar Crew", "hp": 16, "intents": [{"ops": [{"op": "attack", "amount": 7, "attack": "indirect", "target": "highest_hp"}]}, {"ops": [{"op": "cover", "amount": 4}]}]},
+    "sniper": {"name": "Sniper", "hp": 12, "intents": [{"ops": [{"op": "attack", "amount": 9, "attack": "precision", "target": "back"}]}, {"ops": [{"op": "cover", "amount": 3}]}]},
+    "panzerfaust": {"name": "Panzerfaust Team", "hp": 12, "traits": {"anti_armor": 1}, "intents": [{"ops": [{"op": "cover", "amount": 4}]}, {"ops": [{"op": "attack", "amount": 8, "attack": "direct"}]}]},
+    "feldwebel": {"name": "Feldwebel", "hp": 16, "intents": [{"ops": [{"op": "status", "status": "strength", "amount": 1, "scope": "all_allies"}]}, {"ops": [{"op": "attack", "amount": 4, "attack": "precision"}]}, {"ops": [{"op": "summon", "enemy": "grenadier"}]}]},
+    "bunker": {"name": "Fortified Bunker", "hp": 40, "entrenched": true, "cover": 8, "traits": {"immune_precision": 1}, "intents": [{"ops": [{"op": "attack", "amount": 4, "hits": 3, "attack": "direct"}]}, {"ops": [{"op": "cover", "amount": 6}]}]},
+    "tiger": {"name": "Tiger I", "hp": 85, "armor": 3, "intents": [{"ops": [{"op": "attack", "amount": 18, "attack": "direct"}]}, {"ops": [{"op": "attack", "amount": 4, "hits": 3, "attack": "direct"}]}, {"ops": [{"op": "cover", "amount": 15}, {"op": "status", "status": "pinned", "amount": 1, "scope": "foe_toughest"}]}], "on_half_hp": [{"op": "summon", "enemy": "grenadier", "count": 2}]},
+    "stug": {"name": "StuG III", "hp": 38, "armor": 2, "intents": [{"ops": [{"op": "attack", "amount": 10, "attack": "direct"}]}, {"ops": [{"op": "cover", "amount": 8}]}, {"ops": [{"op": "attack", "amount": 10, "attack": "direct"}]}]},
+    "fallschirmjager": {"name": "Fallschirmj\u00e4ger", "hp": 16, "intents": [{"ops": [{"op": "attack", "amount": 4, "hits": 2, "attack": "direct"}]}, {"ops": [{"op": "status", "status": "exposed", "amount": 1, "scope": "row", "row": "front"}, {"op": "attack", "amount": 3, "attack": "direct"}]}]},
+    "flak88": {"name": "Flak 88", "hp": 22, "intents": [{"ops": [{"op": "cover", "amount": 6}]}, {"ops": [{"op": "attack", "amount": 14, "attack": "indirect", "target": "highest_hp"}]}]}
   },
   "encounters": {
     "patrol": {"name": "Patrol", "tier": "easy", "front": ["grenadier", "grenadier"]},
@@ -70,6 +22,10 @@
     "command_post": {"name": "Command Post", "tier": "normal", "front": ["grenadier", "grenadier"], "back": ["feldwebel"]},
     "bunker_line": {"name": "Fortified Bunker", "tier": "elite", "front": ["grenadier", "bunker", "grenadier"]},
     "sniper_nest": {"name": "Sniper Nest", "tier": "elite", "front": ["mg42"], "back": ["sniper", "sniper"]},
+    "assault_gun": {"name": "Assault Gun", "tier": "normal", "front": ["grenadier", "stug"]},
+    "paratroopers": {"name": "Fallschirmj\u00e4ger Drop", "tier": "normal", "front": ["fallschirmjager", "fallschirmjager"]},
+    "flak_position": {"name": "Flak Position", "tier": "normal", "front": ["grenadier", "grenadier"], "back": ["flak88"]},
+    "panzergrenadiers": {"name": "Panzergrenadier Company", "tier": "elite", "front": ["fallschirmjager", "grenadier", "fallschirmjager"], "back": ["feldwebel"]},
     "tiger": {"name": "Tiger I", "tier": "boss", "front": ["", "tiger", ""]}
   }
 }

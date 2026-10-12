@@ -42,6 +42,10 @@ static func describe(e: Dictionary) -> String:
 			return "[color=#ff6b5a]Enemy reinforcements: %s arrives.[/color]" % e["unit"].name
 		"half_hp":
 			return "%s is badly damaged!" % e["unit"].name
+		"morale":
+			return "[color=#ff6b5a]Losing men shakes you: -%d Resolve.[/color]" % e["amount"]
+		"withdrawn":
+			return "%s is pulled off the line." % e["unit"].name
 		"reshuffled":
 			return "Discard pile shuffled into the draw pile."
 		"combat_won":

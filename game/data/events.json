@@ -139,5 +139,79 @@
         ]
       }
     ]
+  },
+  "mail_call": {
+    "name": "Mail Call",
+    "text": "The mail jeep finally caught up. Letters from home, and a parcel of field manuals from battalion.",
+    "choices": [
+      {
+        "label": "Read the letters (heal 15 Resolve)",
+        "ops": [
+          {
+            "op": "resolve",
+            "amount": 15
+          }
+        ]
+      },
+      {
+        "label": "Study the manuals (upgrade a random card)",
+        "ops": [
+          {
+            "op": "upgrade_random"
+          }
+        ]
+      }
+    ]
+  },
+  "liberated_village": {
+    "name": "Liberated Village",
+    "text": "The villagers pour out of their cellars with cider and flowers. A few young men want to join you.",
+    "choices": [
+      {
+        "label": "Celebrate with them (+6 max Resolve, heal 6)",
+        "ops": [
+          {
+            "op": "max_resolve",
+            "amount": 6
+          },
+          {
+            "op": "resolve",
+            "amount": 6
+          }
+        ]
+      },
+      {
+        "label": "Take the volunteers (add a Combat Engineers card)",
+        "ops": [
+          {
+            "op": "card",
+            "id": "engineer"
+          }
+        ]
+      }
+    ]
+  },
+  "captured_officer": {
+    "name": "Captured Officer",
+    "text": "Your patrol drags in a German Hauptmann. He has a map case and an expensive watch.",
+    "choices": [
+      {
+        "label": "Send him to the rear with the map (gain a Commendation)",
+        "ops": [
+          {
+            "op": "relic"
+          }
+        ]
+      },
+      {
+        "label": "Trade the watch with the Quartermaster (+50 Supply)",
+        "ops": [
+          {
+            "op": "supply",
+            "amount": 50
+          }
+        ]
+      }
+    ]
   }
 }

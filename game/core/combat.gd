@@ -321,14 +321,13 @@ func _lose_hp(t: Unit, amount: int) -> void:
 
 func _kill(t: Unit) -> void:
 	var side := t.side
-	field.remove(t)
-	_emit("unit_killed", {"unit": t})
 	if side == Battlefield.PLAYER:
-		var card := t.card
-		card.casualties += 1
-		deployed.erase(card)
-		discard_pile.append(card)
-	elif field.units(Battlefield.ENEMY).is_empty():
+		t.card.casualties += 1
+		deployed.erase(t.card)
+		discard_pile.append(t.card)
+	_emit("unit_killed", {"unit": t})
+	field.remove(t)
+	if side == Battlefield.ENEMY and field.units(Battlefield.ENEMY).is_empty():
 		phase = Phase.WON
 		_emit("combat_won", {})
 
@@ -454,7 +453,12 @@ func _shuffle(pile: Array[CardInstance]) -> void:
 		pile[j] = tmp
 
 
+## Events about a unit record where it stood ("at": [side, row, slot]) so the UI can place effects
+## even after the unit has moved or died.
 func _emit(type: String, data: Dictionary) -> void:
 	data["type"] = type
+	var u = data.get("target", data.get("unit"))
+	if u is Unit and u.row != "":
+		data["at"] = [u.side, u.row, u.slot]
 	events.append(data)
 	event_emitted.emit(data)

@@ -242,7 +242,7 @@ game/
 ## 7. Milestones
 
 1. **M1 — Combat core (headless):** battlefield, targeting, units, starter deck, 4 enemies, tests. ✅
-2. **M2 — Combat UI:** playable single fight with drag-to-deploy, intents, rows.
+2. **M2 — Combat UI:** playable single fight with drag-to-deploy, intents, rows. ✅ (plus back-to-back fights with card rewards as a stopgap until M3)
 3. **M3 — Run loop:** map, rewards, Field Aid Station, Quartermaster, events, boss.
 4. **M4 — Crafting:** Workshop, attachments, merges.
 5. **M5 — Content & balance:** full card pool, elite, Tiger boss, commendations.

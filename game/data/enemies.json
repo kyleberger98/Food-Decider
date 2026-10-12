@@ -30,9 +30,9 @@
     }
   },
   "encounters": {
-    "patrol": {"front": ["grenadier", "grenadier"], "back": []},
-    "mg_nest": {"front": ["grenadier", "mg42"], "back": []},
-    "mortar_line": {"front": ["grenadier", "grenadier"], "back": ["mortar_crew"]},
-    "overwatch": {"front": ["grenadier"], "back": ["sniper", "mortar_crew"]}
+    "patrol": {"name": "Patrol", "front": ["grenadier", "grenadier"], "back": []},
+    "mg_nest": {"name": "Machine-Gun Nest", "front": ["grenadier", "mg42"], "back": []},
+    "mortar_line": {"name": "Mortar Line", "front": ["grenadier", "grenadier"], "back": ["mortar_crew"]},
+    "overwatch": {"name": "Overwatch", "front": ["grenadier"], "back": ["sniper", "mortar_crew"]}
   }
 }

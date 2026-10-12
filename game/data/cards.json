@@ -1,0 +1,99 @@
+{
+  "rifle_squad": {
+    "name": "Rifle Squad", "type": "unit", "cost": 1, "rarity": "starter",
+    "text": "Deploy. 6 HP, fires 3 Direct.",
+    "unit": {"hp": 6, "fp": 3, "attack": "direct", "rows": ["front", "back"]},
+    "upgrade": {"text": "Deploy. 8 HP, fires 4 Direct.", "unit": {"hp": 8, "fp": 4}}
+  },
+  "bar_gunner": {
+    "name": "BAR Gunner", "type": "unit", "cost": 2, "rarity": "starter",
+    "text": "Deploy. 5 HP, fires 2 Direct twice.",
+    "unit": {"hp": 5, "fp": 2, "shots": 2, "attack": "direct", "rows": ["front", "back"]},
+    "upgrade": {"text": "Deploy. 6 HP, fires 3 Direct twice.", "unit": {"hp": 6, "fp": 3}}
+  },
+  "open_fire": {
+    "name": "Open Fire!", "type": "order", "cost": 1, "rarity": "starter", "target": "ally",
+    "text": "A unit fires immediately with +3 damage.",
+    "effects": [{"op": "fire", "bonus": 3}],
+    "upgrade": {"text": "A unit fires immediately with +5 damage.", "effects": [{"op": "fire", "bonus": 5}]}
+  },
+  "dig_in": {
+    "name": "Dig In", "type": "order", "cost": 1, "rarity": "starter", "target": "ally",
+    "text": "Give a unit 5 Cover.",
+    "effects": [{"op": "cover", "amount": 5}],
+    "upgrade": {"text": "Give a unit 8 Cover.", "effects": [{"op": "cover", "amount": 8}]}
+  },
+
+  "medic": {
+    "name": "Medic", "type": "unit", "cost": 1, "rarity": "common",
+    "text": "Deploy. 4 HP. End of turn: heal adjacent units 2.",
+    "unit": {"hp": 4, "fp": 0, "attack": "direct", "rows": ["front", "back"], "traits": {"medic": 2}},
+    "upgrade": {"text": "Deploy. 5 HP. End of turn: heal adjacent units 3.", "unit": {"hp": 5, "traits": {"medic": 3}}}
+  },
+  "mortar_team": {
+    "name": "Mortar Team", "type": "unit", "cost": 2, "rarity": "common",
+    "text": "Deploy to back row. 4 HP, fires 4 Indirect at the toughest enemy.",
+    "unit": {"hp": 4, "fp": 4, "attack": "indirect", "rows": ["back"]},
+    "upgrade": {"text": "Deploy to back row. 5 HP, fires 6 Indirect at the toughest enemy.", "unit": {"hp": 5, "fp": 6}}
+  },
+  "sniper": {
+    "name": "Sniper", "type": "unit", "cost": 2, "rarity": "uncommon",
+    "text": "Deploy to back row. 3 HP, fires 6 Precision at the weakest enemy.",
+    "unit": {"hp": 3, "fp": 6, "attack": "precision", "rows": ["back"]},
+    "upgrade": {"text": "Deploy to back row. 4 HP, fires 8 Precision at the weakest enemy.", "unit": {"hp": 4, "fp": 8}}
+  },
+  "bazooka": {
+    "name": "Bazooka", "type": "unit", "cost": 2, "rarity": "common",
+    "text": "Deploy. 4 HP, fires 6 Direct. Ignores Armor and deals +50% to armored targets.",
+    "unit": {"hp": 4, "fp": 6, "attack": "direct", "rows": ["front", "back"], "traits": {"anti_armor": 1}},
+    "upgrade": {"text": "Deploy. 5 HP, fires 8 Direct. Ignores Armor and deals +50% to armored targets.", "unit": {"hp": 5, "fp": 8}}
+  },
+  "sherman": {
+    "name": "Sherman", "type": "unit", "cost": 3, "rarity": "rare",
+    "text": "Deploy to front row. 18 HP, Armor 2, fires 6 Direct.",
+    "unit": {"hp": 18, "fp": 6, "armor": 2, "attack": "direct", "rows": ["front"]},
+    "upgrade": {"text": "Deploy to front row. 22 HP, Armor 3, fires 7 Direct.", "unit": {"hp": 22, "fp": 7, "armor": 3}}
+  },
+  "grenade": {
+    "name": "Grenade", "type": "order", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "Deal 6 Indirect damage to any enemy.",
+    "effects": [{"op": "damage", "amount": 6, "attack": "indirect"}],
+    "upgrade": {"text": "Deal 9 Indirect damage to any enemy.", "effects": [{"op": "damage", "amount": 9, "attack": "indirect"}]}
+  },
+  "smoke_screen": {
+    "name": "Smoke Screen", "type": "order", "cost": 1, "rarity": "common", "target": "none",
+    "text": "Smoke your front row: enemy Direct fire against it misses this round.",
+    "effects": [{"op": "smoke", "row": "front"}],
+    "upgrade": {"cost": 0}
+  },
+  "advance": {
+    "name": "Advance", "type": "order", "cost": 0, "rarity": "common", "target": "ally", "requires_row": "back",
+    "text": "Move a back-row unit to the front row. It fires.",
+    "effects": [{"op": "move", "to": "front"}, {"op": "fire"}],
+    "upgrade": {"text": "Move a back-row unit to the front row. It fires with +2 damage.", "effects": [{"op": "move", "to": "front"}, {"op": "fire", "bonus": 2}]}
+  },
+  "fall_back": {
+    "name": "Fall Back", "type": "order", "cost": 0, "rarity": "common", "target": "ally", "requires_row": "front",
+    "text": "Move a front-row unit to the back row. Heal it 3.",
+    "effects": [{"op": "move", "to": "back"}, {"op": "heal", "amount": 3}],
+    "upgrade": {"text": "Move a front-row unit to the back row. Heal it 6.", "effects": [{"op": "move", "to": "back"}, {"op": "heal", "amount": 6}]}
+  },
+  "suppressing_fire": {
+    "name": "Suppressing Fire", "type": "order", "cost": 1, "rarity": "common", "target": "none",
+    "text": "Apply 2 Suppressed to every enemy in the front row.",
+    "effects": [{"op": "status", "status": "suppressed", "amount": 2, "scope": "enemy_front"}],
+    "upgrade": {"text": "Apply 3 Suppressed to every enemy in the front row.", "effects": [{"op": "status", "status": "suppressed", "amount": 3, "scope": "enemy_front"}]}
+  },
+  "requisition": {
+    "name": "Requisition", "type": "order", "cost": 0, "rarity": "common", "target": "none", "expend": true,
+    "text": "Draw 2. Expend.",
+    "effects": [{"op": "draw", "amount": 2}],
+    "upgrade": {"text": "Draw 3. Expend.", "effects": [{"op": "draw", "amount": 3}]}
+  },
+  "hold_the_line": {
+    "name": "Hold the Line", "type": "doctrine", "cost": 2, "rarity": "uncommon", "target": "none",
+    "text": "Doctrine. Start of turn: your front-row units gain 2 Cover.",
+    "triggers": {"turn_start": [{"op": "cover", "amount": 2, "scope": "ally_front"}]},
+    "upgrade": {"cost": 1}
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "enemies": {
+    "grenadier": {
+      "name": "Grenadier", "hp": 18,
+      "intents": [
+        {"ops": [{"op": "attack", "amount": 6, "attack": "direct"}]}
+      ]
+    },
+    "mg42": {
+      "name": "MG42 Team", "hp": 26,
+      "intents": [
+        {"ops": [{"op": "attack", "amount": 4, "hits": 2, "attack": "direct"}]},
+        {"ops": [{"op": "attack", "amount": 4, "hits": 2, "attack": "direct"}]},
+        {"ops": [{"op": "status", "status": "suppressed", "amount": 1, "scope": "row", "row": "front"}, {"op": "attack", "amount": 4, "attack": "direct"}]}
+      ]
+    },
+    "mortar_crew": {
+      "name": "Mortar Crew", "hp": 16,
+      "intents": [
+        {"ops": [{"op": "attack", "amount": 7, "attack": "indirect", "target": "highest_hp"}]},
+        {"ops": [{"op": "cover", "amount": 4}]}
+      ]
+    },
+    "sniper": {
+      "name": "Sniper", "hp": 12,
+      "intents": [
+        {"ops": [{"op": "attack", "amount": 9, "attack": "precision", "target": "back"}]},
+        {"ops": [{"op": "cover", "amount": 3}]}
+      ]
+    }
+  },
+  "encounters": {
+    "patrol": {"front": ["grenadier", "grenadier"], "back": []},
+    "mg_nest": {"front": ["grenadier", "mg42"], "back": []},
+    "mortar_line": {"front": ["grenadier", "grenadier"], "back": ["mortar_crew"]},
+    "overwatch": {"front": ["grenadier"], "back": ["sniper", "mortar_crew"]}
+  }
+}

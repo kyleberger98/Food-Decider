@@ -57,10 +57,12 @@ A run is one act (prototype) of ~15 floors on a branching map, ending in a boss 
 
 1. **Start of turn:** gain 3 **Command Points (CP)**, draw 5. Your units' Cover resets to 0 (unless Entrenched).
 2. **Your phase:** play cards in any order.
-3. **End of turn:** discard hand. **Your units fire** left-to-right (front row, then back row) at their default targets.
-4. **Enemy phase:** enemies execute their shown intents, then show new intents.
+3. **End of turn:** discard hand. **Your units fire** left-to-right (front row, then back row) at their default targets. Medics heal.
+4. **Enemy phase:** each enemy executes its shown intent (attack, barrage, dig in, suppress…), then shows a new one.
 
-Enemy units fire automatically too; enemy *intents* are their special actions on top of that (barrage, reinforce, charge, buff).
+Your units fire automatically; enemies act only through their telegraphed intents, exactly like StS.
+
+**Default targets:** Direct fire hits the unit in the same lane (slot), else the leftmost legal target. Indirect hits the toughest (highest HP) target. Precision hits the weakest.
 
 ### 3.3 Targeting rules (the positional core)
 
@@ -73,7 +75,11 @@ Enemy units fire automatically too; enemy *intents* are their special actions on
 - If **your** front row is empty, enemy direct fire hits your **back row**; if that's empty too, it hits **Resolve** directly.
 - So front-line units are your "Block." Losing your line is how you lose.
 - **Row restrictions:** some units only deploy to one row (Mortar Team: back only; Rifle Squad: either; Sherman: front only).
-- **Moving:** Orders like *Advance* / *Fall Back* move a unit between rows. Front row gives Direct-fire units a damage bonus (+2); back row protects.
+- **Moving:** Orders like *Advance* / *Fall Back* move a unit between rows. Front row gives your Direct-fire units a damage bonus (+2); back row protects.
+
+### 3.3b Casualties (decided)
+- When a unit dies, its card goes to the **discard pile** and can be redeployed.
+- Each card tracks **casualties** across the run. On its **3rd** death the card is **lost** from your deck after the combat.
 
 ### 3.4 Card types
 
@@ -149,7 +155,7 @@ At a **Workshop**, pick two cards → they're removed and replaced by one merged
 |---|---|---|---|
 | Rifle Squad ×3 | Unit | 1 | 6 HP, 3 Direct |
 | BAR Gunner ×1 | Unit | 2 | 5 HP, 2×2 Direct |
-| Open Fire! ×3 | Order | 1 | All your units fire immediately |
+| Open Fire! ×3 | Order | 1 | A unit fires immediately with +3 damage |
 | Dig In ×3 | Order | 1 | Give a unit 5 Cover |
 
 ### 5.2 Reward card pool (~20)
@@ -181,10 +187,10 @@ At a **Workshop**, pick two cards → they're removed and replaced by one merged
 
 | Enemy | HP | Pattern |
 |---|---|---|
-| Grenadier | 8 | Front; fires 3 Direct |
-| MG42 Team | 10 | Front; 2×3 Direct; every 3rd turn *Suppress* your front row |
-| Mortar Crew | 7 | Back; 5 Indirect at your highest-HP unit |
-| Sniper | 6 | Back; 7 Precision at your back row / Resolve |
+| Grenadier | 18 | Front; 6 Direct |
+| MG42 Team | 26 | Front; 2×4 Direct; every 3rd turn *Suppress* your front row + 4 Direct |
+| Mortar Crew | 16 | Back; alternates 7 Indirect at your highest-HP unit / 4 Cover |
+| Sniper | 12 | Back; alternates 9 Precision at your back row (or Resolve if empty) / 3 Cover |
 | Panzerfaust Team | 6 | Front; 10 Direct to your Armor unit if any, else 4 |
 | Feldwebel (Officer) | 12 | Back; buffs allies +2 dmg, calls Reinforcement (Grenadier) every 3 turns |
 | **Elite: Fortified Bunker** | 40 | Front, Entrenched 8 Cover; 3×4 Direct; immune to Precision |
@@ -214,16 +220,17 @@ game/
   project.godot
   data/              # JSON content: cards, enemies, recipes, attachments, relics, events
   core/              # Pure logic (RefCounted classes)
-    rng.gd           # Seeded RNG — every run reproducible from a seed
-    card.gd, unit.gd, enemy.gd
+    card_db.gd       # loads data/, builds cards, units, enemies
+    card_instance.gd # one card in the deck (upgrade, attachment, casualties)
+    unit.gd          # anything on the battlefield
     battlefield.gd   # rows, slots, targeting rules
-    combat.gd        # turn state machine, emits events for the UI
-    effects.gd       # effect interpreter (damage, cover, status, draw…)
+    combat.gd        # seeded turn state machine + effect interpreter, emits events for the UI
     crafting.gd      # attachments + merge recipes
     map_gen.gd       # StS-style branching map
     run_state.gd     # deck, Resolve, supply, relics, floor
   ui/                # Scenes + scripts that observe core/ via signals
-  tests/             # Headless tests (run with `godot --headless -s`)
+  tests/             # Headless tests (tests/run.sh)
+  tools/sim.gd       # Greedy-bot balance simulator
 ```
 
 - Cards are **data-driven**: effects defined in JSON as lists like `[{"op":"damage","amount":6,"type":"indirect","target":"choose_enemy"}]`, interpreted by `effects.gd`. New cards = new JSON, no code.
@@ -234,7 +241,7 @@ game/
 
 ## 7. Milestones
 
-1. **M1 — Combat core (headless):** battlefield, targeting, units, starter deck, 3 enemies, tests.
+1. **M1 — Combat core (headless):** battlefield, targeting, units, starter deck, 4 enemies, tests. ✅
 2. **M2 — Combat UI:** playable single fight with drag-to-deploy, intents, rows.
 3. **M3 — Run loop:** map, rewards, Field Aid Station, Quartermaster, events, boss.
 4. **M4 — Crafting:** Workshop, attachments, merges.
@@ -242,9 +249,13 @@ game/
 
 ---
 
-## 8. Open Questions
+## 8. Decisions & Open Questions
 
-1. **Unit death:** when a Unit dies, does its card go to the discard pile (redeployable) or is it lost for the combat? *Proposal: discard pile — keeps decks from running dry.*
-2. **Units in hand vs on field:** is a field cap of 5 units enough, or should some cards *reinforce* an existing unit instead of taking a slot?
-3. **Permadeath of units across the run?** (e.g. a unit killed 3 times is removed from the deck — more "commander" flavor, but punishing.)
-4. **Title:** keep *Hedgerow*?
+**Decided**
+- Dead units' cards return to the discard pile. ✅
+- Cards are lost after 3 casualties in a run. ✅
+- Title: *Hedgerow*. ✅
+
+**Open**
+1. **Attrition balance:** the greedy-bot sim loses ~2 units per fight, so Resolve barely drops and the real cost is casualties. With the 3-casualty rule, that may drain decks too fast over 15 floors. Revisit in M5 (e.g. a Field Aid Station option to clear casualties, or fewer deaths per fight).
+2. **Field cap:** is 5 unit slots enough, or should some cards *reinforce* an existing unit instead of taking a slot?

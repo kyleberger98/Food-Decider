@@ -279,11 +279,11 @@ func _on_fight_over() -> void:
 func _build_ui() -> void:
 	var bg := ColorRect.new()
 	bg.color = Palette.BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
 	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 12)
 	add_child(margin)
@@ -352,7 +352,7 @@ func _build_ui() -> void:
 	root.add_child(_hand_box)
 
 	_fx_layer = Control.new()
-	_fx_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fx_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_fx_layer)
 

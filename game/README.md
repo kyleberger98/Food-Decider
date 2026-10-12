@@ -2,11 +2,12 @@
 
 A WWII deck-building roguelike in the style of Slay the Spire, built in Godot 4.3. See [DESIGN.md](DESIGN.md).
 
-**Status:** M3 done. You can play a full run: a branching map of 12 floors with fights, elites, rest stops, a shop and random events, ending in a fight against a Tiger I tank. Graphics are placeholders. Workshop crafting comes next (M4).
+**Status:** M4 done. You can play a full run: a branching map of 12 floors with fights, elites, rest stops, a shop, Workshops and random events, ending in a fight against a Tiger I tank. At Workshops you fit attachments to cards or merge two cards into one. Graphics are placeholders. Content and balance come next (M5).
 
 ![Map](docs/map.png)
 ![Combat screen](docs/combat.png)
 ![Reward, shop, rest stop and event screens](docs/screens.png)
+![Workshop and merge preview](docs/workshop.png)
 
 ## Play
 
@@ -44,7 +45,7 @@ godot --headless --path game -s res://tools/sim.gd -- runs 300     # full runs t
 
 ## Layout
 
-- `data/`: cards, enemies and encounters, Commendations and events as JSON. To add content, edit these files; no code needed.
+- `data/`: cards, enemies and encounters, Commendations, events, attachments and merge recipes as JSON. To add content, edit these files; no code needed.
 - `core/`: game logic. Plain GDScript with no scenes, so it can be tested.
 - `ui/`: the combat screen, built in code (`main.tscn` is the entry scene).
 - `tests/`: headless test suite.

@@ -3,14 +3,15 @@ extends RefCounted
 ## Small builders shared by the run screens.
 
 
-## A full-rect background with a centered column; returns the column.
-static func centered_column(parent: Control, separation := 16) -> VBoxContainer:
-	var bg := ColorRect.new()
-	bg.color = Palette.BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	parent.add_child(bg)
+## A full-rect background (optional) with a centered column; returns the column.
+static func centered_column(parent: Control, separation := 16, with_bg := true) -> VBoxContainer:
+	if with_bg:
+		var bg := ColorRect.new()
+		bg.color = Palette.BG
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		parent.add_child(bg)
 	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	parent.add_child(center)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", separation)

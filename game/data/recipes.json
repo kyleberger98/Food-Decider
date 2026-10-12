@@ -1,0 +1,11 @@
+[
+  {"a": "rifle_squad", "b": "rifle_squad", "result": "reinforced_squad"},
+  {"a": "rifle_squad", "b": "bazooka", "result": "bazooka_team"},
+  {"a": "rifle_squad", "b": "medic", "result": "combat_medic_squad"},
+  {"a": "bar_gunner", "b": "dig_in", "result": "mg_nest"},
+  {"a": "grenade", "b": "grenade", "result": "satchel_charge"},
+  {"a": "smoke_screen", "b": "advance", "result": "covered_advance"},
+  {"a": "dig_in", "b": "dig_in", "result": "foxholes"},
+  {"a": "open_fire", "b": "open_fire", "result": "volley_fire"},
+  {"a": "mortar_team", "b": "grenade", "result": "fire_mission"}
+]

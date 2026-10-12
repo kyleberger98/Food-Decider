@@ -6,6 +6,8 @@ const CARDS_PATH := "res://data/cards.json"
 const ENEMIES_PATH := "res://data/enemies.json"
 const RELICS_PATH := "res://data/relics.json"
 const EVENTS_PATH := "res://data/events.json"
+const ATTACHMENTS_PATH := "res://data/attachments.json"
+const RECIPES_PATH := "res://data/recipes.json"
 
 const STARTER_DECK := {"rifle_squad": 3, "bar_gunner": 1, "open_fire": 3, "dig_in": 3}
 
@@ -13,6 +15,8 @@ static var _cards := {}
 static var _enemy_data := {}
 static var _relics := {}
 static var _events := {}
+static var _attachments := {}
+static var _recipes := []
 
 
 static func cards() -> Dictionary:
@@ -41,11 +45,27 @@ static func events() -> Dictionary:
 	return _events
 
 
+static func attachments() -> Dictionary:
+	if _attachments.is_empty():
+		_attachments = _load_json(ATTACHMENTS_PATH)
+	return _attachments
+
+
+## [{"a": id, "b": id, "result": id}, ...]
+static func recipes() -> Array:
+	if _recipes.is_empty():
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string(RECIPES_PATH))
+		assert(parsed is Array, "Failed to parse " + RECIPES_PATH)
+		_recipes = parsed
+	return _recipes
+
+
 ## Card ids that can show up as rewards/shop stock, optionally of one rarity.
+## Starter cards and merge results never do.
 static func reward_pool(rarity := "") -> Array:
 	return cards().keys().filter(func(id):
 		var r: String = cards()[id].get("rarity", "")
-		return r != "starter" and (rarity == "" or r == rarity))
+		return r != "starter" and r != "merged" and (rarity == "" or r == rarity))
 
 
 static func card_def(id: String, upgraded := false) -> Dictionary:
@@ -83,7 +103,21 @@ static func unit_from_card(card: CardInstance) -> Unit:
 	unit.attack = u.get("attack", "direct")
 	unit.armor = int(u.get("armor", 0))
 	unit.traits = u.get("traits", {}).duplicate()
+	unit.entrenched = bool(u.get("entrenched", false))
 	unit.card = card
+	match card.attachment:
+		"scope":
+			unit.attack = "precision"
+		"bayonet":
+			unit.traits["bayonet"] = 3
+		"extended_mag":
+			unit.shots += 1
+			unit.firepower = maxi(1, unit.firepower - 1)
+		"sandbags":
+			unit.traits["deploy_cover"] = int(unit.traits.get("deploy_cover", 0)) + 6
+		"ration_pack":
+			unit.max_hp += 4
+			unit.hp = unit.max_hp
 	return unit
 
 

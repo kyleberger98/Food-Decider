@@ -4,5 +4,6 @@
   "bronze_star": {"name": "Bronze Star", "rarity": "common", "text": "+1 Command on the first turn of each combat."},
   "field_manual": {"name": "Field Manual", "rarity": "common", "text": "Draw 1 extra card on the first turn of each combat."},
   "lucky_zippo": {"name": "Lucky Zippo", "rarity": "uncommon", "text": "The first unit that would die each combat survives at 1 HP."},
-  "signal_flare": {"name": "Signal Flare", "rarity": "uncommon", "text": "At the start of combat, all enemies are Exposed for 1 turn."}
+  "signal_flare": {"name": "Signal Flare", "rarity": "uncommon", "text": "At the start of combat, all enemies are Exposed for 1 turn."},
+  "spare_parts": {"name": "Spare Parts Crate", "rarity": "uncommon", "text": "Workshops let you do two jobs instead of one."}
 }

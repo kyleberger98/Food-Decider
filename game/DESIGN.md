@@ -111,12 +111,40 @@ Your units fire automatically; enemies act only through their telegraphed intent
 Same as StS: each card has one upgraded version (`Rifle Squad` → `Rifle Squad+`). Done at Field Aid Stations.
 
 ### 4.2 Attachments (small tweaks)
-- Found as rewards, bought from the Quartermaster, or from events.
-- Applied at a **Workshop** (or free from certain events). **One attachment per card.**
-- An attachment stays on the card permanently, including through merges.
+- Found after fights (30% chance; elites always), bought from the Quartermaster (40 Supply), or from events (Farmhouse, Supply Dump). They go into your **kit** (shown in the top bar).
+- Fitted at a **Workshop**. **One attachment per card**; fitting a new one returns the old one to your kit.
+- An attachment stays on the card permanently, including through merges (if the merged card can't take it, or both inputs had one, the extra goes back to your kit).
 
 | Attachment | Fits | Effect |
 |---|---|---|
+| **Scope** | Unit with Direct fire | Fires as Precision |
+| **Bayonet** | Unit | +3 firepower while in front row |
+| **Extended Mag** | Unit with 2+ firepower | Fires one extra time, −1 firepower per shot |
+| **Sandbags** | Unit | Deploys with 6 Cover |
+| **Field Radio** | Any | When played, draw 1 |
+| **Ration Pack** | Unit | +4 max HP |
+
+### 4.3 Merging (big upgrades)
+At a **Workshop**, pick two cards → they're removed and replaced by one merged card. A Workshop allows **one** job (attachment or merge); the *Spare Parts Crate* Commendation allows two. The screen lists the recipes your deck can make right now, and previews the result before you confirm.
+
+- **Recipes** produce named cards (order doesn't matter; an upgraded input gives an upgraded result):
+
+| A | + B | = Result |
+|---|---|---|
+| Rifle Squad | Rifle Squad | **Reinforced Squad**: 1 CP, 10 HP, 4 Direct |
+| Rifle Squad | Bazooka | **Bazooka Team**: 2 CP, 7 HP, 8 Direct, anti-armor |
+| Rifle Squad | Medic | **Combat Medic Squad**: 1 CP, 8 HP, 3 Direct, heals adjacent 2 |
+| BAR Gunner | Dig In | **MG Nest**: 2 CP, 8 HP, 3 Direct ×3, deploys with 4 Cover, Entrenched |
+| Grenade | Grenade | **Satchel Charge**: 14 Indirect to one enemy, Expend |
+| Smoke Screen | Advance | **Covered Advance**: smoke front row, move a unit up, it fires |
+| Dig In | Dig In | **Foxholes**: 8 Cover and Entrenched |
+| Open Fire! | Open Fire! | **Volley Fire**: 2 CP, all your units fire |
+| Mortar Team | Grenade | **Fire Mission**: Doctrine, 6 Indirect to the toughest enemy each turn |
+
+- **Generic merge** (no recipe): only cards of the **same type**. Cost = the higher cost. Units: A's stats plus half of B's HP and firepower, rows both can use, best traits. Orders/doctrines: both cards' effects and triggers (not allowed if they need different kinds of target). Name: "A & B". Upgrading a generic merge upgrades both halves.
+- Merge results can't be merged again. Casualties carry over (the higher of the two).
+
+---|---|---|
 | **Scope** | Unit / Order with Direct | Becomes Precision |
 | **Bayonet** | Unit | +3 Firepower while in front row |
 | **Extended Mag** | Unit | Fires twice, −1 Firepower per shot |
@@ -247,7 +275,7 @@ game/
 1. **M1 — Combat core (headless):** battlefield, targeting, units, starter deck, 4 enemies, tests. ✅
 2. **M2 — Combat UI:** playable single fight with drag-to-deploy, intents, rows. ✅ (plus back-to-back fights with card rewards as a stopgap until M3)
 3. **M3 — Run loop:** map, rewards, Field Aid Station, Quartermaster, events, boss. ✅
-4. **M4 — Crafting:** Workshop, attachments, merges.
+4. **M4 — Crafting:** Workshop, attachments, merges. ✅
 5. **M5 — Content & balance:** full card pool, elite, Tiger boss, commendations.
 
 ---

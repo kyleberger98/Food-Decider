@@ -3,37 +3,141 @@
     "name": "Abandoned Farmhouse",
     "text": "A shell-scarred farmhouse sits off the road. The windows are dark. Something could be inside: supplies, or a booby trap.",
     "choices": [
-      {"label": "Search it (gain a random card; 50% chance: lose 8 Resolve)",
-       "ops": [{"op": "card", "rarity": "common"}, {"op": "chance", "p": 0.5, "then": [{"op": "resolve", "amount": -8}]}]},
-      {"label": "Move on", "ops": []}
+      {
+        "label": "Search it (gain an attachment; 50% chance: lose 8 Resolve)",
+        "ops": [
+          {
+            "op": "attachment"
+          },
+          {
+            "op": "chance",
+            "p": 0.5,
+            "then": [
+              {
+                "op": "resolve",
+                "amount": -8
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Move on",
+        "ops": []
+      }
     ]
   },
   "resistance": {
     "name": "French Resistance Contact",
     "text": "A farmer waves you over. He works with the Resistance and offers help, for a price, or for some decent food.",
     "choices": [
-      {"label": "Pay 50 Supply (gain a random rare card)", "requires": {"supply": 50},
-       "ops": [{"op": "supply", "amount": -50}, {"op": "card", "rarity": "rare"}]},
-      {"label": "Share rations (heal 10 Resolve)", "ops": [{"op": "resolve", "amount": 10}]},
-      {"label": "Leave", "ops": []}
+      {
+        "label": "Pay 50 Supply (gain a random rare card)",
+        "requires": {
+          "supply": 50
+        },
+        "ops": [
+          {
+            "op": "supply",
+            "amount": -50
+          },
+          {
+            "op": "card",
+            "rarity": "rare"
+          }
+        ]
+      },
+      {
+        "label": "Share rations (heal 10 Resolve)",
+        "ops": [
+          {
+            "op": "resolve",
+            "amount": 10
+          }
+        ]
+      },
+      {
+        "label": "Leave",
+        "ops": []
+      }
     ]
   },
   "stragglers": {
     "name": "Stragglers",
     "text": "A handful of paratroopers, scattered by the night drop, stumble out of the hedgerows.",
     "choices": [
-      {"label": "Take them in (add a Rifle Squad)", "ops": [{"op": "card", "id": "rifle_squad"}]},
-      {"label": "Send them to scout ahead (lose 5 Resolve, gain a Commendation)",
-       "ops": [{"op": "resolve", "amount": -5}, {"op": "relic"}]}
+      {
+        "label": "Take them in (add a Rifle Squad)",
+        "ops": [
+          {
+            "op": "card",
+            "id": "rifle_squad"
+          }
+        ]
+      },
+      {
+        "label": "Send them to scout ahead (lose 5 Resolve, gain a Commendation)",
+        "ops": [
+          {
+            "op": "resolve",
+            "amount": -5
+          },
+          {
+            "op": "relic"
+          }
+        ]
+      }
     ]
   },
   "field_hospital": {
     "name": "Field Hospital",
     "text": "A battalion aid station has set up in a church. The surgeons can patch up your worn-out squads.",
     "choices": [
-      {"label": "Pay 30 Supply (clear all casualties in your deck)", "requires": {"supply": 30},
-       "ops": [{"op": "supply", "amount": -30}, {"op": "clear_casualties"}]},
-      {"label": "Leave", "ops": []}
+      {
+        "label": "Pay 30 Supply (clear all casualties in your deck)",
+        "requires": {
+          "supply": 30
+        },
+        "ops": [
+          {
+            "op": "supply",
+            "amount": -30
+          },
+          {
+            "op": "clear_casualties"
+          }
+        ]
+      },
+      {
+        "label": "Leave",
+        "ops": []
+      }
+    ]
+  },
+  "supply_dump": {
+    "name": "Abandoned Supply Dump",
+    "text": "A German supply dump, hastily abandoned. Crates of gear, and a few jerrycans.",
+    "choices": [
+      {
+        "label": "Salvage gear (gain 2 attachments)",
+        "ops": [
+          {
+            "op": "attachment"
+          },
+          {
+            "op": "attachment"
+          }
+        ]
+      },
+      {
+        "label": "Sell the fuel to the motor pool (+60 Supply)",
+        "ops": [
+          {
+            "op": "supply",
+            "amount": 60
+          }
+        ]
+      }
     ]
   }
 }

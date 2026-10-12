@@ -36,6 +36,12 @@ static func describe(e: Dictionary) -> String:
 			return "Smoke covers the %s row." % e["row"]
 		"pinned_skip":
 			return "%s is pinned and can't act." % e["unit"].name
+		"zippo":
+			return "[color=#d9b44a]%s should be dead, but the Lucky Zippo stopped the bullet![/color]" % e["unit"].name
+		"summoned":
+			return "[color=#ff6b5a]Enemy reinforcements: %s arrives.[/color]" % e["unit"].name
+		"half_hp":
+			return "%s is badly damaged!" % e["unit"].name
 		"reshuffled":
 			return "Discard pile shuffled into the draw pile."
 		"combat_won":

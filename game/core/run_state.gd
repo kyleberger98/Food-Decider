@@ -15,6 +15,9 @@ const RARITY_ODDS := {"normal": [0.6, 0.33, 0.07], "elite": [0.4, 0.42, 0.18]}
 const CARD_PRICE := {"common": 50, "uncommon": 75, "rare": 140}
 const RELIC_PRICE := 150
 const REMOVE_PRICE := 75
+const ATTACHMENT_PRICE := 40
+## Chance a normal fight also drops an attachment (elites always do).
+const ATTACHMENT_DROP := 0.3
 ## Floors (0-based) that use the easy encounter pool.
 const EASY_FLOORS := 3
 
@@ -24,6 +27,8 @@ var resolve := START_RESOLVE
 var max_resolve := START_RESOLVE
 var supply := START_SUPPLY
 var relics: Array = []
+## Attachment ids carried but not yet fitted (fit them at a Workshop).
+var attachments: Array = []
 var map: RunMap
 var position: RunMap.MapNode = null
 var fights_won := 0
@@ -88,7 +93,7 @@ func start_combat(encounter_id: String) -> Combat:
 ## Applies a finished combat to the run. Returns the rewards on offer:
 ## {"lost_cards": [...], "supply": int, "cards": [ids], "relic": id or ""}.
 func finish_combat(c: Combat, tier: String) -> Dictionary:
-	var result := {"lost_cards": c.lost_cards(), "supply": 0, "cards": [], "relic": ""}
+	var result := {"lost_cards": c.lost_cards(), "supply": 0, "cards": [], "relic": "", "attachment": ""}
 	for card in result["lost_cards"]:
 		deck.erase(card)
 	resolve = c.resolve
@@ -105,6 +110,9 @@ func finish_combat(c: Combat, tier: String) -> Dictionary:
 	result["supply"] = rng.randi_range(range_[0], range_[1])
 	supply += result["supply"]
 	result["cards"] = card_choices(REWARD_CHOICES, "elite" if tier == "elite" else "normal")
+	if tier == "elite" or rng.randf() < ATTACHMENT_DROP:
+		result["attachment"] = random_attachment()
+		attachments.append(result["attachment"])
 	if tier == "elite":
 		result["relic"] = random_relic()
 		if result["relic"] != "":
@@ -174,7 +182,7 @@ func rest_heal() -> int:
 ## Upgrade a card in place (new instance keeps casualties and attachment).
 func promote(card: CardInstance) -> CardInstance:
 	assert(not card.upgraded)
-	var up := CardDB.make_card(card.id, true)
+	var up := Crafting.upgrade_merged(card) if card.is_merged() else CardDB.make_card(card.id, true)
 	up.casualties = card.casualties
 	up.attachment = card.attachment
 	deck[deck.find(card)] = up
@@ -193,11 +201,14 @@ func shop_stock() -> Dictionary:
 	for id in card_choices(5):
 		var rarity: String = CardDB.cards()[id]["rarity"]
 		cards.append({"id": id, "price": CARD_PRICE.get(rarity, 75)})
+	var att_stock := []
+	for i in 2:
+		att_stock.append({"id": random_attachment(), "price": ATTACHMENT_PRICE})
 	var relic_stock := []
 	var a := random_relic()
 	if a != "":
 		relic_stock.append({"id": a, "price": RELIC_PRICE})
-	return {"cards": cards, "relics": relic_stock, "remove_price": REMOVE_PRICE}
+	return {"cards": cards, "attachments": att_stock, "relics": relic_stock, "remove_price": REMOVE_PRICE}
 
 
 func can_afford(price: int) -> bool:
@@ -220,12 +231,81 @@ func buy_relic(id: String, price: int) -> bool:
 	return true
 
 
+func buy_attachment(id: String, price: int) -> bool:
+	if not can_afford(price):
+		return false
+	supply -= price
+	attachments.append(id)
+	return true
+
+
 func remove_card(card: CardInstance, price: int) -> bool:
 	if not can_afford(price) or not deck.has(card):
 		return false
 	supply -= price
 	deck.erase(card)
 	return true
+
+
+# --- Workshop ------------------------------------------------------------------------
+
+func random_attachment() -> String:
+	var ids := CardDB.attachments().keys()
+	return ids[rng.randi() % ids.size()]
+
+
+func workshop_actions() -> int:
+	return 2 if relics.has("spare_parts") else 1
+
+
+## Fits an attachment from the kit to a card. A card's previous attachment goes back to the kit.
+func attach(card: CardInstance, att_id: String) -> bool:
+	if not attachments.has(att_id) or not deck.has(card) or not Crafting.attachment_fits(card, att_id):
+		return false
+	attachments.erase(att_id)
+	if card.attachment != "":
+		attachments.append(card.attachment)
+	card.attachment = att_id
+	return true
+
+
+## Replaces a and b in the deck with their merge. Attachments: the first one that fits stays on the
+## new card; any other goes back to the kit.
+func merge_cards(a: CardInstance, b: CardInstance) -> CardInstance:
+	assert(deck.has(a) and deck.has(b) and Crafting.merge_error(a, b) == "")
+	var preview := preview_merge(a, b)
+	var merged: CardInstance = preview["card"]
+	attachments.append_array(preview["returned"])
+	deck[deck.find(a)] = merged
+	deck.erase(b)
+	return merged
+
+
+## What merging would produce, without changing anything: {"card": CardInstance, "returned": [attachment ids]}.
+func preview_merge(a: CardInstance, b: CardInstance) -> Dictionary:
+	var merged := Crafting.merge(a, b)
+	var returned := []
+	for att in [a.attachment, b.attachment]:
+		if att == "":
+			continue
+		if merged.attachment == "" and Crafting.attachment_fits(merged, att):
+			merged.attachment = att
+		else:
+			returned.append(att)
+	return {"card": merged, "returned": returned}
+
+
+## Recipes the current deck can make: [{"a": name, "b": name, "result": name}].
+func available_recipes() -> Array:
+	var out := []
+	for r in CardDB.recipes():
+		var a_cards := deck.filter(func(c): return c.id == r["a"])
+		var b_cards := deck.filter(func(c): return c.id == r["b"])
+		var enough: bool = a_cards.size() >= 2 if r["a"] == r["b"] else (not a_cards.is_empty() and not b_cards.is_empty())
+		if enough:
+			out.append({"a": CardDB.cards()[r["a"]]["name"], "b": CardDB.cards()[r["b"]]["name"],
+				"result": CardDB.cards()[r["result"]]["name"]})
+	return out
 
 
 # --- Intel events -------------------------------------------------------------------
@@ -277,6 +357,10 @@ func _run_ops(ops: Array, out: PackedStringArray) -> void:
 			"chance":
 				if rng.randf() < float(op["p"]):
 					_run_ops(op["then"], out)
+			"attachment":
+				var att := random_attachment()
+				attachments.append(att)
+				out.append("Gained attachment: " + CardDB.attachments()[att]["name"])
 			"clear_casualties":
 				for c in deck:
 					c.casualties = 0

@@ -7,6 +7,7 @@ const TYPE_STYLE := {
 	"aid": ["Aid", Color("5f9a54")],
 	"quartermaster": ["Shop", Color("c49a3a")],
 	"intel": ["Intel", Color("5d84a8")],
+	"workshop": ["Work", Color("9a7fb8")],
 	"boss": ["TIGER", Color("d0402f")],
 }
 const NODE_SIZE := Vector2(64, 36)
@@ -36,10 +37,10 @@ func setup(g) -> Control:
 func _ready() -> void:
 	var bg := ColorRect.new()
 	bg.color = Palette.BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	col.add_theme_constant_override("separation", 8)
 	add_child(col)
 	col.add_child(Widgets.title("Normandy, June 1944", Palette.TEXT, 26))
@@ -48,7 +49,7 @@ func _ready() -> void:
 	_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(_area)
 	var legend := Widgets.row(18)
-	for t in ["skirmish", "elite", "aid", "quartermaster", "intel"]:
+	for t in ["skirmish", "elite", "aid", "quartermaster", "workshop", "intel"]:
 		var swatch := ColorRect.new()
 		swatch.color = TYPE_STYLE[t][1]
 		swatch.custom_minimum_size = Vector2(14, 14)
@@ -61,7 +62,7 @@ func _ready() -> void:
 	col.add_child(pad)
 
 	_lines = Lines.new()
-	_lines.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_lines.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_area.add_child(_lines)
 	for node in game.run.map.all_nodes():

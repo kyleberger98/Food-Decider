@@ -33,7 +33,7 @@ func setup(c: CardInstance) -> CardView:
 	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(name_l)
 
-	var type_l := Palette.label(c.type().to_upper(), 10, Palette.TYPE_COLORS.get(c.type(), Palette.INK))
+	var type_l := Palette.label(c.type().to_upper() + ("  MERGED" if c.is_merged() else ""), 10, Palette.TYPE_COLORS.get(c.type(), Palette.INK))
 	v.add_child(type_l)
 
 	var text := Palette.label(c.def["text"], 12, Palette.INK)
@@ -41,6 +41,12 @@ func setup(c: CardInstance) -> CardView:
 	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(text)
 
+	if c.attachment != "":
+		var att: Dictionary = CardDB.attachments()[c.attachment]
+		var att_l := Palette.label("+ " + att["name"], 11, Palette.TYPE_COLORS["doctrine"])
+		att_l.tooltip_text = att["text"]
+		v.add_child(att_l)
+		tooltip_text += "\n\n%s: %s" % [att["name"], att["text"]]
 	if c.casualties > 0:
 		v.add_child(Palette.label("Casualties %d/%d" % [c.casualties, Combat.MAX_CASUALTIES], 10, Palette.ENEMY))
 	for child in v.get_children() + header.get_children():

@@ -1,8 +1,8 @@
 extends TestCase
 ## Sanity checks over the shipped content in data/.
 
-const KNOWN_OPS := ["attack", "draw", "cp", "smoke", "summon", "fire", "buff_fp", "cleanse", "cover", "damage", "heal", "status", "move"]
-const RUN_OPS := ["supply", "resolve", "card", "relic", "chance", "clear_casualties"]
+const KNOWN_OPS := ["attack", "draw", "cp", "smoke", "summon", "fire", "buff_fp", "cleanse", "entrench", "cover", "damage", "heal", "status", "move"]
+const RUN_OPS := ["supply", "resolve", "card", "relic", "attachment", "chance", "clear_casualties"]
 const CARD_TYPES := ["unit", "order", "doctrine", "status"]
 
 
@@ -72,3 +72,14 @@ func _check_run_ops(where: String, ops: Array) -> void:
 			_check_run_ops(where, op["then"])
 		if op["op"] == "card" and op.has("id"):
 			check(CardDB.cards().has(op["id"]), where + ": unknown card " + op["id"])
+
+
+func test_recipes_and_attachments() -> void:
+	for r in CardDB.recipes():
+		for k in ["a", "b", "result"]:
+			check(CardDB.cards().has(r[k]), "recipe uses unknown card " + r[k])
+		eq(CardDB.cards()[r["result"]]["rarity"], "merged", r["result"] + " should be rarity merged")
+	for id in CardDB.attachments():
+		var a: Dictionary = CardDB.attachments()[id]
+		check(["any", "unit", "unit_direct", "unit_fp2"].has(a["fits"]), id + ": bad fits")
+	check(not CardDB.reward_pool().has("satchel_charge"), "merge results aren't rewards")

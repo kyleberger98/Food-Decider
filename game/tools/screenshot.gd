@@ -1,6 +1,6 @@
 extends SceneTree
 ## Renders one screen of the game to a PNG (needs a display, e.g. xvfb-run).
-## godot --path game -s res://tools/screenshot.gd -- out.png [map|combat|boss|reward|rest|shop|event|end] [seed]
+## godot --path game -s res://tools/screenshot.gd -- out.png [map|combat|boss|reward|rest|shop|event|workshop|merge|end] [seed]
 
 
 func _initialize() -> void:
@@ -45,6 +45,16 @@ func _initialize() -> void:
 			game._set_screen(game.ShopScreen.new().setup(game))
 		"event":
 			game._set_screen(game.EventScreen.new().setup(game, "resistance"))
+		"workshop", "merge":
+			run.attachments = ["scope", "sandbags", "field_radio"]
+			run.add_card("bazooka")
+			game._set_screen(game.WorkshopScreen.new().setup(game))
+			if mode == "merge":
+				await process_frame
+				var rifle = run.deck.filter(func(c): return c.id == "rifle_squad")[0]
+				var bz = run.deck.filter(func(c): return c.id == "bazooka")[0]
+				rifle.attachment = "bayonet"
+				game.screen._show_preview(rifle, bz)
 		"end":
 			run.won = true
 			game.show_end()

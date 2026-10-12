@@ -109,6 +109,8 @@ func play_card(card: CardInstance, target := {}) -> String:
 	cp -= card.cost()
 	hand.erase(card)
 	_emit("card_played", {"card": card})
+	if card.attachment == "field_radio":
+		draw(1)
 	match card.type():
 		"unit":
 			_deploy(card, target["row"], int(target["slot"]))
@@ -271,6 +273,10 @@ func _deploy(card: CardInstance, row: String, slot: int) -> void:
 	field.place(u, Battlefield.PLAYER, row, slot)
 	deployed.append(card)
 	_emit("unit_deployed", {"unit": u})
+	var deploy_cover := int(u.traits.get("deploy_cover", 0))
+	if deploy_cover > 0:
+		u.cover += deploy_cover
+		_emit("cover_gained", {"unit": u, "amount": deploy_cover})
 	if has_relic("cib") and not _first_deploy_done:
 		u.cover += 4
 		_emit("cover_gained", {"unit": u, "amount": 4})
@@ -308,6 +314,8 @@ func attack_damage(source: Unit, amount: int, attack: String, target: Unit) -> i
 	if source != null:
 		if source.side == Battlefield.PLAYER and attack == "direct" and source.row == Battlefield.FRONT:
 			dmg += FRONT_BONUS
+		if source.row == Battlefield.FRONT:
+			dmg += int(source.traits.get("bayonet", 0))
 		dmg += source.status("strength")
 		if source.status("suppressed") > 0:
 			dmg = floor(dmg * SUPPRESSED_MULT)
@@ -412,6 +420,9 @@ func _apply_unit_effect(eff: Dictionary, op: String, amount: int, u: Unit) -> vo
 		"buff_fp":
 			u.firepower += amount
 			_emit("status_applied", {"unit": u, "status": "firepower", "amount": amount})
+		"entrench":
+			u.entrenched = true
+			_emit("status_applied", {"unit": u, "status": "entrenched", "amount": 1})
 		"cleanse":
 			for s in ["suppressed", "pinned", "exposed", "bleeding"]:
 				u.statuses.erase(s)

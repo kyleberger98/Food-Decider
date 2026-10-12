@@ -12,6 +12,8 @@ var attachment := ""
 var casualties := 0
 ## Resolved definition (base + upgrade applied). Read-only by convention.
 var def: Dictionary
+## Set on cards made by merging: [[id, upgraded], [id, upgraded]] for generic merges, or the recipe inputs.
+var components: Array = []
 
 
 func _init(card_id: String, card_def: Dictionary, is_upgraded := false) -> void:
@@ -24,6 +26,10 @@ func _init(card_id: String, card_def: Dictionary, is_upgraded := false) -> void:
 
 func display_name() -> String:
 	return def["name"] + ("+" if upgraded else "")
+
+
+func is_merged() -> bool:
+	return not components.is_empty()
 
 
 func cost() -> int:

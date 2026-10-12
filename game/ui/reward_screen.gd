@@ -17,6 +17,9 @@ func _ready() -> void:
 	col.add_child(Widgets.body("+%d Supply" % rewards["supply"], Palette.HIGHLIGHT))
 	if rewards["relic"] != "":
 		col.add_child(Widgets.body("Commendation earned: " + Widgets.relic_text(rewards["relic"]), Palette.COVER))
+	if rewards.get("attachment", "") != "":
+		var att: Dictionary = CardDB.attachments()[rewards["attachment"]]
+		col.add_child(Widgets.body("Attachment found: %s (%s) Fit it at a Workshop." % [att["name"], att["text"]], Palette.TYPE_COLORS["doctrine"].lightened(0.3)))
 	if not rewards["lost_cards"].is_empty():
 		var names := PackedStringArray(rewards["lost_cards"].map(func(c): return c.display_name()))
 		col.add_child(Widgets.body("Lost for good (3 casualties): " + ", ".join(names), Palette.DAMAGE))

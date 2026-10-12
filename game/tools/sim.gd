@@ -46,6 +46,30 @@ func _fight(c: Combat) -> void:
 		c._hit_hq(9999, null)  # stalemate counts as a loss
 
 
+## Merge a known recipe if possible, otherwise fit an attachment.
+func _bot_workshop(run: RunState) -> void:
+	for jobs in run.workshop_actions():
+		var done := false
+		for r in CardDB.recipes():
+			var a_cards := run.deck.filter(func(c): return c.id == r["a"])
+			var b_cards := run.deck.filter(func(c): return c.id == r["b"] and not a_cards.slice(0, 1).has(c))
+			if not a_cards.is_empty() and not b_cards.is_empty():
+				run.merge_cards(a_cards[0], b_cards[0])
+				merges += 1
+				done = true
+				break
+		if done:
+			continue
+		for att in run.attachments.duplicate():
+			var fits := run.deck.filter(func(c): return c.attachment == "" and Crafting.attachment_fits(c, att))
+			if not fits.is_empty():
+				run.attach(fits[0], att)
+				break
+
+
+var merges := 0
+
+
 func _sim_runs(runs: int) -> void:
 	var wins := 0
 	var floors := 0
@@ -86,6 +110,8 @@ func _sim_runs(runs: int) -> void:
 					for item in stock["cards"]:
 						if run.buy_card(item["id"], item["price"]):
 							break
+				"workshop":
+					_bot_workshop(run)
 				"intel":
 					var ev := run.pick_event()
 					var choices: Array = CardDB.events()[ev]["choices"]
@@ -98,7 +124,7 @@ func _sim_runs(runs: int) -> void:
 		else:
 			killers[last_enc] = killers.get(last_enc, 0) + 1
 		floors += run.floor_number()
-	print("runs %d  win %.0f%%  avg floor %.1f  cards lost/run %.2f" % [runs, 100.0 * wins / runs, float(floors) / runs, float(cards_lost) / runs])
+	print("runs %d  win %.0f%%  avg floor %.1f  cards lost/run %.2f  merges/run %.2f" % [runs, 100.0 * wins / runs, float(floors) / runs, float(cards_lost) / runs, float(merges) / runs])
 	print("deaths by encounter: ", killers)
 
 

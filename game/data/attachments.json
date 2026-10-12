@@ -1,0 +1,8 @@
+{
+  "scope": {"name": "Scope", "fits": "unit_direct", "text": "Fires as Precision (can hit any enemy, picks the weakest)."},
+  "bayonet": {"name": "Bayonet", "fits": "unit", "text": "+3 firepower while in the front row."},
+  "extended_mag": {"name": "Extended Mag", "fits": "unit_fp2", "text": "Fires one extra time, but -1 firepower per shot."},
+  "sandbags": {"name": "Sandbags", "fits": "unit", "text": "Deploys with 6 Cover."},
+  "field_radio": {"name": "Field Radio", "fits": "any", "text": "When played, draw 1 card."},
+  "ration_pack": {"name": "Ration Pack", "fits": "unit", "text": "+4 max HP."}
+}

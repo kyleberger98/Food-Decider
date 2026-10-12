@@ -38,6 +38,17 @@ func _rebuild() -> void:
 		box.add_child(buy)
 		row.add_child(box)
 	_col.add_child(row)
+	for item in stock["attachments"]:
+		var att: Dictionary = CardDB.attachments()[item["id"]]
+		var aline := Widgets.row(12)
+		aline.add_child(Widgets.body("Attachment: %s. %s" % [att["name"], att["text"]], Palette.TYPE_COLORS["doctrine"].lightened(0.3), 520))
+		var abuy := Widgets.button("Sold" if item.get("sold") else "Buy %d" % item["price"], func():
+			if run.buy_attachment(item["id"], item["price"]):
+				item["sold"] = true
+				_changed(), 120)
+		abuy.disabled = item.get("sold", false) or not run.can_afford(item["price"])
+		aline.add_child(abuy)
+		_col.add_child(aline)
 	for item in stock["relics"]:
 		var line := Widgets.row(12)
 		line.add_child(Widgets.body(Widgets.relic_text(item["id"]), Palette.COVER, 520))

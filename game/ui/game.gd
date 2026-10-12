@@ -8,10 +8,11 @@ const RestScreen := preload("res://ui/rest_screen.gd")
 const ShopScreen := preload("res://ui/shop_screen.gd")
 const EventScreen := preload("res://ui/event_screen.gd")
 const EndScreen := preload("res://ui/end_screen.gd")
+const WorkshopScreen := preload("res://ui/workshop_screen.gd")
 const DeckPicker := preload("res://ui/deck_picker.gd")
 
 const NODE_NAMES := {"skirmish": "Skirmish", "elite": "Strongpoint", "aid": "Field Aid Station",
-	"quartermaster": "Quartermaster", "intel": "Intel", "boss": "Boss"}
+	"quartermaster": "Quartermaster", "workshop": "Workshop", "intel": "Intel", "boss": "Boss"}
 
 var run: RunState
 var screen: Control
@@ -24,6 +25,7 @@ var _resolve_label: Label
 var _supply_label: Label
 var _relic_box: HBoxContainer
 var _deck_btn: Button
+var _kit_label: Label
 var _holder: Control
 
 
@@ -53,6 +55,8 @@ func enter_node(node: RunMap.MapNode) -> void:
 			_set_screen(ShopScreen.new().setup(self))
 		"intel":
 			_set_screen(EventScreen.new().setup(self, run.pick_event()))
+		"workshop":
+			_set_screen(WorkshopScreen.new().setup(self))
 
 
 func _start_fight(node_type: String) -> void:
@@ -91,6 +95,12 @@ func refresh_bar() -> void:
 	_resolve_label.text = "Resolve %d/%d" % [res, run.max_resolve]
 	_supply_label.text = "Supply %d" % run.supply
 	_deck_btn.text = "Deck (%d)" % run.deck.size()
+	_kit_label.text = "Kit: %d attachment%s" % [run.attachments.size(), "" if run.attachments.size() == 1 else "s"]
+	var kit := PackedStringArray()
+	for att in run.attachments:
+		kit.append("%s: %s" % [CardDB.attachments()[att]["name"], CardDB.attachments()[att]["text"]])
+	_kit_label.tooltip_text = "\n".join(kit) if not kit.is_empty() else \
+		"No attachments. Find them in fights, events and shops; fit them at a Workshop."
 	for c in _relic_box.get_children():
 		c.queue_free()
 	for id in run.relics:
@@ -108,7 +118,7 @@ func _set_screen(s: Control) -> void:
 	if screen != null:
 		screen.queue_free()
 	screen = s
-	s.set_anchors_preset(Control.PRESET_FULL_RECT)
+	s.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_holder.add_child(s)
 	refresh_bar()
 
@@ -116,10 +126,10 @@ func _set_screen(s: Control) -> void:
 func _build() -> void:
 	var bg := ColorRect.new()
 	bg.color = Palette.PANEL_DARK
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	col.add_theme_constant_override("separation", 0)
 	add_child(col)
 
@@ -141,6 +151,9 @@ func _build() -> void:
 	_relic_box.add_theme_constant_override("separation", 6)
 	_relic_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(_relic_box)
+	_kit_label = Palette.label("", 14, Palette.TYPE_COLORS["doctrine"].lightened(0.3))
+	_kit_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	bar.add_child(_kit_label)
 	_deck_btn = Button.new()
 	_deck_btn.pressed.connect(func(): open_deck())
 	bar.add_child(_deck_btn)

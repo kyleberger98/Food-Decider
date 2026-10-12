@@ -81,6 +81,35 @@ func _initialize() -> void:
 	game.open_deck()
 	await _frames(2)
 	_check(_find_card_views(game).size() >= game.run.deck.size(), "deck viewer lists the deck")
+	await _click(_button_with(game, "Close"))
+
+	# Workshop: fit an attachment by clicking through the picker.
+	game.run.relics.append("spare_parts")
+	game.run.attachments = ["sandbags"]
+	game._set_screen(game.WorkshopScreen.new().setup(game))
+	await _frames(2)
+	await _click(_button_with(game.screen, "Sandbags"))
+	var picker_cards := _find_card_views(game).filter(func(v): return not game.screen.is_ancestor_of(v))
+	_check(picker_cards.size() == game.run.deck.filter(func(c): return c.type() == "unit").size(), "picker shows only cards the attachment fits")
+	var fitted: CardInstance = picker_cards[0].card
+	await _click(picker_cards[0])
+	_check(fitted.attachment == "sandbags" and game.run.attachments.is_empty(), "attachment fitted")
+
+	# Workshop: merge two Rifle Squads via picker -> picker -> preview -> confirm.
+	var size_before: int = game.run.deck.size()
+	await _click(_button_with(game.screen, "Choose two cards"))
+	var rifle_views := _find_card_views(game).filter(func(v): return v.card.id == "rifle_squad" and not game.screen.is_ancestor_of(v))
+	await _click(rifle_views[0])
+	await _frames(2)
+	rifle_views = _find_card_views(game).filter(func(v): return v.card.id == "rifle_squad" and not game.screen.is_ancestor_of(v) and not v.is_queued_for_deletion())
+	_check(not rifle_views.is_empty(), "second picker offers another rifle squad")
+	if not rifle_views.is_empty():
+		await _click(rifle_views[0])
+	await _frames(2)
+	await _click(_button_with(game.screen, "Merge"))
+	_check(game.run.deck.size() == size_before - 1, "merge thinned the deck")
+	_check(game.run.deck.any(func(c): return c.id == "reinforced_squad"), "recipe card created")
+	_check(_button_with(game.screen, "Continue") != null, "no jobs left after two")
 
 	print("ui smoke: %s" % ("OK" if failures == 0 else "%d failures" % failures))
 	quit(1 if failures > 0 else 0)

@@ -6,11 +6,11 @@ const FLOORS := 12
 const WIDTH := 5
 const PATHS := 4
 ## Weighted node types for floors without a fixed type.
-const WEIGHTS := {"skirmish": 45, "intel": 22, "elite": 12, "aid": 11, "quartermaster": 10}
+const WEIGHTS := {"skirmish": 42, "intel": 18, "elite": 12, "aid": 10, "quartermaster": 8, "workshop": 10}
 ## These never appear before this floor (0-based).
-const MIN_FLOOR := {"elite": 4, "aid": 4}
+const MIN_FLOOR := {"elite": 4, "aid": 4, "workshop": 2}
 ## Types that shouldn't appear twice in a row along a path.
-const NO_REPEAT := ["elite", "aid", "quartermaster"]
+const NO_REPEAT := ["elite", "aid", "quartermaster", "workshop"]
 
 
 class MapNode:
